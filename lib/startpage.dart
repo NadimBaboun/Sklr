@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 
 class StartPage extends StatelessWidget {
   const StartPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     return MaterialApp(
       home: Scaffold(
         body: Stack(
@@ -54,7 +56,7 @@ class StartPage extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 10),
-                  Container(
+                  SizedBox(
                     width: 250.0,
                     height: 50,
                     child: ElevatedButton(
@@ -83,7 +85,7 @@ class StartPage extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 20),
-                  Container(
+                  SizedBox(
                     width: 250.0,
                     height: 50,
                     child: ElevatedButton(
@@ -112,7 +114,7 @@ class StartPage extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 20),
-                  Container(
+                  SizedBox(
                     width: 250.0,
                     height: 50,
                     child: ElevatedButton(
