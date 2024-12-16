@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:sklr/startpage.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const StartPage());
 }
 
 class MyApp extends StatelessWidget {
