@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 
+import 'register.dart';
+
 class StartPage extends StatelessWidget {
   const StartPage({super.key});
 
@@ -143,20 +145,26 @@ class StartPage extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 20),
-                  InkWell(
-                    onTap: () {
-                      //navigate to register page!
-                    },
-                    child: Text(
-                      'Create an account',
-                      style: GoogleFonts.mulish(
-                        textStyle: TextStyle(
-                          color: Color(0xFF6296FF),
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
+                  Builder(
+                    builder: (context) {
+                      return InkWell(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => Register()),
+                          );
+                        },
+                        child: Text(
+                          'Create an account',
+                          style: GoogleFonts.mulish(
+                            textStyle: TextStyle(
+                              color: Color(0xFF6296FF),
+                              fontSize: 19,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),
