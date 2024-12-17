@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 
 import 'register.dart';
+import 'loginpage.dart';
 
 class StartPage extends StatelessWidget {
   const StartPage({super.key});
@@ -58,91 +59,108 @@ class StartPage extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 10),
-                  SizedBox(
-                    width: 250.0,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        //go to email login page!
-                      },
-                      style: ButtonStyle(
-                          backgroundColor:
-                              WidgetStateProperty.all(Colors.white),
-                          shape:
-                              WidgetStateProperty.all<RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: Colors.blueGrey),
-                          ))),
-                      child: Text(
-                        'Email',
-                        style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                  Builder(
+                    builder: (BuildContext context) {
+                      return SizedBox(
+                        width: 250.0,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (context) => LoginPage()),
+                            );
+                          },
+                          style: ButtonStyle(
+                            backgroundColor:
+                                WidgetStateProperty.all(Colors.white),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: BorderSide(color: Colors.blueGrey),
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Email',
+                            style: GoogleFonts.mulish(
+                              textStyle: TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                   SizedBox(height: 20),
-                  SizedBox(
-                    width: 250.0,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        //go to google login page!
-                      },
-                      style: ButtonStyle(
-                          backgroundColor:
-                              WidgetStateProperty.all(Colors.white),
-                          shape:
-                              WidgetStateProperty.all<RoundedRectangleBorder>(
+                  Builder(
+                    builder: (BuildContext context) {
+                      return SizedBox(
+                        width: 250.0,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            //go to google login page!
+                          },
+                          style: ButtonStyle(
+                              backgroundColor:
+                                  WidgetStateProperty.all(Colors.white),
+                              shape: WidgetStateProperty.all<
+                                      RoundedRectangleBorder>(
                                   RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: Colors.blueGrey),
-                          ))),
-                      child: Text(
-                        'Google',
-                        style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                                borderRadius: BorderRadius.circular(20),
+                                side: BorderSide(color: Colors.blueGrey),
+                              ))),
+                          child: Text(
+                            'Google',
+                            style: GoogleFonts.mulish(
+                              textStyle: TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                   SizedBox(height: 20),
-                  SizedBox(
-                    width: 250.0,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        //go to apple login page!
-                      },
-                      style: ButtonStyle(
-                          backgroundColor:
-                              WidgetStateProperty.all(Colors.black),
-                          shape:
-                              WidgetStateProperty.all<RoundedRectangleBorder>(
+                  Builder(
+                    builder: (BuildContext context) {
+                      return SizedBox(
+                        width: 250.0,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            //go to apple login page!
+                          },
+                          style: ButtonStyle(
+                              backgroundColor:
+                                  WidgetStateProperty.all(Colors.black),
+                              shape: WidgetStateProperty.all<
+                                      RoundedRectangleBorder>(
                                   RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: Colors.black),
-                          ))),
-                      child: Text(
-                        'Apple',
-                        style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                                borderRadius: BorderRadius.circular(20),
+                                side: BorderSide(color: Colors.black),
+                              ))),
+                          child: Text(
+                            'Apple',
+                            style: GoogleFonts.mulish(
+                              textStyle: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                   SizedBox(height: 20),
                   Builder(
