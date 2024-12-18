@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
+import 'loginpage.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});
@@ -216,7 +217,10 @@ class RegisterState extends State<Register> {
                           ),
                         ),
                         recognizer: TapGestureRecognizer()
-                          ..onTap = () => Navigator.of(context).pop(),
+                          ..onTap = () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (context) => LoginPage()),
+                              ),
                       ),
                     ],
                   ),
