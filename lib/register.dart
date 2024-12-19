@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
+import 'loginpage.dart';
+import 'HomePage.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});
@@ -30,8 +32,11 @@ class RegisterState extends State<Register> {
     return true;
   }
 
-  void registerUser() {
+  void registerUser(BuildContext context) {
     //add user to DB and navigate to home page
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => HomePage()),
+    );
   }
 
   @override
@@ -171,7 +176,7 @@ class RegisterState extends State<Register> {
                       setState(() {
                         if (registerClicked()) {
                           displayText = '';
-                          registerUser();
+                          registerUser(context);
                         }
                       });
                     },
@@ -216,7 +221,10 @@ class RegisterState extends State<Register> {
                           ),
                         ),
                         recognizer: TapGestureRecognizer()
-                          ..onTap = () => Navigator.of(context).pop(),
+                          ..onTap = () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (context) => LoginPage()),
+                              ),
                       ),
                     ],
                   ),

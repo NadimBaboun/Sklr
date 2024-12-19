@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
+import 'register.dart';
 
 
 class LoginPage extends StatefulWidget{
@@ -19,10 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build (BuildContext context){
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-        backgroundColor: const Color(0xFF6296FF),
-      ),
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Center(
@@ -49,8 +47,11 @@ class _LoginPageState extends State<LoginPage> {
                   decoration: InputDecoration(
                     hintText: "Enter email",
                     prefixIcon: const Icon(Icons.email_outlined),
+                    fillColor: Color.fromARGB(125, 207, 235, 252),
+                    filled: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
@@ -65,10 +66,14 @@ class _LoginPageState extends State<LoginPage> {
                     hintText: "Enter password",
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: const Icon(Icons.visibility_off),
+                    fillColor: Color.fromARGB(125, 207, 235, 252),
+                    filled: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
                   ),
+                  
                 ),
                 const SizedBox(height: 10),
                 //"Keep me Logged In" button
@@ -84,8 +89,11 @@ class _LoginPageState extends State<LoginPage> {
                               _keepLogIn = value ?? false;
                             });
                           },
+                        activeColor: Colors.white,
+                        checkColor: Colors.deepPurple,
+                        materialTapTargetSize: MaterialTapTargetSize.padded,
                         ),
-                        const Text("Keep me logged in"),
+                        const Text("Keep Login"),
                       ],
                     ),
                     InkWell(
@@ -95,7 +103,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: const Text(
                         "Forgot Password?",
                         style: TextStyle(
-                          color: Color(0xFF6296FF),
+                          color: Colors.deepPurple,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -112,27 +120,42 @@ class _LoginPageState extends State<LoginPage> {
                       //Add Logic here
                     }, 
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6296FF),
+                      backgroundColor: Colors.deepPurple,
                     ),
                     child: const Text("Login", style: TextStyle(color: Colors.white, fontSize: 18)),
                     ),
                 ),
                 const SizedBox(height: 20),
                 Center(
-                  child: InkWell(
-                    onTap: (){
-                      //Direct user to signup page later
-                    },
-                    child: const Text(
-                      "Don't have an account? Register",
-                      style: TextStyle(
-                        color: Color(0xFF6296FF),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      )
+                  child: RichText(
+                    text: TextSpan(
+                      text: "Don't have an account? ",
+                      style: GoogleFonts.mulish(
+                        textStyle: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      children: <TextSpan> [
+                        TextSpan(
+                          text: 'Register',
+                          style:GoogleFonts.mulish(
+                            textStyle: TextStyle(
+                              color: Colors.deepPurple,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            Navigator.of(context).push(MaterialPageRoute(builder: (context)=> Register()));
+                          }
+                        )
+                      ]
                     )
                   )
-                )
+                  )
               ],
             ),
             )

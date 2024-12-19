@@ -69,6 +69,15 @@ flutter:
       - assets/images/skillerlogo.png
       - assets/images/splash_background.png
       - assets/images/splash_image.png
+      - assets/images/paintbrush.png
+      - assets/images/marketing.png
+      - assets/images/video.png
+      - assets/images/tech.png
+      - assets/images/music.png
+      - assets/images/photography.png
+      - assets/images/design.png
+      - assets/images/ai.png
+     
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
