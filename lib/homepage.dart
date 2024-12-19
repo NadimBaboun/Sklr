@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sklr/service-categories.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -98,7 +99,12 @@ class HomePageState extends State<HomePage> {
                     builder: (context) {
                       return InkWell(
                         onTap: () {
-                          //go to service category page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ServiceCategoryPage(),
+                            ),
+                          );
                         },
                         child: Text(
                           'See All',
