@@ -1,4 +1,4 @@
-package com.example.sklr
+package com.example.plswork
 
 import io.flutter.embedding.android.FlutterActivity
 
