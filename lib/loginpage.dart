@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
+import 'package:sklr/forgot-password.dart';
 import 'register.dart';
 
 class LoginPage extends StatefulWidget {
@@ -129,7 +130,8 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     InkWell(
                       onTap: () {
-                        // Add logic for Forgot Password
+                        Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (context) => const ForgotPasswordPage()));
                       },
                       child: const Text(
                         "Forgot Password?",

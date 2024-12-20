@@ -82,6 +82,7 @@ flutter:
       - assets/images/checkmail.png
       - assets/images/illustration-smartphone.png
       - assets/images/data.png
+      - assets/images/forgot-password.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
