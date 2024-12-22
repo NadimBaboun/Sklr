@@ -17,6 +17,8 @@ class RegisterState extends State<Register> {
   String password = '';
   String confirmPassword = '';
   bool termsAccepted = false;
+  bool passwordVisible = false;
+  bool confirmPasswordVisible = false;
 
   bool registerEnabled() {
     return email.isNotEmpty &&
@@ -79,7 +81,7 @@ class RegisterState extends State<Register> {
                 const Text("Password", style: TextStyle(fontSize: 16)),
                 const SizedBox(height: 8),
                 TextField(
-                  obscureText: true,
+                  obscureText: !passwordVisible,
                   onChanged: (value) {
                     setState(() {
                       password = value;
@@ -88,7 +90,18 @@ class RegisterState extends State<Register> {
                   decoration: InputDecoration(
                     hintText: "Enter password",
                     prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: const Icon(Icons.visibility_off),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        passwordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          passwordVisible = !passwordVisible;
+                        });
+                      },
+                    ),
                     fillColor: const Color.fromARGB(125, 207, 235, 252),
                     filled: true,
                     border: OutlineInputBorder(
@@ -101,7 +114,7 @@ class RegisterState extends State<Register> {
                 const Text("Confirm Password", style: TextStyle(fontSize: 16)),
                 const SizedBox(height: 8),
                 TextField(
-                  obscureText: true,
+                  obscureText: !confirmPasswordVisible,
                   onChanged: (value) {
                     setState(() {
                       confirmPassword = value;
@@ -110,7 +123,18 @@ class RegisterState extends State<Register> {
                   decoration: InputDecoration(
                     hintText: "Confirm password",
                     prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: const Icon(Icons.visibility_off),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        confirmPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          confirmPasswordVisible = !confirmPasswordVisible;
+                        });
+                      },
+                    ),
                     fillColor: const Color.fromARGB(125, 207, 235, 252),
                     filled: true,
                     border: OutlineInputBorder(
@@ -201,22 +225,22 @@ class RegisterState extends State<Register> {
                       TextSpan(
                         text: 'Login',
                         style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
+                          textStyle: const TextStyle(
                             color: Color(0xFF6296FF),
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         recognizer: TapGestureRecognizer()
-                          ..onTap = () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const LoginPage(),
-                                ),
-                              );
-                            },
-                        ),
-                      ],
-                    ),
+                          ..onTap = () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const LoginPage(),
+                              ),
+                            );
+                          },
+                      ),
+                    ],
                   ),
                 ),
               ],
