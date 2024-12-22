@@ -215,7 +215,7 @@ class RegisterState extends State<Register> {
                         text: 'Login',
                         style: GoogleFonts.mulish(
                           textStyle: TextStyle(
-                            color: Color(0xFF6296FF),
+                            color: Color.fromARGB(255, 61, 77, 107),
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),

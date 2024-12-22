@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'Edit_Profile.dart'; // Import the Edit Profile page
+import 'package:sklr/notfication-control.dart';
+import 'package:sklr/Chose_languge.dart';
+import 'package:sklr/PrivacyPolicy.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -163,20 +166,34 @@ class _ProfilePageState extends State<ProfilePage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => EditProfilePage()),
+                        MaterialPageRoute(
+                            builder: (context) => EditProfilePage()),
                       );
                     },
                   ),
                   OptionTile(
                     icon: Icons.notifications_none,
                     title: 'Notifications',
-                    trailing: const Text('ON', style: TextStyle(color: Colors.blue)),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => NotificationSettingsScreen()),
+                      );
+                    },
                   ),
                   OptionTile(
-                    icon: Icons.language,
-                    title: 'Language',
-                    trailing: const Text('English', style: TextStyle(color: Colors.blue)),
-                  ),
+                      icon: Icons.language,
+                      title: 'Language',
+                      trailing: const Text('English',
+                          style: TextStyle(color: Colors.blue)),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => LanguageSelectionScreen()),
+                        );
+                      }),
                   const Divider(height: 20),
                   OptionTile(
                     icon: Icons.lock_outline,
@@ -185,7 +202,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   OptionTile(
                     icon: Icons.brightness_6_outlined,
                     title: 'Theme',
-                    trailing: const Text('Light mode', style: TextStyle(color: Colors.blue)),
+                    trailing: const Text('Light mode',
+                        style: TextStyle(color: Colors.blue)),
                   ),
                   const Divider(height: 20),
                   OptionTile(
@@ -199,6 +217,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   OptionTile(
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy policy',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => PrivacyPolicyPage()),
+                      );
+                    },
                   ),
                 ],
               ),
