@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/service-categories.dart';
+import 'package:sklr/Profile.dart';
+import 'package:sklr/notfication-control.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -504,6 +506,39 @@ class HomePageState extends State<HomePage> {
               ),
             ],
             onTap: (index) {
+              switch (index) {
+                case 0:
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ProfilePage()),
+                  );
+                  break;
+                case 1:
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => NotificationSettingsScreen()),
+                  );
+                  break;
+                case 2:
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ProfilePage()),
+                  );
+                  break;
+                case 3:
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ProfilePage()),
+                  );
+                  break;
+                case 4:
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ProfilePage()),
+                  );
+                  break;
+              }
               // Go to different pages based on which you choose
             },
             selectedItemColor: Color(0xFF6296FF),
