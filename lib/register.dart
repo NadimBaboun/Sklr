@@ -186,31 +186,29 @@ class RegisterState extends State<Register> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                Center(
-                  child: RichText(
-                    text: TextSpan(
-                      text: "Already have an account? ",
-                      style: GoogleFonts.mulish(
-                        textStyle: TextStyle(
-                          color: Colors.grey[700],
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                const SizedBox(height: 30),
+                RichText(
+                  text: TextSpan(
+                    text: 'Already have an account? ',
+                    style: GoogleFonts.mulish(
+                      textStyle: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
-                      children: <TextSpan>[
-                        TextSpan(
-                          text: 'Login',
-                          style: GoogleFonts.mulish(
-                            textStyle: const TextStyle(
-                              color: Color(0xFF6296FF),
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                    ),
+                    children: <TextSpan>[
+                      TextSpan(
+                        text: 'Login',
+                        style: GoogleFonts.mulish(
+                          textStyle: TextStyle(
+                            color: Color(0xFF6296FF),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () {
-                              Navigator.of(context).push(
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (context) => const LoginPage(),
                                 ),
