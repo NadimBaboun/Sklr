@@ -2,48 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Main Page',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: MainPage(),
-    );
-  }
-}
-
-class MainPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Main Page'),
-      ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => ProfilePage()),
-            );
-          },
-          child: Text('Go to Profile Page'),
-        ),
-      ),
-    );
-  }
-}
+import 'Edit_Profile.dart'; // Import the Edit Profile page
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+  const ProfilePage({super.key});
 
   @override
   _ProfilePageState createState() => _ProfilePageState();
@@ -198,6 +160,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   OptionTile(
                     icon: Icons.person_outline,
                     title: 'Edit profile information',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => EditProfilePage()),
+                      );
+                    },
                   ),
                   OptionTile(
                     icon: Icons.notifications_none,
@@ -286,13 +254,15 @@ class OptionTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final Widget? trailing;
+  final Function? onTap;
 
   const OptionTile({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     this.trailing,
-  }) : super(key: key);
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -300,7 +270,7 @@ class OptionTile extends StatelessWidget {
       leading: Icon(icon, color: Colors.grey),
       title: Text(title),
       trailing: trailing,
-      onTap: () {},
+      onTap: () => onTap?.call(),
     );
   }
 }
