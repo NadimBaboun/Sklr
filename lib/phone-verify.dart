@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/homepage.dart';
-import 'package:sklr/phone_number.dart';
+import 'package:sklr/phone-number.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 
 class PhoneVerify extends StatefulWidget {
