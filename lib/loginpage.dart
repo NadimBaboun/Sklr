@@ -4,7 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:sklr/forgot-passowrd.dart';
 import 'register.dart';
 
-class LoginPage extends StatefulWidget{
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
@@ -15,9 +15,41 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _keepLogIn = false;
+  bool isLoginEnabled = false;
 
   @override
-  Widget build (BuildContext context){
+  void initState() {
+    super.initState();
+
+    // Add listeners to email and password controllers
+    _emailController.addListener(_updateLoginButtonState);
+    _passwordController.addListener(_updateLoginButtonState);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // Method to check if the Login button should be enabled
+  void _updateLoginButtonState() {
+    setState(() {
+      isLoginEnabled = _emailController.text.isNotEmpty &&
+          _passwordController.text.isNotEmpty &&
+          _isValidEmail(_emailController.text);
+    });
+  }
+
+  // Simple email validation
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    return emailRegex.hasMatch(email);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
@@ -29,16 +61,17 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 const SizedBox(height: 20),
                 Center(
-                  child: Text('Login',
-                  style: GoogleFonts.mulish(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87, 
+                  child: Text(
+                    'Login',
+                    style: GoogleFonts.mulish(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
                 const SizedBox(height: 30),
-                //Email InputTextfield
+                // Email Input TextField
                 const Text("Email", style: TextStyle(fontSize: 16)),
                 const SizedBox(height: 8),
                 TextField(
@@ -46,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
                   decoration: InputDecoration(
                     hintText: "Enter email",
                     prefixIcon: const Icon(Icons.email_outlined),
-                    fillColor: Color.fromARGB(125, 207, 235, 252),
+                    fillColor: const Color.fromARGB(125, 207, 235, 252),
                     filled: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -55,7 +88,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                //Password InputTextfield
+                // Password Input TextField
                 const Text("Password", style: TextStyle(fontSize: 16)),
                 const SizedBox(height: 8),
                 TextField(
@@ -65,17 +98,16 @@ class _LoginPageState extends State<LoginPage> {
                     hintText: "Enter password",
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: const Icon(Icons.visibility_off),
-                    fillColor: Color.fromARGB(125, 207, 235, 252),
+                    fillColor: const Color.fromARGB(125, 207, 235, 252),
                     filled: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  
                 ),
                 const SizedBox(height: 10),
-                //"Keep me Logged In" button
+                // "Keep me Logged In" button
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -88,9 +120,9 @@ class _LoginPageState extends State<LoginPage> {
                               _keepLogIn = value ?? false;
                             });
                           },
-                        activeColor: Colors.white,
-                        checkColor: Color(0xFF6296FF),
-                        materialTapTargetSize: MaterialTapTargetSize.padded,
+                          activeColor: Colors.white,
+                          checkColor: const Color(0xFF6296FF),
+                          materialTapTargetSize: MaterialTapTargetSize.padded,
                         ),
                         const Text("Keep Login"),
                       ],
@@ -111,19 +143,25 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                //Login Button ( Add logic to log in later)
+                // Login Button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {
-                      //Add Logic here
-                    }, 
+                    onPressed: isLoginEnabled
+                        ? () {
+                            // Add login logic here
+                          }
+                        : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF6296FF),
+                      backgroundColor:
+                          isLoginEnabled ? const Color(0xFF6296FF) : Colors.grey,
                     ),
-                    child: const Text("Login", style: TextStyle(color: Colors.white, fontSize: 18)),
+                    child: const Text(
+                      "Login",
+                      style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Center(
@@ -137,28 +175,29 @@ class _LoginPageState extends State<LoginPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      children: <TextSpan> [
+                      children: <TextSpan>[
                         TextSpan(
                           text: 'Register',
-                          style:GoogleFonts.mulish(
-                            textStyle: TextStyle(
+                          style: GoogleFonts.mulish(
+                            textStyle: const TextStyle(
                               color: Color(0xFF6296FF),
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            Navigator.of(context).push(MaterialPageRoute(builder: (context)=> Register()));
-                          }
+                            ..onTap = () {
+                              Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (context) => const Register()));
+                            },
                         )
-                      ]
-                    )
-                  )
-                  )
+                      ],
+                    ),
+                  ),
+                )
               ],
             ),
-            )
+          ),
         ),
       ),
     );

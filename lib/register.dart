@@ -16,24 +16,19 @@ class RegisterState extends State<Register> {
   String email = '';
   String password = '';
   String confirmPassword = '';
-  String displayText = '';
+  bool termsAccepted = false;
+  bool passwordVisible = false;
+  bool confirmPasswordVisible = false;
 
-  bool registerClicked() {
-    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      displayText = 'Please fill all neccessary information';
-      return false;
-    }
-
-    if (password != confirmPassword) {
-      displayText = 'Passwords do not match';
-      return false;
-    }
-
-    return true;
+  bool registerEnabled() {
+    return email.isNotEmpty &&
+        password.isNotEmpty &&
+        confirmPassword.isNotEmpty &&
+        password == confirmPassword &&
+        termsAccepted;
   }
 
   void registerUser(BuildContext context) {
-    //add user to DB and navigate to home page
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => HomePage()),
     );
@@ -43,159 +38,175 @@ class RegisterState extends State<Register> {
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        centerTitle: false,
-        leadingWidth: 25,
-        title: Builder(
-          builder: (context) {
-            return InkWell(
-              onTap: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                'Back',
-                style: GoogleFonts.mulish(
-                  textStyle: TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-      body: Stack(
-        children: [
-          Container(
-            color: Colors.white,
-          ),
-          Center(
+      backgroundColor: Colors.white,
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: SingleChildScrollView(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 30),
-                Text(
-                  'Register',
-                  style: GoogleFonts.mulish(
-                    textStyle: TextStyle(
-                      color: Colors.black,
+                const SizedBox(height: 20),
+                Center(
+                  child: Text(
+                    'Register',
+                    style: GoogleFonts.mulish(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
-                const SizedBox(height: 70),
-                SizedBox(
-                  width: 360.0,
-                  height: 52,
-                  child: TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        email = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      prefixIcon: Icon(Icons.email_outlined),
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 0,
-                        horizontal: 20,
+                const SizedBox(height: 30),
+                const Text("Email", style: TextStyle(fontSize: 16)),
+                const SizedBox(height: 8),
+                TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      email = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: "Enter email",
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    fillColor: const Color.fromARGB(125, 207, 235, 252),
+                    filled: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text("Password", style: TextStyle(fontSize: 16)),
+                const SizedBox(height: 8),
+                TextField(
+                  obscureText: !passwordVisible,
+                  onChanged: (value) {
+                    setState(() {
+                      password = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: "Enter password",
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        passwordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
-                      border: OutlineInputBorder(),
-                      hintText: 'Enter email',
+                      onPressed: () {
+                        setState(() {
+                          passwordVisible = !passwordVisible;
+                        });
+                      },
+                    ),
+                    fillColor: const Color.fromARGB(125, 207, 235, 252),
+                    filled: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
-                const SizedBox(height: 50),
-                SizedBox(
-                  width: 360.0,
-                  height: 52,
-                  child: TextField(
-                    obscureText: true,
-                    enableSuggestions: false,
-                    autocorrect: false,
-                    onChanged: (value) {
-                      setState(() {
-                        password = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      prefixIcon: Icon(Icons.lock_open),
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 0,
-                        horizontal: 20,
+                const SizedBox(height: 20),
+                const Text("Confirm Password", style: TextStyle(fontSize: 16)),
+                const SizedBox(height: 8),
+                TextField(
+                  obscureText: !confirmPasswordVisible,
+                  onChanged: (value) {
+                    setState(() {
+                      confirmPassword = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: "Confirm password",
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        confirmPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
-                      border: OutlineInputBorder(),
-                      hintText: 'Enter password',
+                      onPressed: () {
+                        setState(() {
+                          confirmPasswordVisible = !confirmPasswordVisible;
+                        });
+                      },
+                    ),
+                    fillColor: const Color.fromARGB(125, 207, 235, 252),
+                    filled: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
-                const SizedBox(height: 50),
-                SizedBox(
-                  width: 360.0,
-                  height: 52,
-                  child: TextField(
-                    obscureText: true,
-                    enableSuggestions: false,
-                    autocorrect: false,
-                    onChanged: (value) {
-                      setState(() {
-                        confirmPassword = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      prefixIcon: Icon(Icons.lock_outline_rounded),
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 0,
-                        horizontal: 20,
-                      ),
-                      border: OutlineInputBorder(),
-                      hintText: 'Confirm password',
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: termsAccepted,
+                          onChanged: (value) {
+                            setState(() {
+                              termsAccepted = value ?? false;
+                            });
+                          },
+                          activeColor: Colors.white,
+                          checkColor: const Color(0xFF6296FF),
+                          materialTapTargetSize: MaterialTapTargetSize.padded,
+                        ),
+                        const Text("I agree to the"),
+                      ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  displayText,
-                  style: GoogleFonts.mulish(
-                    textStyle: TextStyle(
-                      color: Colors.red,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 70),
-                SizedBox(
-                  width: 250.0,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        if (registerClicked()) {
-                          displayText = '';
-                          registerUser(context);
-                        }
-                      });
-                    },
-                    style: ButtonStyle(
-                        backgroundColor: WidgetStateProperty.all(Colors.white),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                            RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(color: Colors.blueGrey),
-                        ))),
-                    child: Text(
-                      'Register',
-                      style: GoogleFonts.mulish(
-                        textStyle: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                    Flexible(
+                      child: RichText(
+                        text: TextSpan(
+                          text: 'Terms of Service ',
+                          style: const TextStyle(
+                            color: Color(0xFF6296FF),
+                            fontWeight: FontWeight.bold,
+                          ),
+                          children: [
+                            const TextSpan(
+                              text: 'and ',
+                              style: TextStyle(color: Colors.black),
+                            ),
+                            TextSpan(
+                              text: 'Privacy Policy',
+                              style: const TextStyle(
+                                color: Color(0xFF6296FF),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: registerEnabled()
+                        ? () {
+                            registerUser(context);
+                          }
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: registerEnabled()
+                          ? const Color(0xFF6296FF)
+                          : Colors.grey,
+                    ),
+                    child: const Text(
+                      "Register",
+                      style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
                   ),
                 ),
@@ -214,17 +225,20 @@ class RegisterState extends State<Register> {
                       TextSpan(
                         text: 'Login',
                         style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
-                            color: Color.fromARGB(255, 61, 77, 107),
+                          textStyle: const TextStyle(
+                            color: Color(0xFF6296FF),
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         recognizer: TapGestureRecognizer()
-                          ..onTap = () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                    builder: (context) => LoginPage()),
+                          ..onTap = () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const LoginPage(),
                               ),
+                            );
+                          },
                       ),
                     ],
                   ),
@@ -232,7 +246,7 @@ class RegisterState extends State<Register> {
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
