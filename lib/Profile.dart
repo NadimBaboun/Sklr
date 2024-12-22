@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'Edit_Profile.dart'; // Import the Edit Profile page
 import 'package:sklr/notfication-control.dart';
-import 'package:sklr/Chose_languge.dart';
+import 'package:sklr/Choose-languge.dart';
 import 'package:sklr/PrivacyPolicy.dart';
 
 class ProfilePage extends StatefulWidget {
