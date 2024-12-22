@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
+import 'package:sklr/forgot-passowrd.dart';
 import 'register.dart';
-
 
 class LoginPage extends StatefulWidget{
   const LoginPage({super.key});
@@ -89,7 +89,7 @@ class _LoginPageState extends State<LoginPage> {
                             });
                           },
                         activeColor: Colors.white,
-                        checkColor: Colors.deepPurple,
+                        checkColor: Color(0xFF6296FF),
                         materialTapTargetSize: MaterialTapTargetSize.padded,
                         ),
                         const Text("Keep Login"),
@@ -97,12 +97,13 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     InkWell(
                       onTap: () {
-                        // Add Logic to Forgot Password
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => const ForgotPasswordPage()));
                       },
                       child: const Text(
                         "Forgot Password?",
                         style: TextStyle(
-                          color: Colors.deepPurple,
+                          color: Color(0xFF6296FF),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -119,7 +120,7 @@ class _LoginPageState extends State<LoginPage> {
                       //Add Logic here
                     }, 
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
+                      backgroundColor: Color(0xFF6296FF),
                     ),
                     child: const Text("Login", style: TextStyle(color: Colors.white, fontSize: 18)),
                     ),
@@ -141,7 +142,7 @@ class _LoginPageState extends State<LoginPage> {
                           text: 'Register',
                           style:GoogleFonts.mulish(
                             textStyle: TextStyle(
-                              color: Colors.deepPurple,
+                              color: Color(0xFF6296FF),
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
