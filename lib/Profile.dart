@@ -221,7 +221,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => PrivacyPolicyPage()),
+                            builder: (context) => PrivacyPolicy()),
                       );
                     },
                   ),
