@@ -7,6 +7,9 @@ class ForgotPasswordPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isLargeScreen = size.width > 600;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -15,13 +18,14 @@ class ForgotPasswordPage extends StatelessWidget {
           onPressed: () {
             Navigator.pop(context);
           },
+          tooltip: 'Back',
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Center(
           child: SingleChildScrollView(
             child: Column(
@@ -31,15 +35,15 @@ class ForgotPasswordPage extends StatelessWidget {
                 // Image/Icon
                 Image.asset(
                   "assets/images/forgot-password.png",
-                  height: 200,
-                  width: 200,
+                  height: isLargeScreen ? 300 : 200,
+                  width: isLargeScreen ? 300 : 200,
                 ),
                 const SizedBox(height: 24),
                 // Title
                 Text(
                   'Forgot Password?',
                   style: GoogleFonts.mulish(
-                    fontSize: 28,
+                    fontSize: isLargeScreen ? 32 : 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
@@ -50,12 +54,12 @@ class ForgotPasswordPage extends StatelessWidget {
                   "Don't worry! It happens. Please enter the email associated with your account.",
                   textAlign: TextAlign.center,
                   style: GoogleFonts.mulish(
-                    fontSize: 16,
+                    fontSize: isLargeScreen ? 18 : 16,
                     color: Colors.grey[700],
                   ),
                 ),
                 const SizedBox(height: 30),
-                // Email Input TextField
+                // Email Input Label
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -64,6 +68,7 @@ class ForgotPasswordPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
+                // Email Input Field
                 TextField(
                   decoration: InputDecoration(
                     hintText: "Enter email",
@@ -109,3 +114,4 @@ class ForgotPasswordPage extends StatelessWidget {
     );
   }
 }
+// responsive check done 

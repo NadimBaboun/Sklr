@@ -11,6 +11,11 @@ class StartPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+    // Getting screen width and height
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
+
     return MaterialApp(
       home: Scaffold(
         body: Stack(
@@ -19,172 +24,168 @@ class StartPage extends StatelessWidget {
               color: Colors.white,
             ),
             Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  SizedBox(height: 100),
-                  Text(
-                    'Sklr',
-                    style: GoogleFonts.averiaSansLibre(
-                      textStyle: TextStyle(
-                        color: Color(0xFF6296FF),
-                        fontSize: 74,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SizedBox(height: screenHeight * 0.1), // 10% of screen height
+                    Text(
+                      'Sklr',
+                      style: GoogleFonts.averiaSansLibre(
+                        textStyle: TextStyle(
+                          color: Color(0xFF6296FF),
+                          fontSize: screenWidth * 0.2, // 20% of screen width
+                        ),
                       ),
                     ),
-                  ),
-                  Text(
-                    'Share. Learn. Repeat',
-                    style: GoogleFonts.mulish(
-                      textStyle: TextStyle(
-                        color: Colors.black,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                    Text(
+                      'Share. Learn. Repeat',
+                      style: GoogleFonts.mulish(
+                        textStyle: TextStyle(
+                          color: Colors.black,
+                          fontSize: screenWidth * 0.04, // 4% of screen width
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                  Image.asset(
-                    'assets/images/skillerlogo.png',
-                    height: 300,
-                    width: 300,
-                    fit: BoxFit.cover,
-                  ),
-                  Text(
-                    'Login with...',
-                    style: GoogleFonts.mulish(
-                      textStyle: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    Image.asset(
+                      'assets/images/skillerlogo.png',
+                      height: screenWidth * 0.6, // 60% of screen width
+                      width: screenWidth * 0.6,  // 60% of screen width
+                      fit: BoxFit.cover,
+                    ),
+                    Text(
+                      'Login with...',
+                      style: GoogleFonts.mulish(
+                        textStyle: TextStyle(
+                          color: Colors.black,
+                          fontSize: screenWidth * 0.05, // 5% of screen width
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: 10),
-                  Builder(
-                    builder: (BuildContext context) {
-                      return SizedBox(
-                        width: 250.0,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {
+                    SizedBox(height: screenHeight * 0.02), // 2% of screen height
+                    Builder(
+                      builder: (BuildContext context) {
+                        return SizedBox(
+                          width: screenWidth * 0.7, // 70% of screen width
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (context) => LoginPage()),
+                              );
+                            },
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all(Colors.white),
+                              shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: BorderSide(color: Colors.blueGrey),
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              'Email',
+                              style: GoogleFonts.mulish(
+                                textStyle: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: screenWidth * 0.04, // 4% of screen width
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    SizedBox(height: screenHeight * 0.02), // 2% of screen height
+                    Builder(
+                      builder: (BuildContext context) {
+                        return SizedBox(
+                          width: screenWidth * 0.7, // 70% of screen width
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              //go to google login page!
+                            },
+                            style: ButtonStyle(
+                                backgroundColor: MaterialStateProperty.all(Colors.white),
+                                shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: BorderSide(color: Colors.blueGrey),
+                                ))),
+                            child: Text(
+                              'Google',
+                              style: GoogleFonts.mulish(
+                                textStyle: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: screenWidth * 0.04, // 4% of screen width
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    SizedBox(height: screenHeight * 0.02), // 2% of screen height
+                    Builder(
+                      builder: (BuildContext context) {
+                        return SizedBox(
+                          width: screenWidth * 0.7, // 70% of screen width
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              //go to apple login page!
+                            },
+                            style: ButtonStyle(
+                                backgroundColor: MaterialStateProperty.all(Colors.black),
+                                shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: BorderSide(color: Colors.black),
+                                ))),
+                            child: Text(
+                              'Apple',
+                              style: GoogleFonts.mulish(
+                                textStyle: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: screenWidth * 0.04, // 4% of screen width
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    SizedBox(height: screenHeight * 0.02), // 2% of screen height
+                    Builder(
+                      builder: (context) {
+                        return InkWell(
+                          onTap: () {
                             Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (context) => LoginPage()),
+                              MaterialPageRoute(builder: (context) => Register()),
                             );
                           },
-                          style: ButtonStyle(
-                            backgroundColor:
-                                WidgetStateProperty.all(Colors.white),
-                            shape:
-                                WidgetStateProperty.all<RoundedRectangleBorder>(
-                              RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                side: BorderSide(color: Colors.blueGrey),
-                              ),
-                            ),
-                          ),
                           child: Text(
-                            'Email',
+                            'Create an account',
                             style: GoogleFonts.mulish(
                               textStyle: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
+                                color: Color(0xFF6296FF),
+                                fontSize: screenWidth * 0.05, // 5% of screen width
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  SizedBox(height: 20),
-                  Builder(
-                    builder: (BuildContext context) {
-                      return SizedBox(
-                        width: 250.0,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            //go to google login page!
-                          },
-                          style: ButtonStyle(
-                              backgroundColor:
-                                  WidgetStateProperty.all(Colors.white),
-                              shape: WidgetStateProperty.all<
-                                      RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                side: BorderSide(color: Colors.blueGrey),
-                              ))),
-                          child: Text(
-                            'Google',
-                            style: GoogleFonts.mulish(
-                              textStyle: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  SizedBox(height: 20),
-                  Builder(
-                    builder: (BuildContext context) {
-                      return SizedBox(
-                        width: 250.0,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            //go to apple login page!
-                          },
-                          style: ButtonStyle(
-                              backgroundColor:
-                                  WidgetStateProperty.all(Colors.black),
-                              shape: WidgetStateProperty.all<
-                                      RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                side: BorderSide(color: Colors.black),
-                              ))),
-                          child: Text(
-                            'Apple',
-                            style: GoogleFonts.mulish(
-                              textStyle: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  SizedBox(height: 20),
-                  Builder(
-                    builder: (context) {
-                      return InkWell(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => Register()),
-                          );
-                        },
-                        child: Text(
-                          'Create an account',
-                          style: GoogleFonts.mulish(
-                            textStyle: TextStyle(
-                              color: Color(0xFF6296FF),
-                              fontSize: 19,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -193,3 +194,5 @@ class StartPage extends StatelessWidget {
     );
   }
 }
+
+//responsive check done 
