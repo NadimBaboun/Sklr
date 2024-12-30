@@ -1,0 +1,32 @@
+-- SQLite Script for Database: Sklr
+
+BEGIN TRANSACTION;
+
+-- Table structure for table `users`
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  first_name TEXT,
+  last_name TEXT,
+  age INTEGER,
+  gender TEXT CHECK(gender IN ('Male', 'Female', 'Other')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Dumping data for table `users`
+INSERT INTO users (id, username, email, password, first_name, last_name, age, gender, created_at, updated_at) VALUES
+(1, 'john_doe', 'john.doe@example.com', 'hashed_password_1', 'John', 'Doe', 25, 'Male', '2024-12-30 14:59:44', '2024-12-30 14:59:44'),
+(2, 'jane_smith', 'jane.smith@example.com', 'hashed_password_2', 'Jane', 'Smith', 28, 'Female', '2024-12-30 14:59:44', '2024-12-30 14:59:44'),
+(3, 'sam_wilson', 'sam.wilson@example.com', 'hashed_password_3', 'Sam', 'Wilson', 30, 'Male', '2024-12-30 14:59:44', '2024-12-30 14:59:44'),
+(4, 'lisa_jones', 'lisa.jones@example.com', 'hashed_password_4', 'Lisa', 'Jones', 22, 'Female', '2024-12-30 14:59:44', '2024-12-30 14:59:44'),
+(5, 'michael_brown', 'michael.brown@example.com', 'hashed_password_5', 'Michael', 'Brown', 35, 'Male', '2024-12-30 14:59:44', '2024-12-30 14:59:44'),
+(6, 'anna_white', 'anna.white@example.com', 'hashed_password_6', 'Anna', 'White', 27, 'Female', '2024-12-30 14:59:44', '2024-12-30 14:59:44'),
+(7, 'david_lee', 'david.lee@example.com', 'hashed_password_7', 'David', 'Lee', 29, 'Male', '2024-12-30 14:59:44', '2024-12-30 14:59:44'),
+(8, 'susan_clark', 'susan.clark@example.com', 'hashed_password_8', 'Susan', 'Clark', 24, 'Female', '2024-12-30 14:59:44', '2024-12-30 14:59:44'),
+(9, 'paul_adams', 'paul.adams@example.com', 'hashed_password_9', 'Paul', 'Adams', 32, 'Male', '2024-12-30 14:59:44', '2024-12-30 14:59:44'),
+(10, 'nina_green', 'nina.green@example.com', 'hashed_password_10', 'Nina', 'Green', 26, 'Female', '2024-12-30 14:59:44', '2024-12-30 14:59:44');
+
+COMMIT;

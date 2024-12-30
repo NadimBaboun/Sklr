@@ -51,7 +51,8 @@ class HomePage extends StatelessWidget {
                       // Adjusting the Search Bar
                       Flexible(
                         child: SizedBox(
-                          width: constraints.maxWidth * 0.8,  // Dynamic width (80% of screen width)
+                          width: constraints.maxWidth *
+                              0.8, // Dynamic width (80% of screen width)
                           child: TextField(
                             onChanged: (value) {
                               // search term
@@ -70,7 +71,8 @@ class HomePage extends StatelessWidget {
                               hintStyle: GoogleFonts.lexend(
                                 textStyle: TextStyle(
                                   color: Colors.grey[500],
-                                  fontSize: constraints.maxWidth > 600 ? 18 : 16,
+                                  fontSize:
+                                      constraints.maxWidth > 600 ? 18 : 16,
                                 ),
                               ),
                             ),
@@ -246,7 +248,7 @@ class HomePage extends StatelessWidget {
           ),
         ],
         onTap: (index) {
-          // Navigate to respective pages
+          // Handle navigation
         },
         selectedItemColor: const Color(0xFF6296FF),
         unselectedItemColor: Colors.grey,

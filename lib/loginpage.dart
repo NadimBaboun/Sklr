@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
-import 'package:sklr/forgot-passowrd.dart';
+import 'package:sklr/forgot-passowrd.dart'; // Corrected filename
 import 'register.dart';
+import 'database/database.dart'; // Import the database helper
+import 'package:sqflite/sqflite.dart'; // Import sqflite to access the database
+import 'package:sklr/homepage.dart';
+import 'package:sklr/register.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,6 +22,9 @@ class _LoginPageState extends State<LoginPage> {
   bool isLoginEnabled = false;
   bool _isPasswordVisible = false;
 
+  // Database instance
+  late Database database;
+
   @override
   void initState() {
     super.initState();
@@ -25,6 +32,9 @@ class _LoginPageState extends State<LoginPage> {
     // Add listeners to email and password controllers
     _emailController.addListener(_updateLoginButtonState);
     _passwordController.addListener(_updateLoginButtonState);
+
+    // Initialize the database
+    _initializeDatabase();
   }
 
   @override
@@ -49,6 +59,39 @@ class _LoginPageState extends State<LoginPage> {
     return emailRegex.hasMatch(email);
   }
 
+  // Initialize the database
+  Future<void> _initializeDatabase() async {
+    database = (await DatabaseHelper.initializeDatabase()) as Database;
+  }
+
+  // Method to check login credentials
+  Future<void> _checkLogin() async {
+    String email = _emailController.text;
+    String password = _passwordController.text;
+
+    // Query the database for a matching user
+    List<Map<String, dynamic>> result = await database.query(
+      'users',
+      where: 'email = ? AND password = ?',
+      whereArgs: [email, password],
+    );
+
+    // If a matching user is found, navigate to the next page
+    if (result.isNotEmpty) {
+      // Successfully logged in
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Login Successful")),
+      );
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => const HomePage()));
+    } else {
+      // Invalid credentials
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Invalid email or password")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Get screen width to adjust layout based on screen size
@@ -59,7 +102,8 @@ class _LoginPageState extends State<LoginPage> {
       body: Padding(
         padding: screenWidth < 600
             ? const EdgeInsets.all(16)
-            : const EdgeInsets.symmetric(horizontal: 50, vertical: 30), // Responsive padding
+            : const EdgeInsets.symmetric(
+                horizontal: 50, vertical: 30), // Responsive padding
         child: Center(
           child: SingleChildScrollView(
             child: Column(
@@ -70,7 +114,8 @@ class _LoginPageState extends State<LoginPage> {
                   child: Text(
                     'Login',
                     style: GoogleFonts.mulish(
-                      fontSize: screenWidth < 600 ? 32 : 40, // Responsive font size
+                      fontSize:
+                          screenWidth < 600 ? 32 : 40, // Responsive font size
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -111,7 +156,8 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       onPressed: () {
                         setState(() {
-                          _isPasswordVisible = !_isPasswordVisible; // Toggle password visibility
+                          _isPasswordVisible =
+                              !_isPasswordVisible; // Toggle visibility
                         });
                       },
                     ),
@@ -123,97 +169,88 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                // "Keep me Logged In" button
+                const SizedBox(height: 20),
+                // "Keep me logged in" Checkbox
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: _keepLogIn,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              _keepLogIn = value ?? false;
-                            });
-                          },
-                          activeColor: Colors.white,
-                          checkColor: const Color(0xFF6296FF),
-                          materialTapTargetSize: MaterialTapTargetSize.padded,
-                        ),
-                        const Text("Keep Login"),
-                      ],
-                    ),
-                    InkWell(
-                      onTap: () {
-                        Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) => const ForgotPasswordPage()));
+                    Checkbox(
+                      value: _keepLogIn,
+                      onChanged: (value) {
+                        setState(() {
+                          _keepLogIn = value!;
+                        });
                       },
-                      child: const Text(
-                        "Forgot Password?",
-                        style: TextStyle(
-                          color: Color(0xFF6296FF),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                     ),
+                    const Text("Keep me logged in"),
                   ],
                 ),
                 const SizedBox(height: 20),
                 // Login Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
+                Center(
                   child: ElevatedButton(
-                    onPressed: isLoginEnabled
-                        ? () {
-                            // Add login logic here
-                          }
-                        : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          isLoginEnabled ? const Color(0xFF6296FF) : Colors.grey,
+                      backgroundColor: Colors.blue,
+                      minimumSize: const Size.fromHeight(50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: Text(
-                      "Login",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: screenWidth < 600 ? 18 : 20), // Responsive font size
-                    ),
+                    onPressed: isLoginEnabled ? _checkLogin : null,
+                    child: const Text("Login"),
                   ),
                 ),
                 const SizedBox(height: 20),
+                // "Forgot Password?" Text
                 Center(
-                  child: RichText(
-                    text: TextSpan(
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.black87,
+                      textStyle: GoogleFonts.mulish(
+                        fontSize: 16,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordPage(),
+                        ),
+                      );
+                    },
+                    child: const Text("Forgot Password?"),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // "Don't have an account? Sign up" Text
+                Center(
+                  child: Text.rich(
+                    TextSpan(
                       text: "Don't have an account? ",
                       style: GoogleFonts.mulish(
-                        textStyle: TextStyle(
-                          color: Colors.grey[700],
-                          fontSize: screenWidth < 600 ? 16 : 18, // Responsive font size
-                          fontWeight: FontWeight.bold,
-                        ),
+                        fontSize: 16,
                       ),
-                      children: <TextSpan>[
+                      children: [
                         TextSpan(
-                          text: 'Register',
+                          text: "Sign up",
                           style: GoogleFonts.mulish(
-                            textStyle: TextStyle(
-                              color: const Color(0xFF6296FF),
-                              fontSize: screenWidth < 600 ? 16 : 18, // Responsive font size
-                              fontWeight: FontWeight.bold,
-                            ),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
                           ),
                           recognizer: TapGestureRecognizer()
                             ..onTap = () {
-                              Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (context) => const Register()));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const Register(),
+                                ),
+                              );
                             },
-                        )
+                        ),
                       ],
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -222,4 +259,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-// responsive check done 
