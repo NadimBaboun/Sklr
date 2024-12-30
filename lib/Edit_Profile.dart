@@ -41,7 +41,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ? '${country['idd']['root']}${(country['idd']['suffixes'] ?? [''])[0]}'
                         : '',
                   })
-              .where((country) => country['dial_code'] != null && country['dial_code']!.isNotEmpty)
+              .where((country) =>
+                  country['dial_code'] != null && country['dial_code']!.isNotEmpty)
               .toList();
           _selectedCountry = _countries.first['name'];
           _countryDialCode = _countries.first['dial_code']!;
@@ -54,39 +55,46 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isLargeScreen = size.width > 600;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Edit Profile'),
+        title: const Text('Edit Profile'),
+        centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: EdgeInsets.symmetric(
+          horizontal: isLargeScreen ? 40.0 : 20.0,
+        ),
         child: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Full Name
               TextField(
                 controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Full name',
-                ),
+                decoration: const InputDecoration(labelText: 'Full name'),
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
+
+              // Nickname
               TextField(
                 controller: _nicknameController,
-                decoration: InputDecoration(
-                  labelText: 'Nick name',
-                ),
+                decoration: const InputDecoration(labelText: 'Nick name'),
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
+
+              // Email
               TextField(
                 controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                ),
+                decoration: const InputDecoration(labelText: 'Email'),
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
+
+              // Phone Number with Dial Code
               Row(
                 children: [
-                  // Dial Code Display
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
@@ -95,23 +103,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                     child: Text(
                       _countryDialCode,
-                      style: TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 16),
                     ),
                   ),
-                  SizedBox(width: 10),
-                  // Phone Number Input
+                  const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: 'Phone number',
-                      ),
+                      decoration:
+                          const InputDecoration(labelText: 'Phone number'),
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
+
+              // Country Selector
               _countries.isNotEmpty
                   ? DropdownButtonFormField<String>(
                       value: _selectedCountry,
@@ -129,12 +137,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 child: Text(country['name']!),
                               ))
                           .toList(),
-                      decoration: InputDecoration(
-                        labelText: 'Country',
-                      ),
+                      decoration: const InputDecoration(labelText: 'Country'),
                     )
-                  : CircularProgressIndicator(),
-              SizedBox(height: 15),
+                  : const Center(child: CircularProgressIndicator()),
+              const SizedBox(height: 15),
+
+              // Gender Selector
               DropdownButtonFormField<String>(
                 value: _selectedGender,
                 onChanged: (value) {
@@ -148,23 +156,31 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           child: Text(gender),
                         ))
                     .toList(),
-                decoration: InputDecoration(
-                  labelText: 'Gender',
-                ),
+                decoration: const InputDecoration(labelText: 'Gender'),
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
+
+              // Address
               TextField(
                 controller: _addressController,
-                decoration: InputDecoration(
-                  labelText: 'Address',
-                ),
+                decoration: const InputDecoration(labelText: 'Address'),
               ),
-              SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () {
-                  // Handle form submission logic
-                },
-                child: Text('Submit'),
+              const SizedBox(height: 30),
+
+              // Submit Button
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Handle form submission
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isLargeScreen ? 50.0 : 30.0,
+                      vertical: 15.0,
+                    ),
+                  ),
+                  child: const Text('Submit'),
+                ),
               ),
             ],
           ),
@@ -173,3 +189,4 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 }
+//responsive check done 

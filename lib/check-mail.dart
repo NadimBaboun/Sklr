@@ -1,39 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class CheckMailPage extends StatefulWidget{
-  const CheckMailPage({super.key});
+class CheckMailPage extends StatefulWidget {
+  const CheckMailPage({Key? key}) : super(key: key);
 
   @override
-  _CheckMailStatePage createState() => _CheckMailStatePage();
+  _CheckMailPageState createState() => _CheckMailPageState();
 }
 
-class _CheckMailStatePage extends State<CheckMailPage>{
+class _CheckMailPageState extends State<CheckMailPage> {
+  @override
+  Widget build(BuildContext context) {
+    // Retrieve screen dimensions
+    final size = MediaQuery.of(context).size;
 
-@override
-Widget build(BuildContext context){
-  return Scaffold(
-    backgroundColor: Colors.white,
-    body: Center(
-        child: Padding(
+    // Dynamic sizing based on screen width
+    final isLargeScreen = size.width > 600;
+    final imageSize = isLargeScreen ? size.width * 0.4 : size.width * 0.8;
+    final fontSize = isLargeScreen ? 22.0 : 18.0;
+    final buttonPadding = isLargeScreen
+        ? const EdgeInsets.symmetric(vertical: 18, horizontal: 40)
+        : const EdgeInsets.symmetric(vertical: 15, horizontal: 30);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Image.asset(
-                'assets/images/checkmail.png', 
-                height: 450,
-                width: 450,
+                'assets/images/checkmail.png',
+                height: imageSize,
+                width: imageSize,
                 fit: BoxFit.contain,
               ),
               const SizedBox(height: 20),
               Text(
                 "We have sent password recovery instructions to your email.",
                 style: GoogleFonts.mulish(
-                  textStyle: const TextStyle(
-                    fontSize: 18,
+                  textStyle: TextStyle(
+                    fontSize: fontSize,
                     color: Colors.grey,
                     fontWeight: FontWeight.bold,
                   ),
@@ -46,16 +55,16 @@ Widget build(BuildContext context){
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6296FF),
+                  backgroundColor: const Color(0xFF6296FF),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+                  padding: buttonPadding,
                 ),
-                child: const Text(
+                child: Text(
                   "Finish",
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: isLargeScreen ? 18 : 16,
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
@@ -68,3 +77,4 @@ Widget build(BuildContext context){
     );
   }
 }
+//responsive check done 

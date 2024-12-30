@@ -16,6 +16,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   bool _keepLogIn = false;
   bool isLoginEnabled = false;
+  bool _isPasswordVisible = false;
 
   @override
   void initState() {
@@ -50,10 +51,15 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen width to adjust layout based on screen size
+    double screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: screenWidth < 600
+            ? const EdgeInsets.all(16)
+            : const EdgeInsets.symmetric(horizontal: 50, vertical: 30), // Responsive padding
         child: Center(
           child: SingleChildScrollView(
             child: Column(
@@ -64,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: Text(
                     'Login',
                     style: GoogleFonts.mulish(
-                      fontSize: 32,
+                      fontSize: screenWidth < 600 ? 32 : 40, // Responsive font size
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -93,11 +99,22 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: !_isPasswordVisible, // Toggle visibility
                   decoration: InputDecoration(
                     hintText: "Enter password",
                     prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: const Icon(Icons.visibility_off),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible; // Toggle password visibility
+                        });
+                      },
+                    ),
                     fillColor: const Color.fromARGB(125, 207, 235, 252),
                     filled: true,
                     border: OutlineInputBorder(
@@ -157,9 +174,11 @@ class _LoginPageState extends State<LoginPage> {
                       backgroundColor:
                           isLoginEnabled ? const Color(0xFF6296FF) : Colors.grey,
                     ),
-                    child: const Text(
+                    child: Text(
                       "Login",
-                      style: TextStyle(color: Colors.white, fontSize: 18),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: screenWidth < 600 ? 18 : 20), // Responsive font size
                     ),
                   ),
                 ),
@@ -171,7 +190,7 @@ class _LoginPageState extends State<LoginPage> {
                       style: GoogleFonts.mulish(
                         textStyle: TextStyle(
                           color: Colors.grey[700],
-                          fontSize: 16,
+                          fontSize: screenWidth < 600 ? 16 : 18, // Responsive font size
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -179,9 +198,9 @@ class _LoginPageState extends State<LoginPage> {
                         TextSpan(
                           text: 'Register',
                           style: GoogleFonts.mulish(
-                            textStyle: const TextStyle(
-                              color: Color(0xFF6296FF),
-                              fontSize: 16,
+                            textStyle: TextStyle(
+                              color: const Color(0xFF6296FF),
+                              fontSize: screenWidth < 600 ? 16 : 18, // Responsive font size
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -203,3 +222,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+// responsive check done 

@@ -28,6 +28,10 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isLargeScreen = size.width > 600;
+    final horizontalPadding = isLargeScreen ? 32.0 : 16.0;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -44,7 +48,10 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: 8,
+        ),
         children: [
           // Suggested Section
           const Text(
@@ -86,88 +93,37 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
               color: Colors.black,
             ),
           ),
-          RadioListTile<String>(
-            title: const Text("Mandarin"),
-            value: "Mandarin",
-            groupValue: selectedLanguage,
-            onChanged: (value) {
-              setState(() {
-                selectedLanguage = value!;
-              });
-            },
-          ),
-          RadioListTile<String>(
-            title: const Text("Hindi"),
-            value: "Hindi",
-            groupValue: selectedLanguage,
-            onChanged: (value) {
-              setState(() {
-                selectedLanguage = value!;
-              });
-            },
-          ),
-          RadioListTile<String>(
-            title: const Text("Spanish"),
-            value: "Spanish",
-            groupValue: selectedLanguage,
-            onChanged: (value) {
-              setState(() {
-                selectedLanguage = value!;
-              });
-            },
-          ),
-          RadioListTile<String>(
-            title: const Text("French"),
-            value: "French",
-            groupValue: selectedLanguage,
-            onChanged: (value) {
-              setState(() {
-                selectedLanguage = value!;
-              });
-            },
-          ),
-          RadioListTile<String>(
-            title: const Text("Arabic"),
-            value: "Arabic",
-            groupValue: selectedLanguage,
-            onChanged: (value) {
-              setState(() {
-                selectedLanguage = value!;
-              });
-            },
-          ),
-          RadioListTile<String>(
-            title: const Text("Russian"),
-            value: "Russian",
-            groupValue: selectedLanguage,
-            onChanged: (value) {
-              setState(() {
-                selectedLanguage = value!;
-              });
-            },
-          ),
-          RadioListTile<String>(
-            title: const Text("Indonesia"),
-            value: "Indonesia",
-            groupValue: selectedLanguage,
-            onChanged: (value) {
-              setState(() {
-                selectedLanguage = value!;
-              });
-            },
-          ),
-          RadioListTile<String>(
-            title: const Text("Vietnamese"),
-            value: "Vietnamese",
-            groupValue: selectedLanguage,
-            onChanged: (value) {
-              setState(() {
-                selectedLanguage = value!;
-              });
-            },
-          ),
+          ..._buildLanguageOptions([
+            "Mandarin",
+            "Hindi",
+            "Spanish",
+            "French",
+            "Arabic",
+            "Russian",
+            "Indonesia",
+            "Vietnamese",
+          ]),
         ],
       ),
     );
   }
+
+  // Helper to build language options
+  List<Widget> _buildLanguageOptions(List<String> languages) {
+    return languages
+        .map(
+          (language) => RadioListTile<String>(
+            title: Text(language),
+            value: language,
+            groupValue: selectedLanguage,
+            onChanged: (value) {
+              setState(() {
+                selectedLanguage = value!;
+              });
+            },
+          ),
+        )
+        .toList();
+  }
 }
+// responsive check done 
