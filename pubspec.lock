@@ -236,7 +236,7 @@ packages:
     dependency: transitive
     description:
       name: image
-      sha256: "8346ad4b5173924b5ddddab782fc7d8a6300178c8b1dc427775405a01701c4a6"
+      sha256: "599d08e369969bdf83138f5b4e0a7e823d3f992f23b8a64dd626877c37013533"
       url: "https://pub.dev"
     source: hosted
     version: "4.4.0"

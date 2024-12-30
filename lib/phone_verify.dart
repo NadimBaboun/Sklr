@@ -11,8 +11,7 @@ class PhoneVerify extends StatefulWidget {
   final String code;
   final String number;
 
-  const PhoneVerify({required this.code, required this.number, Key? key})
-      : super(key: key);
+  const PhoneVerify({required this.code, required this.number, super.key});
 
   @override
   State<StatefulWidget> createState() => VerifyState();

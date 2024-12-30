@@ -566,7 +566,7 @@ class FadedCircle extends StatelessWidget {
   final double width;
   final double height;
 
-  const FadedCircle({required this.right, required this.top, required this.width, required this.height});
+  const FadedCircle({super.key, required this.right, required this.top, required this.width, required this.height});
 
   @override
   Widget build(BuildContext context) {
