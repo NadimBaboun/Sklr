@@ -463,12 +463,15 @@ class PhoneState extends State<PhoneNumber> {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        if (selected != null && number != null && number!.isNotEmpty) {
+                        if (selected != null && number != null && number!.isNotEmpty && number!.length >= 9) {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (context) => PhoneVerify(code: selected!.prefix, number: number ?? '')
                             )
                           );
+                        } else { // invalid phone number (fails above checks)
+                          ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(content: Text('Please enter a valid phone number')));
                         }
                       },
                       style: ElevatedButton.styleFrom(
