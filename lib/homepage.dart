@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/service-categories.dart';
+import 'package:sklr/Profile.dart';
 import 'package:sklr/notfication-control.dart';
 
 class HomePage extends StatelessWidget {
