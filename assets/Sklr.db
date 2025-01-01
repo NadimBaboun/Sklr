@@ -1,5 +1,3 @@
--- SQLite Script for Database: Sklr
-
 BEGIN TRANSACTION;
 
 -- Table structure for table `users`
