@@ -34,6 +34,55 @@ class DatabaseHelper {
     String dbPath = await initializeDatabase();
     return openDatabase(dbPath);
   }
+
+  // C: create data in table
+  static Future<int> insert(String table, Map<String, dynamic> data) async {
+    final db = await openDatabaseConnection();
+    return await db.insert(table, data);
+  }
+
+  // R: read data from table
+  static Future<List<Map<String, dynamic>>> fetchAll(String table) async {
+    final db = await openDatabaseConnection();
+    return await db.query(table);
+  }
+
+  // R: read data from table by id
+  static Future<Map<String, dynamic>?> fetchById(String table, int id) async {
+    final db = await openDatabaseConnection();
+    List<Map<String, dynamic>> result = await db.query(table, where: 'id = ?', whereArgs: [id]);
+    return result.isNotEmpty ? result.first : null;
+  }
+
+  // R: read data from table by custom query
+  static Future<List<Map<String, dynamic>>> fetchByQuery(String table, String where, List<dynamic> whereArgs) async {
+    final db = await openDatabaseConnection();
+    return await db.query(table, where: where, whereArgs: whereArgs);
+  }
+
+  // U: update data in table by id
+  static Future<int> update(String table, int id, Map<String, dynamic> data) async {
+    final db = await openDatabaseConnection();
+    return await db.update(table, data, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // U: update data in table by custom query
+  static Future<int> updateByQuery(String table, String where, List<dynamic> whereArgs, Map<String, dynamic> data) async {
+    final db = await openDatabaseConnection();
+    return await db.update(table, data, where: where, whereArgs: whereArgs);
+  }
+
+  // D: delete data in table by id
+  static Future<int> delete(String table, int id) async {
+    final db = await openDatabaseConnection();
+    return await db.delete(table, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // D: delete data in table by custom query
+  static Future<int> deleteByQuery(String table, String where, List<dynamic> whereArgs) async {
+    final db = await openDatabaseConnection();
+    return await db.delete(table, where: where, whereArgs: whereArgs);
+  }
 }
 
 class MyApp extends StatelessWidget {

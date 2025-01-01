@@ -34,7 +34,7 @@ class _LoginPageState extends State<LoginPage> {
     _passwordController.addListener(_updateLoginButtonState);
 
     // Initialize the database
-    _initializeDatabase();
+    // _initializeDatabase();
   }
 
   @override
@@ -60,9 +60,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // Initialize the database
-  Future<void> _initializeDatabase() async {
-    database = (await DatabaseHelper.initializeDatabase()) as Database;
-  }
+  // Future<void> _initializeDatabase() async {
+  //   database = (await DatabaseHelper.initializeDatabase()) as Database;
+  // }
 
   // Method to check login credentials
   Future<void> _checkLogin() async {
@@ -70,10 +70,16 @@ class _LoginPageState extends State<LoginPage> {
     String password = _passwordController.text;
 
     // Query the database for a matching user
-    List<Map<String, dynamic>> result = await database.query(
+    // List<Map<String, dynamic>> result = await database.query(
+    //   'users',
+    //   where: 'email = ? AND password = ?',
+    //   whereArgs: [email, password],
+    // );
+
+    List<Map<String, dynamic>> result = await DatabaseHelper.fetchByQuery(
       'users',
-      where: 'email = ? AND password = ?',
-      whereArgs: [email, password],
+      'email = ? AND password = ?',
+      [email, password]
     );
 
     // If a matching user is found, navigate to the next page
