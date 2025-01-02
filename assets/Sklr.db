@@ -120,4 +120,41 @@ CREATE TABLE reviews (
 INSERT INTO reviews (id, session_id, reviewer_id, reviewee_id, rating, review_text, created_at) VALUES
 (1, 2, 7, 2, 4, 'Great explanations and real life examples, wish we had more time', '2024-12-30 14:59:44');
 
+--Table structure for table 'chats'
+CREATE TABLE IF NOT EXISTS chats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user1_id INTEGER NOT NULL,
+    user2_id INTEGER NOT NULL,
+    last_message TEXT,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user1_id) REFERENCES users(id),
+    FOREIGN KEY(user2_id) REFERENCES users(id)
+);
+
+-- Dumping data for table 'chats'
+INSERT INTO chats (user1_id, user2_id, last_message, last_updated)
+VALUES 
+(1, 2, 'Hello, how are you?', CURRENT_TIMESTAMP),
+(2, 3, 'Are we meeting tomorrow?', CURRENT_TIMESTAMP);
+
+--Table structure for table 'messages'
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id INTEGER NOT NULL,
+    sender_id INTEGER NOT NULL,
+    message TEXT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(chat_id) REFERENCES Chats(id),
+    FOREIGN KEY(sender_id) REFERENCES users(id)
+);
+
+-- Dumping data for table 'messages'
+INSERT INTO Messages (chat_id, sender_id, message)
+VALUES 
+(1, 1, 'Hello, how are you?'),
+(1, 2, 'I am good, thanks! How about you?'),
+(1, 1, 'I am doing well too.'),
+(2, 2, 'Are we meeting tomorrow?'),
+(2, 3, 'Yes, same time and place!');
+
 COMMIT;

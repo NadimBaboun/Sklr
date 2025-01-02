@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
 import 'package:sklr/forgot-passowrd.dart'; // Corrected filename
-import 'register.dart';
 import 'database/database.dart'; // Import the database helper
 import 'package:sqflite/sqflite.dart'; // Import sqflite to access the database
 import 'package:sklr/homepage.dart';
