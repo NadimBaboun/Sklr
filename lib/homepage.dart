@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/service-categories.dart';
 import 'package:sklr/Profile.dart';
 import 'package:sklr/notfication-control.dart';
+import 'chatsHomePage.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -231,10 +232,6 @@ class HomePage extends StatelessWidget {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.message_outlined),
             label: 'Messages',
           ),
@@ -248,7 +245,38 @@ class HomePage extends StatelessWidget {
           ),
         ],
         onTap: (index) {
-          // Handle navigation
+          switch (index) {
+            case 0:
+              // Navigera till Home-sidan
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => HomePage()),
+              );
+              break;
+            case 1:
+              // Navigera till ChatsHomePage
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => ChatsHomePage(loggedInUserId: 1)),
+              );
+              break;
+              /*
+            case 2:
+              // Navigera till My Orders-sidan
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => MyOrdersPage()),
+              );
+              break;
+              */
+            case 3:
+              // Navigera till Profile-sidan
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => ProfilePage()),
+              );
+              break;
+          }
         },
         selectedItemColor: const Color(0xFF6296FF),
         unselectedItemColor: Colors.grey,
