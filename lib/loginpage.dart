@@ -6,6 +6,7 @@ import 'database/database.dart'; // Import the database helper
 import 'package:sqflite/sqflite.dart'; // Import sqflite to access the database
 import 'package:sklr/homepage.dart';
 import 'package:sklr/register.dart';
+import 'package:shared_preferences/shared_preferences.dart'; //to save the current userId
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -63,6 +64,12 @@ class _LoginPageState extends State<LoginPage> {
   //   database = (await DatabaseHelper.initializeDatabase()) as Database;
   // }
 
+  //function so save the logged in users ID, to be accessed in other files
+  Future<void> saveLoggedInUserId(int userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('loggedInUserId', userId);
+  }
+
   // Method to check login credentials
   Future<void> _checkLogin() async {
     String email = _emailController.text;
@@ -76,17 +83,20 @@ class _LoginPageState extends State<LoginPage> {
     // );
 
     List<Map<String, dynamic>> result = await DatabaseHelper.fetchByQuery(
-      'users',
-      'email = ? AND password = ?',
-      [email, password]
-    );
+        'users', 'email = ? AND password = ?', [email, password]);
 
     // If a matching user is found, navigate to the next page
     if (result.isNotEmpty) {
       // Successfully logged in
+
+      //saving the userId
+      final int userId = result.first['id'];
+      await saveLoggedInUserId(userId);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Login Successful")),
       );
+
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (context) => const HomePage()));
     } else {

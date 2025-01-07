@@ -4,6 +4,7 @@ import 'package:sklr/service-categories.dart';
 import 'package:sklr/Profile.dart';
 import 'package:sklr/notfication-control.dart';
 import 'chatsHomePage.dart';
+import 'myorderspage.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -257,10 +258,11 @@ class HomePage extends StatelessWidget {
               // Navigera till ChatsHomePage
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => ChatsHomePage(loggedInUserId: 1)),
+                MaterialPageRoute(
+                    builder: (context) => ChatsHomePage(loggedInUserId: 1)),
               );
               break;
-              /*
+
             case 2:
               // Navigera till My Orders-sidan
               Navigator.pushReplacement(
@@ -268,7 +270,7 @@ class HomePage extends StatelessWidget {
                 MaterialPageRoute(builder: (context) => MyOrdersPage()),
               );
               break;
-              */
+
             case 3:
               // Navigera till Profile-sidan
               Navigator.pushReplacement(
