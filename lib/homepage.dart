@@ -5,6 +5,7 @@ import 'package:sklr/Profile.dart';
 import 'package:sklr/notfication-control.dart';
 import 'chatsHomePage.dart';
 import 'myorderspage.dart';
+import 'navigationbar-bar.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -155,7 +156,9 @@ class HomePage extends StatelessWidget {
             },
           ),
         ),
-        bottomNavigationBar: _buildBottomNavigationBar(context),
+        bottomNavigationBar: CustomBottomNavigationBar(
+      currentIndex: 0,
+       loggedInUserId: 1),
       ),
     );
   }
@@ -213,77 +216,7 @@ class HomePage extends StatelessWidget {
           ),
         )
         .toList();
-  }
-
-  Widget _buildBottomNavigationBar(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: Colors.grey.shade300,
-            width: 2.0,
-          ),
-        ),
-      ),
-      child: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined, color: Color(0xFF6296FF)),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.message_outlined),
-            label: 'Messages',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt_outlined),
-            label: 'My Orders',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_circle_outlined),
-            label: 'Profile',
-          ),
-        ],
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              // Navigera till Home-sidan
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => HomePage()),
-              );
-              break;
-            case 1:
-              // Navigera till ChatsHomePage
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => ChatsHomePage(loggedInUserId: 1)),
-              );
-              break;
-
-            case 2:
-              // Navigera till My Orders-sidan
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => MyOrdersPage()),
-              );
-              break;
-
-            case 3:
-              // Navigera till Profile-sidan
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => ProfilePage()),
-              );
-              break;
-          }
-        },
-        selectedItemColor: const Color(0xFF6296FF),
-        unselectedItemColor: Colors.grey,
-      ),
-    );
+        
   }
 }
 // the media query has been changed to be responsive 

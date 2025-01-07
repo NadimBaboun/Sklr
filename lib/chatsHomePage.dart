@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'database/database.dart';
 import 'chatPage.dart';
+import 'navigationbar-bar.dart';
 
 class ChatsHomePage extends StatelessWidget{
   final int loggedInUserId;
@@ -50,8 +51,10 @@ Widget build(BuildContext context){
           },
         );
       },
-    )
+    ),
+    bottomNavigationBar: CustomBottomNavigationBar(
+      currentIndex: 1,
+       loggedInUserId: loggedInUserId),
   );
 }
-
 }

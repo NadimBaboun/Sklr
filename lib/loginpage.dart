@@ -81,9 +81,10 @@ class _LoginPageState extends State<LoginPage> {
     //   where: 'email = ? AND password = ?',
     //   whereArgs: [email, password],
     // );
-
+    
     List<Map<String, dynamic>> result = await DatabaseHelper.fetchByQuery(
         'users', 'email = ? AND password = ?', [email, password]);
+        
 
     // If a matching user is found, navigate to the next page
     if (result.isNotEmpty) {

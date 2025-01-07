@@ -7,6 +7,7 @@ import 'Edit_Profile.dart'; // Import the Edit Profile page
 import 'package:sklr/notfication-control.dart';
 import 'package:sklr/Choose-languge.dart';
 import 'addskillpage.dart';
+import 'navigationbar-bar.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -242,46 +243,9 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: Colors.grey.shade300,
-              width: 2.0,
-            ),
-          ),
-        ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(
-                Icons.home_outlined,
-                color: Color(0xFF6296FF),
-              ),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search),
-              label: 'Search',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.message_outlined),
-              label: 'Messages',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.list_alt_outlined),
-              label: 'My Orders',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.account_circle_outlined),
-              label: 'Profile',
-            ),
-          ],
-          selectedItemColor: Color(0xFF6296FF),
-          unselectedItemColor: Colors.grey,
-        ),
-      ),
+      bottomNavigationBar: CustomBottomNavigationBar(
+      currentIndex: 3,
+       loggedInUserId: 1),
     );
   }
 }

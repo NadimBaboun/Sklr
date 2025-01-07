@@ -10,6 +10,22 @@ import 'dart:convert';
 const String backendUrl = 'http://localhost:3000/api';
 
 class DatabaseHelper {
+
+
+  //fetching the skills of a user
+  static Future<List<Map<String,dynamic>>> fetchSkills(int userId)async {
+    final response = await http.get(Uri.parse('$backendUrl/skills/user/$userId'));
+
+    if(response.statusCode == 200){
+      return List<Map>String,dynamic>>.from(json.decode(response.body));
+    }
+    else{
+      throw Exception('Failed to load skills');
+    }
+  }
+
+
+
   //                  Message / Chat Functionallity
   /*--------------------------------------------------------------------------------------*/
 
