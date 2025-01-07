@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'database/database.dart';
+
 
 const String backendUrl = 'http://localhost:3000/api/chat';
 
@@ -23,36 +23,14 @@ class _ChatPageState extends State<ChatPage>{
   @override
   void initState(){
     super.initState();
-    messages = fetchMessages(widget.chatId);
-  }
-
-  Future<List<Map<String, dynamic>>> fetchMessages(int chatId) async{
-    final response = await http.get(Uri.parse('$backendUrl/$chatId/messages'));
-
-    if(response.statusCode == 200){
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
-    }
-    else{
-      throw Exception('Failed to load messages');
-    }
-  }
-
-  Future<void> _sendMessage(int chatId, int senderId, String message) async {
-    final response = await http.post(Uri.parse('$backendUrl/$chatId/message'),
-    headers: {'Content-Type': 'application/json'},
-    body: json.encode({'senderId': senderId, 'message': message}),
-    );
-
-    if(response.statusCode != 200){
-      throw Exception('Failed to send message');
-    }    
+    messages = DatabaseHelper.fetchMessages(widget.chatId);
   }
 
   void _handleSendMessage() async{
     if(_messageController.text.trim().isNotEmpty) {
-      await _sendMessage(widget.chatId, widget.loggedInUserId, _messageController.text.trim());
+      await DatabaseHelper.sendMessage(widget.chatId, widget.loggedInUserId, _messageController.text.trim());
       setState(() {
-        messages = fetchMessages(widget.chatId);
+        messages = DatabaseHelper.fetchMessages(widget.chatId);
       });
       _messageController.clear();
     }
