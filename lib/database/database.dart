@@ -4,10 +4,6 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
-class SupabaseHelper {
-  
-}
-
 class DatabaseHelper {
   static Future<String> initializeDatabase() async {
     // Get the documents directory

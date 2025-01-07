@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
+import 'package:sklr/phone-number.dart';
 import 'loginpage.dart';
 import 'HomePage.dart';
 
@@ -30,7 +31,7 @@ class RegisterState extends State<Register> {
 
   void registerUser(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => HomePage()),
+      MaterialPageRoute(builder: (context) => PhoneNumber()),
     );
   }
 
