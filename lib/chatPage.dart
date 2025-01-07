@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:sklr/database/database.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+const String backendUrl = 'http://localhost:3000/api/chat';
 
 
 
@@ -20,17 +23,38 @@ class _ChatPageState extends State<ChatPage>{
   @override
   void initState(){
     super.initState();
-    messages = DatabaseHelper.fetchMessages(widget.chatId);
+    messages = fetchMessages(widget.chatId);
   }
 
-  Future<void> _sendMessage() async {
-    if(_messageController.text.trim().isNotEmpty){
-      await DatabaseHelper.sendMessage(widget.chatId, widget.loggedInUserId, _messageController.text.trim(),
-      );
-    setState(() {
-      messages = DatabaseHelper.fetchMessages(widget.chatId);
-    });
-    _messageController.clear();
+  Future<List<Map<String, dynamic>>> fetchMessages(int chatId) async{
+    final response = await http.get(Uri.parse('$backendUrl/$chatId/messages'));
+
+    if(response.statusCode == 200){
+      return List<Map<String, dynamic>>.from(json.decode(response.body));
+    }
+    else{
+      throw Exception('Failed to load messages');
+    }
+  }
+
+  Future<void> _sendMessage(int chatId, int senderId, String message) async {
+    final response = await http.post(Uri.parse('$backendUrl/$chatId/message'),
+    headers: {'Content-Type': 'application/json'},
+    body: json.encode({'senderId': senderId, 'message': message}),
+    );
+
+    if(response.statusCode != 200){
+      throw Exception('Failed to send message');
+    }    
+  }
+
+  void _handleSendMessage() async{
+    if(_messageController.text.trim().isNotEmpty) {
+      await _sendMessage(widget.chatId, widget.loggedInUserId, _messageController.text.trim());
+      setState(() {
+        messages = fetchMessages(widget.chatId);
+      });
+      _messageController.clear();
     }
   }
 
@@ -95,7 +119,7 @@ class _ChatPageState extends State<ChatPage>{
                 ),
                 IconButton(
                   icon: const Icon(Icons.send),
-                  onPressed: _sendMessage,
+                  onPressed: _handleSendMessage,
                 ),
               ],
             )

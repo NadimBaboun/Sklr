@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:sklr/database/database.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'chatPage.dart';
 
+const String backendUrl = 'http://localhost:3000/api/chat';
 
 class ChatsHomePage extends StatelessWidget{
   final int loggedInUserId;
 
   const ChatsHomePage({super.key, required this.loggedInUserId});
+
+Future<List<Map<String,dynamic>>> fetchChats(int userId) async{
+  final response = await http.get(Uri.parse('$backendUrl/user/$userId'));
+
+  if(response.statusCode == 200){
+    return List<Map<String,dynamic>>.from(json.decode(response.body));
+  }
+  else{
+    throw Exception('Failed to load chats');
+  }
+}
 
 @override
 Widget build(BuildContext context){
@@ -16,7 +29,7 @@ Widget build(BuildContext context){
       centerTitle: true,
     ),
     body: FutureBuilder<List<Map<String, dynamic>>>(
-      future: DatabaseHelper.fetchUserChats(loggedInUserId),
+      future: fetchChats(loggedInUserId),
       builder: (context, snapshot){
         if(!snapshot.hasData)
         {
