@@ -6,6 +6,7 @@ import 'dart:io';
 import 'Edit_Profile.dart'; // Import the Edit Profile page
 import 'package:sklr/notfication-control.dart';
 import 'package:sklr/Choose-languge.dart';
+import 'addskillpage.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -160,6 +161,16 @@ class _ProfilePageState extends State<ProfilePage> {
             Expanded(
               child: ListView(
                 children: [
+                  OptionTile(
+                    icon: Icons.add,
+                    title: 'Add a skill',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AddSkillPage()),
+                      );
+                    },
+                  ),
                   OptionTile(
                     icon: Icons.person_outline,
                     title: 'Edit profile information',
