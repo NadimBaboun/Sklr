@@ -22,9 +22,6 @@ class _LoginPageState extends State<LoginPage> {
   bool isLoginEnabled = false;
   bool _isPasswordVisible = false;
 
-  // Database instance
-  late Database database;
-
   @override
   void initState() {
     super.initState();
@@ -32,9 +29,6 @@ class _LoginPageState extends State<LoginPage> {
     // Add listeners to email and password controllers
     _emailController.addListener(_updateLoginButtonState);
     _passwordController.addListener(_updateLoginButtonState);
-
-    // Initialize the database
-    // _initializeDatabase();
   }
 
   @override
@@ -59,11 +53,6 @@ class _LoginPageState extends State<LoginPage> {
     return emailRegex.hasMatch(email);
   }
 
-  // Initialize the database
-  // Future<void> _initializeDatabase() async {
-  //   database = (await DatabaseHelper.initializeDatabase()) as Database;
-  // }
-
   //function so save the logged in users ID, to be accessed in other files
   Future<void> saveLoggedInUserId(int userId) async {
     final prefs = await SharedPreferences.getInstance();
@@ -75,23 +64,15 @@ class _LoginPageState extends State<LoginPage> {
     String email = _emailController.text;
     String password = _passwordController.text;
 
-    // Query the database for a matching user
-    // List<Map<String, dynamic>> result = await database.query(
-    //   'users',
-    //   where: 'email = ? AND password = ?',
-    //   whereArgs: [email, password],
-    // );
-    
-    List<Map<String, dynamic>> result = await DatabaseHelper.fetchByQuery(
-        'users', 'email = ? AND password = ?', [email, password]);
+    LoginResponse result = await DatabaseHelper.fetchUserId(email, password);
         
 
     // If a matching user is found, navigate to the next page
-    if (result.isNotEmpty) {
+    if (result.success) {
       // Successfully logged in
 
       //saving the userId
-      final int userId = result.first['id'];
+      final int userId = result.userId;
       await saveLoggedInUserId(userId);
 
       ScaffoldMessenger.of(context).showSnackBar(

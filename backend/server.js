@@ -6,7 +6,15 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+// uncertain of the correct way to construct CORS, skipping for now
+// const corsOptions = {
+//     origin: [
+//         'http://10.0.2.2:3000', // android emulators
+//         'http://127.0.0.1:3000', // iOS emulators
+//     ]
+// }
+
+// app.use(cors(corsOptions));
 
 app.use(express.json());
 
