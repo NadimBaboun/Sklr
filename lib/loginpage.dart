@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
+import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/forgot-passowrd.dart'; // Corrected filename
 import 'database/database.dart'; // Import the database helper
 import 'package:sqflite/sqflite.dart'; // Import sqflite to access the database
 import 'package:sklr/homepage.dart';
 import 'package:sklr/register.dart';
-import 'package:shared_preferences/shared_preferences.dart'; //to save the current userId
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -53,12 +53,6 @@ class _LoginPageState extends State<LoginPage> {
     return emailRegex.hasMatch(email);
   }
 
-  //function so save the logged in users ID, to be accessed in other files
-  Future<void> saveLoggedInUserId(int userId) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('loggedInUserId', userId);
-  }
-
   // Method to check login credentials
   Future<void> _checkLogin() async {
     String email = _emailController.text;
@@ -73,7 +67,7 @@ class _LoginPageState extends State<LoginPage> {
 
       //saving the userId
       final int userId = result.userId;
-      await saveLoggedInUserId(userId);
+      await UserIdStorage.saveLoggedInUserId(userId);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Login Successful")),

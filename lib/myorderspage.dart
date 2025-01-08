@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/service-categories.dart';
 import 'package:sklr/Profile.dart';
 import 'homepage.dart';
 import 'chatsHomePage.dart';
 import 'database/database.dart';
 import 'navigationbar-bar.dart';
-
-import 'package:shared_preferences/shared_preferences.dart';
-
-Future<int?> getLoggedInUserId() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getInt('loggedInUserId');
-}
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -22,7 +16,7 @@ class MyOrdersPage extends StatefulWidget {
 
 class MyOrdersPageState extends State<MyOrdersPage> {
   Future<List<Map<String, dynamic>>> fetchUserSkills() async {
-    //final int? userId = await getLoggedInUserId();
+    final int? userId = await UserIdStorage.getLoggedInUserId();
 
     /*if (userId == null) {
       throw Exception('No user is logged in');
