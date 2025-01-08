@@ -17,19 +17,36 @@ class ChatsHomePage extends StatefulWidget{
 class _ChatsHomePageState extends State<ChatsHomePage>{
   int? loggedInUserId;
   Future<List<Map<String, dynamic>>>? chatsFuture;
+  Map<int, String> usernameCache = {};
 
   @override
   void initState(){
     super.initState();
-    _loadUserId();
+    _loadUserIdAndChats();
   }
 
-  Future<void> _loadUserId() async{
+  Future<void> _loadUserIdAndChats() async{
     final userId = await UserIdStorage.getLoggedInUserId();
     if(userId != null){
       setState(() {
         loggedInUserId = userId;
-        chatsFuture = DatabaseHelper.fetchChats(userId);
+      });
+
+      final chats = await DatabaseHelper.fetchChats(userId);
+      for(var chat in chats){
+        final otherUserId = chat['other_user_id'];
+        if(!usernameCache.containsKey(otherUserId)){
+          final response = await DatabaseHelper.fetchUserFromId(otherUserId);
+          if(response.success){
+            usernameCache[otherUserId] = response.data['username'];
+          }
+          else{
+            usernameCache[otherUserId] = 'Unknown';
+          }
+        }
+      }
+      setState(() {
+        chatsFuture = Future.value(chats);
       });
     } 
   }
@@ -68,12 +85,13 @@ class _ChatsHomePageState extends State<ChatsHomePage>{
               final chat = snapshot.data![index];
               final otherUserId = chat['other_user_id'];
               final lastMessage = chat['last_message'] ?? 'No messages yet.';
+              final username = usernameCache[otherUserId] ?? 'Loading...';
 
               return ListTile(
                 leading: CircleAvatar(
-                  child: Text(otherUserId.toString()),
+                  child: Text(username.isNotEmpty ? username[0] : '?'),
                 ),
-                title: Text('$otherUserId'),
+                title: Text(username),
                 subtitle: Text(lastMessage),
                 trailing: Text(
                   chat['last_updated'] != null ? chat['last_updated'].toString().substring(0,10) : '',
@@ -81,7 +99,7 @@ class _ChatsHomePageState extends State<ChatsHomePage>{
                 ),
                 onTap: () {
                   Navigator.push(context, MaterialPageRoute(
-                    builder: (context) => ChatPage(chatId: chat['chat_id'], loggedInUserId: loggedInUserId!)
+                    builder: (context) => ChatPage(chatId: chat['chat_id'], loggedInUserId: loggedInUserId!, otherUsername: usernameCache[otherUserId] ?? 'Unknown')
                   ));
                 },
               );

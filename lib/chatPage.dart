@@ -9,8 +9,9 @@ const String backendUrl = 'http://localhost:3000/api/chat';
 class ChatPage extends StatefulWidget {
   final int chatId;
   final int loggedInUserId;
+  final String otherUsername;
 
-  const ChatPage({super.key, required this.chatId, required this.loggedInUserId});
+  const ChatPage({super.key, required this.chatId, required this.loggedInUserId, required this.otherUsername});
 
   @override
   _ChatPageState createState() => _ChatPageState();
@@ -57,7 +58,7 @@ class _ChatPageState extends State<ChatPage>{
   Widget build (BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chat'),
+        title: Text(widget.otherUsername),
         centerTitle: true,
       ),
       body: Column(
