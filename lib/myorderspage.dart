@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/database/userIdStorage.dart';
-import 'package:sklr/service-categories.dart';
-import 'package:sklr/Profile.dart';
-import 'homepage.dart';
-import 'chatsHomePage.dart';
 import 'database/database.dart';
 import 'navigationbar-bar.dart';
 
@@ -15,49 +11,31 @@ class MyOrdersPage extends StatefulWidget {
 }
 
 class MyOrdersPageState extends State<MyOrdersPage> {
-  Future<List<Map<String, dynamic>>> fetchUserSkills() async {
-    final int? userId = await UserIdStorage.getLoggedInUserId();
+  int? loggedInUserId;
 
-    /*if (userId == null) {
+  @override
+  void initState() {
+    super.initState();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final userId = await UserIdStorage.getLoggedInUserId();
+    setState(() {
+      loggedInUserId = userId;
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> fetchUserSkills(int? userId) async {
+    if (userId == null) {
       throw Exception('No user is logged in');
     }
 
-    return await DatabaseHelper.fetchByQuery(
-      'skills',
-      'user_id = ?',
-      [userId],
-    );*/
-
-    //mocked data for testing
-
-    return [
-      {
-        'skill_name': 'Flutter Development',
-        'skill_description': 'Building mobile apps with Flutter.',
-        'created_at': '2025-01-01',
-      },
-      {
-        'skill_name': 'Painting with watercolors',
-        'skill_description': 'Get useful help when painting with watercolors.',
-        'created_at': '2024-12-01',
-      },
-      {
-        'skill_name': 'UI/UX Design',
-        'skill_description': 'Designing user interfaces and experiences.',
-        'created_at': '2023-11-20',
-      },
-      {
-        'skill_name': 'Dog Training',
-        'skill_description': 'Get help with training you dog.',
-        'created_at': '2024-11-04',
-      },
-      {
-        'skill_name': 'Spanish for beginners',
-        'skill_description':
-            'Spanish help for those who are new to the language.',
-        'created_at': '2024-07-01',
-      },
-    ];
+    try {
+      return await DatabaseHelper.fetchSkills(userId);
+    } catch (error) {
+      throw Exception('Failed to fetch user skills: $error');
+    }
   }
 
   @override
@@ -75,37 +53,38 @@ class MyOrdersPageState extends State<MyOrdersPage> {
         centerTitle: true,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: fetchUserSkills(),
+        future: fetchUserSkills(loggedInUserId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No skills found'));
+          }else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(
+              child: Text(
+                'You have not uploaded any skills!',
+                style: TextStyle(fontSize: 18),
+              ),
+            );
           }
 
           final skills = snapshot.data!;
-
           return ListView.builder(
             itemCount: skills.length,
             itemBuilder: (context, index) {
               final skill = skills[index];
               return ListTile(
-                title: Text(skill['skill_name'] ?? 'No Skill Name'),
-                subtitle: Text(skill['skill_description'] ?? 'No Description'),
+                title: Text(skill['name'] ?? 'No Skill Name'),
+                subtitle: Text(skill['description'] ?? 'No Description'),
                 trailing: Text(skill['created_at'] ?? ''),
                 onTap: () {
-                  // go to the skill page
+                  //navigate to skill details page
                 },
               );
             },
           );
         },
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-      currentIndex: 2,
-       loggedInUserId: 1),
+      bottomNavigationBar:
+          CustomBottomNavigationBar(currentIndex: 2, loggedInUserId: 1),
     );
   }
 }
