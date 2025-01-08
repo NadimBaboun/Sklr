@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -34,7 +34,10 @@ class DatabaseHelper {
   static final String backendUrl = _initBackendUrl();
 
   static String _initBackendUrl() {
-    if (Platform.isAndroid) {
+    if (kIsWeb) {
+      return 'http://localhost:3000/api';
+    }
+    else if (Platform.isAndroid) {
       return 'http://10.0.2.2:3000/api';
     } else if (Platform.isIOS) {
       return 'http://127.0.0.1:3000/api';
