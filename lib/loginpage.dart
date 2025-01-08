@@ -58,6 +58,7 @@ class _LoginPageState extends State<LoginPage> {
     String email = _emailController.text;
     String password = _passwordController.text;
 
+    // fetch for potential user 
     LoginResponse result = await DatabaseHelper.fetchUserId(email, password);
         
 
@@ -68,6 +69,9 @@ class _LoginPageState extends State<LoginPage> {
       //saving the userId
       final int userId = result.userId;
       await UserIdStorage.saveLoggedInUserId(userId);
+
+      // save remember me status
+      await UserIdStorage.setRememberMe(_keepLogIn);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Login Successful")),

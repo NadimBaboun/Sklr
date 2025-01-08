@@ -2,6 +2,8 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:sklr/database/database.dart';
+import 'package:sklr/database/userIdStorage.dart';
+import 'package:sklr/homepage.dart';
 import 'package:sklr/startpage.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -11,10 +13,30 @@ import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure widgets are initialized
+  
+  // test database connection
   DatabaseHelper.testConnection().then((data) => {
     log('testConnection(): $data')
   });
-  runApp(const StartPage());
+
+  // look for rememberMe in SharedPrefs.
+  bool? rememberMe = await UserIdStorage.getRememberMe();
+  // rememberMe is enabled
+  if (rememberMe != null && rememberMe) {
+    // look for userId in SharedPrefs.
+    int? userId = await UserIdStorage.getLoggedInUserId();
+    log('userId: $userId');
+    // userId is set
+    if (userId != null && userId > 0) {
+      runApp(const HomePage());
+    }
+    else {
+      runApp(const StartPage());
+    }
+  }
+  else {
+    runApp(const StartPage());
+  }
 }
 
 class MyApp extends StatelessWidget {

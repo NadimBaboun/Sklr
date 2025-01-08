@@ -10,4 +10,14 @@ class UserIdStorage {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt('loggedInUserId');
   }
+
+  static Future<void> setRememberMe(bool b) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('rememberMe', b);
+  }
+
+  static Future<bool?> getRememberMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('rememberMe');
+  }
 }

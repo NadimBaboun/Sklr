@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sklr/PrivacyPolicy.dart';
+import 'package:sklr/database/userIdStorage.dart';
+import 'package:sklr/startpage.dart';
 import 'dart:io';
 import 'Edit_Profile.dart'; // Import the Edit Profile page
 import 'package:sklr/notfication-control.dart';
@@ -237,6 +239,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       );
                     },
                   ),
+                  OptionTile(
+                    icon: Icons.logout_outlined,
+                    title: 'Sign Out',
+                    onTap: () {
+                      showSignOutDialog(context);
+                    },
+                  ),
                 ],
               ),
             ),
@@ -273,4 +282,34 @@ class OptionTile extends StatelessWidget {
       onTap: () => onTap?.call(),
     );
   }
+}
+
+showSignOutDialog(BuildContext context) {
+  Widget button = TextButton(
+    child: const Text('Sign Out'),
+    onPressed: () async {
+      Navigator.of(context, rootNavigator: true).pop();
+      await UserIdStorage.setRememberMe(false);
+      await UserIdStorage.saveLoggedInUserId(-1);
+      Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (context) => const StartPage())
+      );
+    },
+  );
+
+  AlertDialog dialog = AlertDialog(
+    title: const Text("Confirm signout?"),
+    content: Text("If you sign out, you will no longer have access to Sklr or any of its services."),
+    actions: [
+      button,
+    ],
+  );
+
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (BuildContext context) {
+      return dialog;
+    }
+  );
 }
