@@ -30,4 +30,37 @@ catch (err){
 
 });
 
+router.post("/", async (req, res) => {
+    try{
+        const { user_id, name, description, created_at} = req.body;
+
+        if(!user_id || !name || !description || !created_at) {
+            return res.status(400).send({ error: "Missing required fields"});
+
+        }
+
+        const { data, error } = await supabase
+            .from("skills")
+            .insert([
+                {
+                    user_id,
+                    name,
+                    description,
+                    created_at,
+                },
+            ]);
+        if(error){
+            return res.status(400).send({ error: error.message});
+        }
+
+        res.status(201).send({
+            message: "Skill added succesfully",
+           
+        });
+    }catch (err){
+        console.error(err);
+        res.status(500).send({error: "Internal server error"});
+    }
+});
+
 module.exports = router;

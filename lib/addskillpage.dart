@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sklr/database/database.dart';
+import 'package:sklr/database/userIdStorage.dart';
 
 class AddSkillPage extends StatefulWidget {
   const AddSkillPage({super.key});
@@ -10,6 +12,20 @@ class AddSkillPage extends StatefulWidget {
 class AddSkillPageState extends State<AddSkillPage> {
   String skillname = '';
   String skilldescription = '';
+  int? loggedInUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final userId = await UserIdStorage.getLoggedInUserId();
+    setState(() {
+      loggedInUserId = userId;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +87,10 @@ class AddSkillPageState extends State<AddSkillPage> {
               const Spacer(),
               ElevatedButton(
                 onPressed: () {
-                  //create the skill in database.
+                  //skill is added to the database
+                  DatabaseHelper.insertSkill(
+                      loggedInUserId, skillname, skilldescription);
+
                   Navigator.of(context).pop();
                 },
                 style: ElevatedButton.styleFrom(

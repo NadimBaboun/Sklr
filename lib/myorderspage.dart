@@ -43,7 +43,7 @@ class MyOrdersPageState extends State<MyOrdersPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "My Orders",
+          "My Skill Listings",
           style: GoogleFonts.mulish(
             color: Colors.white,
             fontWeight: FontWeight.w600,
@@ -57,7 +57,7 @@ class MyOrdersPageState extends State<MyOrdersPage> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          }else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
               child: Text(
                 'You have not uploaded any skills!',
