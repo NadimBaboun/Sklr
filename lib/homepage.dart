@@ -43,8 +43,11 @@ class _HomePageState extends State<HomePage>{
   @override
   Widget build(BuildContext context) {
     if (loggedInUserId == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
     return MaterialApp(
