@@ -19,11 +19,23 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage>{
   late Future<List<Map<String, dynamic>>> messages;
   final TextEditingController _messageController = TextEditingController();
+  bool isLoading = false;
+
 
   @override
   void initState(){
     super.initState();
+    _loadMessages();
+  }
+
+  Future<void> _loadMessages() async {
+    setState(() {
+      isLoading = true;
+    });
     messages = DatabaseHelper.fetchMessages(widget.chatId);
+    setState(() {
+      isLoading = false;
+    });
   }
 
   void _handleSendMessage() async{
@@ -33,7 +45,12 @@ class _ChatPageState extends State<ChatPage>{
         messages = DatabaseHelper.fetchMessages(widget.chatId);
       });
       _messageController.clear();
+      await _loadMessages();
     }
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
   @override
@@ -46,7 +63,7 @@ class _ChatPageState extends State<ChatPage>{
       body: Column(
         children: [
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
+            child: isLoading ? const Center(child: CircularProgressIndicator()) : FutureBuilder<List<Map<String, dynamic>>>(
               future: messages,
               builder: (context, snapshot) {
                 if(!snapshot.hasData){

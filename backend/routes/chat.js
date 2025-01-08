@@ -5,26 +5,17 @@ const router = express.Router();
 router.get("/user/:userId", async (req, res) =>{
 
     const userId = req.params.userId;
-    const {data, error } = await supabase
-    
-    .from('chats')
-    .select(`
-        id AS chat_id,
-        last_message,
-        last_updated,
-        user1_id,
-        user2_id
-        `)
-        .or(`user1_id.eq.${userId},user2_id.eq${userId}`)
-        .order('last_updated', {ascending: false});
+    const { data, error } = await supabase
+        .from('chats')
+        .select(`id, user1_id, user2_id, last_message,last_updated`)
+        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+        .order('last_updated', { ascending: false });
 
-        if(error){
-            console.error("Error fetching chats: ", error);
-            return res.status(500).json({error: error.message});
+        if (error) {
+        console.error('Error fetching chats:', error);
         }
-
         const formattedData = data.map(chat => ({
-            chat_id: chat.chat_id,
+            chat_id: chat.id,
             last_message: chat.last_message,
             last_updated: chat.last_updated,
             other_user_id: chat.user1_id === userId ? chat.user2_id : chat.user1_id,

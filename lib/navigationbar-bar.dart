@@ -45,7 +45,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
             );
             break;
           case 1:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> ChatsHomePage(loggedInUserId: loggedInUserId)),
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> ChatsHomePage()),
             );
             break;
           case 2:

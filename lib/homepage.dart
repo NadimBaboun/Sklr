@@ -6,12 +6,37 @@ import 'package:sklr/notfication-control.dart';
 import 'chatsHomePage.dart';
 import 'myorderspage.dart';
 import 'navigationbar-bar.dart';
+import 'database/userIdStorage.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  _HomePageState createState() => _HomePageState();
+}
+class _HomePageState extends State<HomePage>{
+  int? loggedInUserId;
+
+  @override
+  void initState(){
+    super.initState();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async{
+    final userId = await UserIdStorage.getLoggedInUserId();
+    setState(() {
+      loggedInUserId = userId;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (loggedInUserId == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Responsive Example',
@@ -158,7 +183,7 @@ class HomePage extends StatelessWidget {
         ),
         bottomNavigationBar: CustomBottomNavigationBar(
       currentIndex: 0,
-       loggedInUserId: 1),
+       loggedInUserId: loggedInUserId!),
       ),
     );
   }
