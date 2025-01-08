@@ -41,12 +41,13 @@ router.post('/register', async (req, res) => {
                     password: hashedPassword,
                 }
             ])
-            .select();
+            .select('id')
+            .single();
 
         if (error) {
             throw error;
         }
-
+        
         res.status(201).json({ message: 'User created successfully', user: data });
     } catch (err) {
         console.error('Error creating user: ', err.message);

@@ -4,6 +4,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sklr/database/database.dart';
+import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/homepage.dart';
 import 'package:sklr/phone-number.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
@@ -64,18 +66,46 @@ class VerifyState extends State<PhoneVerify> {
     startTimer();
   }
 
-  void verifyOTP() {
+  void verifyOTP() async {
     if (otpFilled) {
       // verification of OTP goes here
       if (otp == '1234') { // local testing, no verification
-        // add phone number to DB
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()), 
-        );
+        final int? userId = await UserIdStorage.getLoggedInUserId();
+
+        if (userId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: const Text('Failed to fetch valid session'))
+          );
+          return;
+        }
+
+        // make patch request to backend
+        DatabaseResponse result = await DatabaseHelper.patchUser(userId, {
+          'phone_number': '+${widget.code} ${widget.number}'
+        } as Map<String, dynamic>);
+
+        if (result.success) {
+          // award 1 currency for verifying  phone number
+          final bool awarded = await DatabaseHelper.awardUser(userId);
+
+          if (awarded) {
+            Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (context) => HomePage()), 
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: const Text('You already have a verified phone number!'))
+            );
+          }
+        }
+        else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result.data['error']))
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please enter a valid code'))
+          SnackBar(content: const Text('Please enter a valid code'))
         );
       }
     } 

@@ -90,6 +90,42 @@ router.patch("/:user_id", async (req, res) => {
     }
 });
 
+// POST: /api/users/{user_id}/award, award user w. 1 credit upon verification of phone number
+router.post('/:user_id/award', async (req, res) => {
+    const user_id = req.params.user_id;
+
+    try {
+        // check if user has already been awarded (phone_number != null)
+        const { checkData, checkError } = await supabase
+            .from('users')
+            .select('phone_number')
+            .eq('id', user_id)
+            .single();
+
+        if (checkError) {
+            console.error(error);
+            return res.status(500).json({ error: 'Error reading values from user' });
+        }
+        
+        if (checkData && checkData['phone_number']) {
+            return res.status(400).json({ error: 'User has already verified a phone number' });
+        }
+
+        const { data, error } = await supabase
+            .rpc('increment-credits', { user_id: user_id });
+
+        if (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Error updating user' });
+        }
+
+        return res.status(200).json({ message: 'Successfully updated user' });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // DELETE: /api/users/{user_id}, delete user by user_id
 router.delete('/:user_id', async (req, res) => {
     const user_id = req.params.user_id;

@@ -2,6 +2,7 @@ import 'package:country_flags/country_flags.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
+import 'package:sklr/homepage.dart';
 import 'package:sklr/phone-verify.dart';
 
 class Country {
@@ -461,7 +462,7 @@ class PhoneState extends State<PhoneNumber> {
                         ),
                       ]
                     ),
-                    ElevatedButton(
+                    ElevatedButton( // continue
                       onPressed: () {
                         if (selected != null && number != null && number!.isNotEmpty && number!.length >= 9) {
                           Navigator.of(context).push(
@@ -501,7 +502,41 @@ class PhoneState extends State<PhoneNumber> {
                           ),
                         ]
                       )
-                    )
+                    ),
+                    ElevatedButton( // skip
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context, MaterialPageRoute(builder: (context) => HomePage()), 
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color.fromARGB(255, 4, 96, 255),
+                        padding: EdgeInsets.all(24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)
+                        )
+                      ),
+                      child: Row(
+                        spacing: 8,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Skip',
+                            style: GoogleFonts.mulish(
+                              textStyle: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600
+                              )
+                            )
+                          ),
+                          Icon(
+                            Icons.arrow_right_alt_sharp,
+                            color: Colors.white
+                          ),
+                        ]
+                      )
+                    ),
                   ]
                 )
               ),
@@ -616,7 +651,7 @@ class TitleAndHeader extends StatelessWidget {
           ),
         ),
         Text(
-          'Please enter your phone number to verify your account',
+          'Please enter your phone number to verify your account & receive a credit',
           textAlign: TextAlign.center,
           style: GoogleFonts.mulish(
             textStyle: TextStyle(

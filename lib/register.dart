@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
+import 'package:sklr/database/database.dart';
+import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/phone-number.dart';
 import 'loginpage.dart';
 import 'HomePage.dart';
@@ -14,6 +16,7 @@ class Register extends StatefulWidget {
 }
 
 class RegisterState extends State<Register> {
+  String username = '';
   String email = '';
   String password = '';
   String confirmPassword = '';
@@ -22,17 +25,29 @@ class RegisterState extends State<Register> {
   bool confirmPasswordVisible = false;
 
   bool registerEnabled() {
-    return email.isNotEmpty &&
+    return username.isNotEmpty && 
+        email.isNotEmpty &&
         password.isNotEmpty &&
         confirmPassword.isNotEmpty &&
         password == confirmPassword &&
         termsAccepted;
   }
 
-  void registerUser(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => PhoneNumber()),
-    );
+  void registerUser(BuildContext context) async {
+    LoginResponse result = await DatabaseHelper.registerUser(username, email, password);
+
+    if (result.success) {
+      await UserIdStorage.saveLoggedInUserId(result.userId);
+
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => PhoneNumber()),
+      );
+    }
+    else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message)),
+      );
+    }
   }
 
   @override
@@ -59,6 +74,26 @@ class RegisterState extends State<Register> {
                   ),
                 ),
                 const SizedBox(height: 30),
+                const Text("Username", style: TextStyle(fontSize: 16)),
+                const SizedBox(height: 8,),
+                TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      username = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: "Enter username",
+                    prefixIcon: const Icon(Icons.account_circle_outlined),
+                    fillColor: const Color.fromARGB(125, 207, 235, 252),
+                    filled: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 const Text("Email", style: TextStyle(fontSize: 16)),
                 const SizedBox(height: 8),
                 TextField(
