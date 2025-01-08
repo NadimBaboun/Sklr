@@ -7,6 +7,7 @@ import 'chatsHomePage.dart';
 import 'myorderspage.dart';
 import 'navigationbar-bar.dart';
 import 'database/userIdStorage.dart';
+import 'database/database.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,18 +17,27 @@ class HomePage extends StatefulWidget {
 }
 class _HomePageState extends State<HomePage>{
   int? loggedInUserId;
+  String? username;
 
   @override
   void initState(){
     super.initState();
-    _loadUserId();
+    _loadUserIdAndUsername();
   }
 
-  Future<void> _loadUserId() async{
+  Future<void> _loadUserIdAndUsername() async{
     final userId = await UserIdStorage.getLoggedInUserId();
-    setState(() {
-      loggedInUserId = userId;
-    });
+    if(userId != null){
+      final response = await DatabaseHelper.fetchUserFromId(userId);
+
+      if(response.success){
+        final userData = response.data;
+        setState(() {
+          loggedInUserId = userId;
+          username = userData['username'];
+        });
+      }
+    }
   }
 
   @override
@@ -42,7 +52,7 @@ class _HomePageState extends State<HomePage>{
       title: 'Responsive Example',
       home: Scaffold(
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(200.0),
+          preferredSize: const Size.fromHeight(220.0),
           child: AppBar(
             backgroundColor: const Color(0xFF6296FF),
             flexibleSpace: Padding(
@@ -55,7 +65,7 @@ class _HomePageState extends State<HomePage>{
                     children: [
                       const SizedBox(height: 40),
                       Text(
-                        'Hello, User!',
+                        'Hello, ${username ?? "User"}',
                         style: GoogleFonts.lexend(
                           textStyle: TextStyle(
                             color: Colors.white,
@@ -79,6 +89,7 @@ class _HomePageState extends State<HomePage>{
                       // Adjusting the Search Bar
                       Flexible(
                         child: SizedBox(
+                          height: 40,
                           width: constraints.maxWidth *
                               0.8, // Dynamic width (80% of screen width)
                           child: TextField(
