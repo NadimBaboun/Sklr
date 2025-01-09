@@ -74,7 +74,7 @@ class MyOrdersPageState extends State<MyOrdersPage> {
               return ListTile(
                 title: Text(skill['name'] ?? 'No Skill Name'),
                 subtitle: Text(skill['description'] ?? 'No Description'),
-                trailing: Text(skill['created_at'] ?? ''),
+                trailing: Text(skill['created_at'].toString().substring(0,10)),
                 onTap: () {
                   //navigate to skill details page
                 },
