@@ -168,7 +168,7 @@ class _HomePageState extends State<HomePage>{
                   const SizedBox(height: 20),
                   Expanded(
                     child: GridView.count(
-                      crossAxisCount: constraints.maxWidth > 600 ? 4 : 2,
+                      crossAxisCount: constraints.maxWidth > 600 ? 4 : 3,
                       crossAxisSpacing: 16.0,
                       mainAxisSpacing: 16.0,
                       childAspectRatio: constraints.maxWidth > 600 ? 1 : 0.9,
@@ -208,6 +208,7 @@ class _HomePageState extends State<HomePage>{
       {'icon': 'assets/images/photography.png', 'label': 'Product Photography'},
       {'icon': 'assets/images/design.png', 'label': 'UI/UX Design'},
       {'icon': 'assets/images/ai.png', 'label': 'Build AI Services'},
+      {'icon': 'assets/images/others.png', 'label': 'Others'},
     ];
 
     return categories
