@@ -3,8 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/forgot-passowrd.dart'; // Corrected filename
-import 'database/database.dart'; // Import the database helper
-import 'package:sqflite/sqflite.dart'; // Import sqflite to access the database
+import 'package:sklr/database/database.dart'; // Import the database helper
+// Import sqflite to access the database
 import 'package:sklr/homepage.dart';
 import 'package:sklr/register.dart';
 

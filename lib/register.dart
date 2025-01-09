@@ -6,7 +6,6 @@ import 'package:sklr/database/database.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/phone-number.dart';
 import 'loginpage.dart';
-import 'HomePage.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});

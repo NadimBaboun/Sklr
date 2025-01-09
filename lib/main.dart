@@ -5,11 +5,6 @@ import 'package:sklr/database/database.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/homepage.dart';
 import 'package:sklr/startpage.dart';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
-import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure widgets are initialized

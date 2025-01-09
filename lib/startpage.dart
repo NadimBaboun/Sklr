@@ -78,8 +78,8 @@ class StartPage extends StatelessWidget {
                               );
                             },
                             style: ButtonStyle(
-                              backgroundColor: MaterialStateProperty.all(Colors.white),
-                              shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                              backgroundColor: WidgetStateProperty.all(Colors.white),
+                              shape: WidgetStateProperty.all<RoundedRectangleBorder>(
                                 RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                   side: BorderSide(color: Colors.blueGrey),
@@ -111,8 +111,8 @@ class StartPage extends StatelessWidget {
                               //go to google login page!
                             },
                             style: ButtonStyle(
-                                backgroundColor: MaterialStateProperty.all(Colors.white),
-                                shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                backgroundColor: WidgetStateProperty.all(Colors.white),
+                                shape: WidgetStateProperty.all<RoundedRectangleBorder>(
                                     RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                   side: BorderSide(color: Colors.blueGrey),
@@ -142,8 +142,8 @@ class StartPage extends StatelessWidget {
                               //go to apple login page!
                             },
                             style: ButtonStyle(
-                                backgroundColor: MaterialStateProperty.all(Colors.black),
-                                shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                backgroundColor: WidgetStateProperty.all(Colors.black),
+                                shape: WidgetStateProperty.all<RoundedRectangleBorder>(
                                     RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                   side: BorderSide(color: Colors.black),

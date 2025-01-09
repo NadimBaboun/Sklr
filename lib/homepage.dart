@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/service-categories.dart';
-import 'package:sklr/Profile.dart';
-import 'package:sklr/notfication-control.dart';
-import 'chatsHomePage.dart';
-import 'myorderspage.dart';
-import 'navigationbar-bar.dart';
-import 'database/userIdStorage.dart';
-import 'database/database.dart';
+import 'package:sklr/navigationbar-bar.dart';
+import 'package:sklr/database/userIdStorage.dart';
+import 'package:sklr/database/database.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
