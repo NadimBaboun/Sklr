@@ -471,16 +471,13 @@ class _recentListingsState extends State<RecentListings> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
-          log(snapshot.error.toString());
           return const Center(child: Text('Failed to load listing'));
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          log(snapshot.error.toString());
           return const Center(child: Text('Failed to load listing'));
         } else {
           final data = snapshot.data as List<dynamic>;
           final listings = data[0] as List<Map<String, dynamic>>;
           final categoryMap = { for (var category in data[1]) category['name']: category['asset']};
-          log(categoryMap.toString());
           return LayoutBuilder(
             builder: (context, constraints) {
               return ListView(

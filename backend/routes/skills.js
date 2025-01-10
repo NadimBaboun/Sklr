@@ -30,6 +30,27 @@ router.get("/:id", async (req, res) =>{
 
 });
 
+// GET: /api/skills/recent/{limit}, returns the {limit} latest skill listings
+router.get("/recent/:limit", async (req, res) => {
+    const limit = req.params.limit;
+    try {
+        const { data, error } = await supabase
+            .from('skills')
+            .select("*")
+            .order('created_at', { ascending: false })
+            .limit(limit)
+
+        if (error) {
+            throw error;
+        }
+
+        res.status(200).json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: "Internal server error"});
+    }
+});
+
 
 //fetches all skills
 router.get("/user/:user_id", async (req, res) =>{
