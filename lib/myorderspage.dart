@@ -112,7 +112,7 @@ class MyOrdersPageState extends State<MyOrdersPage> {
         },
       ),
       bottomNavigationBar:
-          CustomBottomNavigationBar(currentIndex: 2, loggedInUserId: 1),
+          CustomBottomNavigationBar(currentIndex: 2, loggedInUserId: loggedInUserId!),
     );
   }
 }

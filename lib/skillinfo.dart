@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/database/userIdStorage.dart';
@@ -7,13 +9,13 @@ class Skillinfo extends StatelessWidget {
   final int id;
   const Skillinfo({super.key, required this.id});
 
-  Future<Map<String, dynamic>?> fetchSkill(int? id) async {
+  Future<Map<String, dynamic>> fetchSkill(int? id) async {
     if (id == null) {
       throw Exception('Skill does not exist');
     }
 
     try {
-      return await DatabaseHelper.fetchOneSkill(id);
+      return DatabaseHelper.fetchOneSkill(id);
     } catch (error) {
       throw Exception('Failed to fetch skill: $error');
     }

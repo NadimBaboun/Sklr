@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:developer';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -267,12 +268,12 @@ class DatabaseHelper {
   } 
 
   //fetch one skill from id
-  static Future<Map<String, dynamic>?> fetchOneSkill(int id) async {
+  static Future<Map<String, dynamic>> fetchOneSkill(int id) async {
     final response = await http.get(Uri.parse('$backendUrl/skills/$id'));
 
     if (response.statusCode == 200) {
-      final responseData = json.decode(response.body) as Map<String, dynamic>;
-      return responseData['skills'] as Map<String, dynamic>;
+      return json.decode(response.body);
+
     } else {
       throw Exception('Failed to load skill');
     }

@@ -3,7 +3,7 @@ const supabase = require("../db/supabase");
 const router = express.Router();
 
 //fetches one specific skill
-router.get("/skills/:id", async (req, res) =>{
+router.get("/:id", async (req, res) =>{
 
     try{
         const id = req.params.id;
@@ -11,7 +11,8 @@ router.get("/skills/:id", async (req, res) =>{
         const { data, error } = await supabase
         .from('skills')
         .select('*')
-        .eq('id', id);
+        .eq('id', id)
+        .single();
 
         if(error){
             return res.status(400).send({error: error.message});
@@ -20,15 +21,14 @@ router.get("/skills/:id", async (req, res) =>{
         if(!data || data.length == 0){
             return res.status(404).send({message: "No skill ads found for this id."})
         }
-
-        res.status(200).send(data);
+        res.status(200).json(data);
     }
     catch (err){
         console.error(err);
         res.status(500).send({ error: "Internal server error"});
     };
 
-})
+});
 
 
 //fetches all skills
