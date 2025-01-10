@@ -31,12 +31,13 @@ class _ChatsHomePageState extends State<ChatsHomePage>{
       setState(() {
         loggedInUserId = userId;
       });
-
       final chats = await DatabaseHelper.fetchChats(userId);
       for(var chat in chats){
         final otherUserId = chat['other_user_id'];
+
         if(!usernameCache.containsKey(otherUserId)){
           final response = await DatabaseHelper.fetchUserFromId(otherUserId);
+          
           if(response.success){
             usernameCache[otherUserId] = response.data['username'];
           }

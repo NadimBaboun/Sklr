@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.get("/user/:userId", async (req, res) =>{
 
-    const userId = req.params.userId;
+    const userId = parseInt(req.params.userId, 10);
     const { data, error } = await supabase
         .from('chats')
         .select(`id, user1_id, user2_id, last_message,last_updated`)
@@ -20,7 +20,6 @@ router.get("/user/:userId", async (req, res) =>{
             last_updated: chat.last_updated,
             other_user_id: chat.user1_id === userId ? chat.user2_id : chat.user1_id,
         }));
-
         res.status(200).json(formattedData);
 });
 
