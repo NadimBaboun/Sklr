@@ -16,11 +16,12 @@ void main() async {
 
   // look for rememberMe in SharedPrefs.
   bool? rememberMe = await UserIdStorage.getRememberMe();
+  // log('rememberMe: $rememberMe');
   // rememberMe is enabled
   if (rememberMe != null && rememberMe) {
     // look for userId in SharedPrefs.
     int? userId = await UserIdStorage.getLoggedInUserId();
-    log('userId: $userId');
+    // log('userId: $userId');
     // userId is set
     if (userId != null && userId > 0) {
       runApp(const HomePage());

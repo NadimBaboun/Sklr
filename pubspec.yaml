@@ -92,6 +92,9 @@ flutter:
       - assets/Sklr.db
       - assets/images/avatar.png
       - assets/images/others.png
+      - assets/images/cooking.png
+      - assets/images/fitness.png
+      - assets/images/language.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

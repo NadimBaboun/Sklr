@@ -15,8 +15,7 @@ class AddSkillPageState extends State<AddSkillPage> {
   int? loggedInUserId;
   String? chosenCategory;
   String? errorMessage;
-
-  final List<String> _choices = [
+  List<String> _choices = [
     'Cooking & Baking',
     'Fitness',
     'IT & Tech',
@@ -29,12 +28,20 @@ class AddSkillPageState extends State<AddSkillPage> {
   void initState() {
     super.initState();
     _loadUserId();
+    _loadCategories();
   }
 
   Future<void> _loadUserId() async {
     final userId = await UserIdStorage.getLoggedInUserId();
     setState(() {
       loggedInUserId = userId;
+    });
+  }
+
+  Future<void> _loadCategories() async {
+    final result  = await DatabaseHelper.fetchCategories();
+    setState(() {
+      _choices = result.map((category) => category['name'] as String).toList();
     });
   }
 

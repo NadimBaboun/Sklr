@@ -232,6 +232,40 @@ class DatabaseHelper {
     }
   }
 
+  // fetch categories
+  static Future<List<Map<String, dynamic>>> fetchCategories() async {
+    final url = Uri.parse('$backendUrl/categories');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(json.decode(response.body));
+      } else {
+        return [];
+      }
+    } catch (err) {
+      return [];
+    }
+  }
+
+  // fetch recent listings
+  static Future<List<Map<String, dynamic>>> fetchRecentListings(int limit) async {
+    final url = Uri.parse('$backendUrl/skills/recent/$limit');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(json.decode(response.body));
+      } else {
+        return [];
+      }
+    } catch (err) {
+      return [];
+    }
+  } 
+
   //fetch one skill from id
   static Future<Map<String, dynamic>?> fetchOneSkill(int id) async {
     final response = await http.get(Uri.parse('$backendUrl/skills/$id'));
@@ -243,6 +277,7 @@ class DatabaseHelper {
       throw Exception('Failed to load skill');
     }
   }
+
 
   //fetching the skills of a user
   static Future<List<Map<String, dynamic>>> fetchSkills(int userId) async {
