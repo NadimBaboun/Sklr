@@ -13,6 +13,15 @@ class AddSkillPageState extends State<AddSkillPage> {
   String skillname = '';
   String skilldescription = '';
   int? loggedInUserId;
+  String? chosenCategory;
+  final List<String> _choices = [
+    'Cooking & Baking',
+    'Fitness',
+    'IT & Tech',
+    'Languages',
+    'Music & Audio',
+    'Other'
+  ];
 
   @override
   void initState() {
@@ -84,12 +93,46 @@ class AddSkillPageState extends State<AddSkillPage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 30),
+              Center(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DropdownButton<String>(
+                      value: chosenCategory,
+                      hint: Text('Choose a category'),
+                      icon: Icon(
+                        Icons.arrow_downward,
+                        color: const Color(0xFF6296FF),
+                      ),
+                      elevation: 16,
+                      underline: Container(
+                        height: 2,
+                        width: double.infinity,
+                        color: Color(0xFF6296FF),
+                      ),
+                      items: _choices.map((String choice) {
+                        return DropdownMenuItem<String>(
+                          value: choice,
+                          child: Text(choice),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          chosenCategory = newValue;
+                        });
+                      },
+                      isExpanded: false,
+                    ),
+                  ],
+                ),
+              ),
               const Spacer(),
               ElevatedButton(
                 onPressed: () {
                   //skill is added to the database
-                  DatabaseHelper.insertSkill(
-                      loggedInUserId, skillname, skilldescription);
+                  DatabaseHelper.insertSkill(loggedInUserId, skillname,
+                      skilldescription, chosenCategory);
 
                   Navigator.of(context).pop();
                 },

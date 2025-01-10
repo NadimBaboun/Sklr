@@ -36,8 +36,7 @@ class DatabaseHelper {
   static String _initBackendUrl() {
     if (kIsWeb) {
       return 'http://localhost:3000/api';
-    }
-    else if (Platform.isAndroid) {
+    } else if (Platform.isAndroid) {
       return 'http://10.0.2.2:3000/api';
     } else if (Platform.isIOS) {
       return 'http://127.0.0.1:3000/api';
@@ -247,7 +246,7 @@ class DatabaseHelper {
 
   //insert skill into database
   static Future<Response> insertSkill(
-      int? userId, String name, String description) async {
+      int? userId, String name, String description, String? category) async {
     final url = Uri.parse('$backendUrl/skills');
 
     try {
@@ -261,6 +260,7 @@ class DatabaseHelper {
           'name': name,
           'description': description,
           'created_at': DateTime.now().toIso8601String(),
+          'category': category,
         }),
       );
 

@@ -81,6 +81,7 @@ class _ProfilePageState extends State<ProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Avatar Section
+            const SizedBox(height: 40),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -252,9 +253,8 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-      currentIndex: 3,
-       loggedInUserId: 1),
+      bottomNavigationBar:
+          CustomBottomNavigationBar(currentIndex: 3, loggedInUserId: 1),
     );
   }
 }
@@ -292,24 +292,23 @@ showSignOutDialog(BuildContext context) {
       await UserIdStorage.setRememberMe(false);
       await UserIdStorage.saveLoggedInUserId(-1);
       Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (context) => const StartPage())
-      );
+          context, MaterialPageRoute(builder: (context) => const StartPage()));
     },
   );
 
   AlertDialog dialog = AlertDialog(
     title: const Text("Confirm signout?"),
-    content: Text("If you sign out, you will no longer have access to Sklr or any of its services."),
+    content: Text(
+        "If you sign out, you will no longer have access to Sklr or any of its services."),
     actions: [
       button,
     ],
   );
 
   showDialog(
-    context: context,
-    barrierDismissible: true,
-    builder: (BuildContext context) {
-      return dialog;
-    }
-  );
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return dialog;
+      });
 }

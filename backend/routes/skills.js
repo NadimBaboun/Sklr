@@ -32,9 +32,9 @@ catch (err){
 
 router.post("/", async (req, res) => {
     try{
-        const { user_id, name, description, created_at} = req.body;
+        const { user_id, name, description, created_at, category} = req.body;
 
-        if(!user_id || !name || !description || !created_at) {
+        if(!user_id || !name || !description || !created_at || !category) {
             return res.status(400).send({ error: "Missing required fields"});
 
         }
@@ -47,6 +47,7 @@ router.post("/", async (req, res) => {
                     name,
                     description,
                     created_at,
+                    category,
                 },
             ]);
         if(error){
