@@ -6,6 +6,7 @@ import 'package:sklr/service-categories.dart';
 import 'package:sklr/navigationbar-bar.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/database/database.dart';
+import 'package:sklr/skillinfo.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -448,7 +449,9 @@ class _recentListingsState extends State<RecentListings> {
       .map(
         (listing) => InkWell(
           onTap: () {
-            // show individual listing
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => Skillinfo(id: listing['id'])),
+            );
           },
           child: _skillListing(listing, categoryMap)
         )
