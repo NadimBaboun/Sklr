@@ -286,6 +286,41 @@ class DatabaseHelper {
     }
   }
 
+  //delete skill from database
+  // ignore: non_constant_identifier_names
+  static Future<Response> deleteSkill(String name, int? user_id) async {
+    final url = Uri.parse('$backendUrl/skills/$name/$user_id');
+
+    try {
+      final response = await http.delete(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // skill deleted successfully
+        return Response(
+          success: true,
+          message: 'Skill deleted successfully',
+        );
+      } else if (response.statusCode == 404) {
+        return Response(
+          success: false,
+          message: 'Skill not found',
+        );
+      } else {
+        throw Exception('Failed to delete skill');
+      }
+    } catch (err) {
+      return Response(
+        success: false,
+        message: err.toString(),
+      );
+    }
+  }
+
   //                  Message / Chat Functionallity
   /*--------------------------------------------------------------------------------------*/
 

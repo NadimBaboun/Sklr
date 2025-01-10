@@ -131,6 +131,7 @@ class AddSkillPageState extends State<AddSkillPage> {
               ElevatedButton(
                 onPressed: () {
                   //skill is added to the database
+                  
                   DatabaseHelper.insertSkill(loggedInUserId, skillname,
                       skilldescription, chosenCategory);
 

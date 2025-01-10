@@ -4,7 +4,6 @@ import 'myorderspage.dart';
 import 'homepage.dart';
 import 'Profile.dart';
 
-
 class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
   final int loggedInUserId;
@@ -31,29 +30,37 @@ class CustomBottomNavigationBar extends StatelessWidget {
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.list_alt_outlined),
-          label: 'My Orders',
+          label: 'My Skills',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.account_circle_outlined),
           label: 'Profile',
         ),
       ],
-      onTap: (index){
-        switch (index){
-          case 0: 
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomePage()),
+      onTap: (index) {
+        switch (index) {
+          case 0:
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
             );
             break;
           case 1:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> ChatsHomePage()),
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => ChatsHomePage()),
             );
             break;
           case 2:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> MyOrdersPage()),
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MyOrdersPage()),
             );
             break;
           case 3:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> ProfilePage()),
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => ProfilePage()),
             );
             break;
         }

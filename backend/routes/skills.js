@@ -2,6 +2,7 @@ const express = require("express");
 const supabase = require("../db/supabase");
 const router = express.Router();
 
+//fetches all skills
 router.get("/user/:user_id", async (req, res) =>{
 
 try {
@@ -30,6 +31,7 @@ catch (err){
 
 });
 
+//adds a skill
 router.post("/", async (req, res) => {
     try{
         const { user_id, name, description, created_at, category} = req.body;
@@ -61,6 +63,43 @@ router.post("/", async (req, res) => {
     }catch (err){
         console.error(err);
         res.status(500).send({error: "Internal server error"});
+    }
+});
+
+//deletes a skill
+router.delete("/:name/:user_id", async (req, res) => {
+    try {
+        const { name, user_id } = req.params; 
+
+     
+        if (!name || !user_id) {
+            return res.status(400).send({ error: "Name and id is required" });
+        }
+
+      
+        const { data, error } = await supabase
+            .from("skills")
+            .delete()
+            .eq("name", name)
+            .eq("user_id", user_id);
+            
+       
+        if (error) {
+            return res.status(400).send({ error: error.message });
+        }
+
+      
+        if ( !data || !data.length || data.length === 0) {
+            return res.status(404).send({ error: "Skill not found" });
+        }
+
+       
+        res.status(200).send({
+            message: "Skill deleted successfully",
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: "Internal server error" });
     }
 });
 
