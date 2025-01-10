@@ -109,8 +109,7 @@ class _ChatsHomePageState extends State<ChatsHomePage>{
         },
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: 1,
-        loggedInUserId: loggedInUserId!),
+        currentIndex: 1),
     );
   }
 }

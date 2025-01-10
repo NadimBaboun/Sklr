@@ -6,12 +6,10 @@ import 'Profile.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
-  final int loggedInUserId;
 
   const CustomBottomNavigationBar({
     super.key,
     required this.currentIndex,
-    required this.loggedInUserId,
   });
 
   @override

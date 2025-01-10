@@ -308,7 +308,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
       bottomNavigationBar:
-          CustomBottomNavigationBar(currentIndex: 3, loggedInUserId: 1),
+          CustomBottomNavigationBar(currentIndex: 3,),
     );
   }
 }

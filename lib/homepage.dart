@@ -214,8 +214,7 @@ class _HomePageState extends State<HomePage>{
           ),
         ),
         bottomNavigationBar: CustomBottomNavigationBar(
-      currentIndex: 0,
-       loggedInUserId: loggedInUserId!),
+      currentIndex: 0),
       ),
     );
   }
