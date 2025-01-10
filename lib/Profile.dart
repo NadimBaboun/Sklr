@@ -10,6 +10,7 @@ import 'package:sklr/notfication-control.dart';
 import 'package:sklr/Choose-languge.dart';
 import 'addskillpage.dart';
 import 'navigationbar-bar.dart';
+import 'database/database.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -21,6 +22,34 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   File? _image;
   final ImagePicker _picker = ImagePicker();
+
+  Map<String, dynamic>? userData;
+  bool isLoading = true;
+
+  @override
+  void initState(){
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async{
+    final userId = await UserIdStorage.getLoggedInUserId();
+
+    if(userId != null && userId > 0){
+      final response = await DatabaseHelper.fetchUserFromId(userId);
+      if(response.success){
+        setState(() {
+          userData = response.data;
+          isLoading = false;
+        });
+      }
+      else{
+        setState(() {
+          isLoading = true;
+        });
+      }
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile = await _picker.pickImage(source: source);
@@ -80,8 +109,33 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Avatar Section
             const SizedBox(height: 40),
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.account_balance_wallet, 
+                    color: Colors.blue, 
+                    size: 30,
+                  ),
+                  const SizedBox(width: 8), 
+                  Text(
+                    "${userData?['credits'] ?? 0}",
+                    style: GoogleFonts.lexend(
+                      textStyle: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Avatar Section
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -141,7 +195,7 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 20),
             // User Name and Details
             Text(
-              'Mohammad',
+              userData?['username'] ?? 'Unknown User',
               style: GoogleFonts.lexend(
                 textStyle: TextStyle(
                   fontSize: 24,
@@ -151,7 +205,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 5),
             Text(
-              'youremail@domain.com | +01 234 567 89',
+              '${userData?['email'] ?? 'No Email'} | ${userData?['phone_number'] ?? 'No Phone'}',
               style: GoogleFonts.lexend(
                 textStyle: TextStyle(
                   fontSize: 14,
