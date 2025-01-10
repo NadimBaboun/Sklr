@@ -14,6 +14,8 @@ class AddSkillPageState extends State<AddSkillPage> {
   String skilldescription = '';
   int? loggedInUserId;
   String? chosenCategory;
+  String? errorMessage;
+
   final List<String> _choices = [
     'Cooking & Baking',
     'Fitness',
@@ -128,14 +130,47 @@ class AddSkillPageState extends State<AddSkillPage> {
                 ),
               ),
               const Spacer(),
-              ElevatedButton(
-                onPressed: () {
-                  //skill is added to the database
+              if (errorMessage != null) ...[
+                Center(
                   
-                  DatabaseHelper.insertSkill(loggedInUserId, skillname,
-                      skilldescription, chosenCategory);
-
-                  Navigator.of(context).pop();
+                  child: Text(
+                    errorMessage!,
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              ElevatedButton(
+                onPressed: () async {
+                  setState(() {
+                    errorMessage = null;
+                  });
+                  //check if all fields contain info
+                  if (skillname.isNotEmpty &&
+                      skilldescription.isNotEmpty &&
+                      chosenCategory!.isNotEmpty) {
+                    bool skillExists = await DatabaseHelper.checkSkillName(
+                        skillname, loggedInUserId);
+                    //check if skillname already exist for logged in user
+                    if (!skillExists) {
+                      //skill is added to the database
+                      DatabaseHelper.insertSkill(loggedInUserId, skillname,
+                          skilldescription, chosenCategory);
+                      Navigator.of(context).pop();
+                    } else {
+                      setState(() {
+                        errorMessage = 'This skill already exists!';
+                      });
+                    }
+                  }
+                  else {
+                    setState(() {
+                        errorMessage = 'Please fill all neccessary information';
+                      });
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6296FF),

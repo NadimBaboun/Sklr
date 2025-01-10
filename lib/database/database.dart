@@ -321,6 +321,33 @@ class DatabaseHelper {
     }
   }
 
+  //check if name exists in skill table
+  static Future<bool> checkSkillName(String name, int? user_id) async {
+    final url = Uri.parse('$backendUrl/skills/$name/$user_id');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // the skill exists
+        return true;
+      } else if (response.statusCode == 404) {
+        //the skill does not exist
+        return false;
+      } else {
+        throw Exception('Failed to check skill existence');
+      }
+    } catch (err) {
+      print('Error: $err');
+      return false;
+    }
+  }
+
   //                  Message / Chat Functionallity
   /*--------------------------------------------------------------------------------------*/
 
