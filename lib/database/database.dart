@@ -232,6 +232,18 @@ class DatabaseHelper {
     }
   }
 
+  //fetch one skill from id
+  static Future<Map<String, dynamic>?> fetchOneSkill(int id) async {
+    final response = await http.get(Uri.parse('$backendUrl/skills/$id'));
+
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body) as Map<String, dynamic>;
+      return responseData['skills'] as Map<String, dynamic>;
+    } else {
+      throw Exception('Failed to load skill');
+    }
+  }
+
   //fetching the skills of a user
   static Future<List<Map<String, dynamic>>> fetchSkills(int userId) async {
     final response =

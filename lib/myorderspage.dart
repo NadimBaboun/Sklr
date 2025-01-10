@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/database/userIdStorage.dart';
+import 'package:sklr/skillinfo.dart';
 import 'database/database.dart';
 import 'navigationbar-bar.dart';
 
@@ -99,6 +100,10 @@ class MyOrdersPageState extends State<MyOrdersPage> {
                       Text(skill['created_at'].toString().substring(0, 10)),
                   onTap: () {
                     // Navigate to skill details page
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (context) => Skillinfo(id: skill['id'])),
+                    );
                   },
                 ),
               );
