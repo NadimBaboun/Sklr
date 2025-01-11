@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sklr/chatSessionUtil.dart';
 import 'database/database.dart';
 
 
@@ -21,7 +22,7 @@ class _ChatPageState extends State<ChatPage>{
   late Future<List<Map<String, dynamic>>> messages;
   final TextEditingController _messageController = TextEditingController();
   bool isLoading = false;
-
+  late Map<String, dynamic> session;
 
   @override
   void initState(){
@@ -57,9 +58,36 @@ class _ChatPageState extends State<ChatPage>{
   @override
   Widget build (BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.otherUsername),
-        centerTitle: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: AppBar(
+          title: Text(widget.otherUsername),
+          centerTitle: true,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(30),
+            child: Container(
+              child: FutureBuilder<Map<String, dynamic>>(
+                future: _loadSessionAndSkill(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                    final skillName = snapshot.data!['skillName'] ?? 'Unknown Skill';
+                    return Text(skillName);
+                  } else {
+                    return const Center(
+                      child: Text('No data available')
+                    );
+                  }
+                }
+              )
+            )
+          )
+        )
       ),
       body: Column(
         children: [
@@ -101,6 +129,23 @@ class _ChatPageState extends State<ChatPage>{
               }
             ),
           ),
+          FutureBuilder<Map<String, dynamic>>(
+            future: _loadSession(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              else if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+              else if (snapshot.hasData) {
+                final status = snapshot.data!['status'];
+                return _buildStateButton(status, snapshot.data!);
+              } else {
+                return const SizedBox(height: 0);
+              }
+            }
+          ),
           Padding(
             padding: const EdgeInsets.all(8),
             child: Row(
@@ -123,5 +168,81 @@ class _ChatPageState extends State<ChatPage>{
         ],
       )
     );
+  }
+
+  Future<Map<String, dynamic>> _loadSession() async {
+    try {
+      final response = await DatabaseHelper.fetchSessionFromChat(widget.chatId);
+      if (!response.success) {
+        throw Exception('Failed to fetch session');
+      }
+      return response.data;
+    } catch (err) {
+      throw Exception('Error loading session: $err');
+    }
+  }
+
+  Widget _buildStateButton(String status, Map<String, dynamic> session) {
+    switch (status) {
+      case 'Idle':
+        return Center(
+          child: ElevatedButton(
+            onPressed: () async {
+              // Open the dialog through RequestServiceButton
+              bool? result = await RequestService(session: session).showRequestDialog(context);
+
+              if (result == true) {
+                // create transaction entity
+                final response = await DatabaseHelper.createTransaction(session['id']);
+
+                if (response) {
+                  setState(() {
+                    _loadSession();
+                  });
+                }
+              }
+            },
+            child: const Text('Request Service'),
+          ),
+        );
+      case 'Pending':
+        return Center(
+          child: ElevatedButton(
+            onPressed: () async {
+              // Open the dialog through RequestServiceButton
+              bool? result = await CompleteService(session: session).showRequestDialog(context);
+
+              if (result == true) {
+                // 
+                setState(() {
+                  _loadSession();
+                });
+              }
+            },
+            child: const Text('Request Service'),
+          ),
+        );
+      default:
+        return const Center(child: Text('Null'));
+    }
+  }
+
+  Future<Map<String, dynamic>> _loadSessionAndSkill() async {
+    try {
+      final sessionResponse = await DatabaseHelper.fetchSessionFromChat(widget.chatId);
+      if (!sessionResponse.success) {
+        throw Exception('Failed to fetch session');
+      }
+      final session = sessionResponse.data;
+      
+      final skillResponse = await DatabaseHelper.fetchOneSkill(session['skill_id']);
+      if (skillResponse.isEmpty) {
+        throw Exception('Failed to fetch skill');
+      }
+
+      return {'skillName': skillResponse['name'], 'session': session};
+    } catch (err) {
+      throw Exception('Error loading data: $err');
+    }
   }
 }

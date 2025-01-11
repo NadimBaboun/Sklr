@@ -42,12 +42,14 @@ router.get("/:chatId/messages", async (req, res) => {
 
 
 router.post("/get-or-create", async (req, res) => {
-    const {user1Id, user2Id} = req.body;
+    const { user1Id, user2Id, session_id } = req.body;
 
     const {data: existingChat, error: findError} = await supabase
         .from('chats')
         .select('*')
-        .or(`(user1_id.eq.${user1Id},user2_id.eq.${user2Id}), (user1_id.eq.${user2Id},user2_id.eq.${user1Id})`)
+        .or(
+        `and(user1_id.eq.${user1Id},user2_id.eq.${user2Id}),and(user1_id.eq.${user2Id},user2_id.eq.${user1Id})`
+        )
         .limit(1);
 
     if(findError){
@@ -64,10 +66,13 @@ router.post("/get-or-create", async (req, res) => {
         .insert({
             user1_id: user1Id,
             user2_id: user2Id,
+            session_id: session_id,
             last_message: null,
             last_updated: new Date().toISOString(),
         })
         .select();
+
+    console.log(newChat);
 
     if(createError){
         console.error("Error creating chat: ", createError);
@@ -110,6 +115,46 @@ router.post("/:chatId/message", async (req, res) => {
     }
 
     res.status(200).json({ success: true});
+});
+
+// GET: /api/chat/session/{chat_id}
+router.get("/session/:chatId", async (req, res) => {
+    const chatId = req.params.chatId;
+
+    try {
+        // step 1: fetch session_id from 'chats'
+        const { data: chat_data, error: chat_error } = await supabase
+            .from('chats')
+            .select('session_id')
+            .eq('id', chatId)
+            .single();
+
+        if (chat_error) {
+            throw chat_error;
+        }
+
+        if (!chat_data || !chat_data['session_id']) {
+            throw new Error('No session_id found for the given chat_id');
+        }
+
+        const sessionId = chat_data['session_id'];
+
+        // step 2: fetch * from 'sessions'
+        const { data, error } = await supabase
+            .from('sessions')
+            .select("*")
+            .eq('id', sessionId)
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        res.status(200).json(data);
+    } catch (err) {
+        console.error('Error fetching user: ', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 module.exports = router;

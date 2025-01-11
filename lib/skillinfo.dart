@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/Profile.dart';
+import 'package:sklr/chatPage.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'database/database.dart';
 import 'userpage.dart';
@@ -157,6 +158,26 @@ class Skillinfo extends StatelessWidget {
                                 color: Colors.grey,
                               ),
                             ),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                // fetch logged in user
+                                final self = await UserIdStorage.getLoggedInUserId();
+                                // create session between users
+                                final session = await DatabaseHelper.createSession(self!, skill['id']);
+                                final result = await DatabaseHelper.getOrCreateChat(self, skill['user_id'], session.data['data']['id']);
+                                Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context) => ChatPage(chatId: result, loggedInUserId: self, otherUsername: user['username'])));
+                              },
+                              icon: const Icon(Icons.message, color: Colors.white),
+                              label: Text('Start Conversation', style: GoogleFonts.mulish()),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)
+                                )
+                              )
+                            )
                           ],
                         ),
                       ),

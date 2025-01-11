@@ -453,11 +453,11 @@ class DatabaseHelper {
     }
   }
 
-  static Future<int> getOrCreateChat(int user1Id, int user2Id) async {
+  static Future<int> getOrCreateChat(int user1Id, int user2Id, int sessionId) async {    
     final response = await http.post(
       Uri.parse('$backendUrl/chat/get-or-create'),
       headers: {'Content-Type': 'application/json'},
-      body: json.encode({'user1Id': user1Id, 'user2Id': user2Id}),
+      body: json.encode({'user1Id': user1Id, 'user2Id': user2Id, 'session_id': sessionId}),
     );
 
     if (response.statusCode == 200) {
@@ -465,6 +465,140 @@ class DatabaseHelper {
       return data['chat_id'];
     } else {
       throw Exception('Failed to create or fetch chat');
+    }
+  }
+
+  static Future<DatabaseResponse> createSession(int requester_id, int skill_id) async {
+    final url = Uri.parse('$backendUrl/sessions');
+
+    try {
+      final skill = await fetchOneSkill(skill_id);
+      log('found skill ${skill.toString()}');
+
+      final response = await http.post(
+        url,
+        headers: { 'Content-type': 'application/json' },
+        body: json.encode({
+          'requester_id': requester_id,
+          'provider_id': skill['user_id'],
+          'skill_id': skill_id
+        })
+      );
+
+      if (response.statusCode == 201) {
+        return DatabaseResponse(
+          success: true,
+          data: json.decode(response.body)
+        );
+      }
+      return DatabaseResponse(
+        success: false, 
+        data: {
+          'error': 'Failed to create session'
+        } 
+      );
+    } catch (err) {
+      return DatabaseResponse(
+        success: false,
+        data: {
+          'error': err.toString()
+        }
+      );  
+    }
+  }
+
+  static Future<DatabaseResponse> fetchSessionFromId(int sessionId) async {
+    final url = Uri.parse('$backendUrl/sessions/$sessionId');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        return DatabaseResponse(
+          success: true,
+          data: json.decode(response.body)
+        );
+      }
+      return DatabaseResponse(
+        success: false,
+        data: json.decode(response.body)
+      );
+    } catch (err) {
+      return DatabaseResponse(
+        success: false,
+        data: {
+          'error': err.toString()
+        }
+      );  
+    }
+  }
+
+  static Future<DatabaseResponse> fetchSessionFromChat(int chatId) async {
+    final url = Uri.parse('$backendUrl/chat/session/$chatId');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        return DatabaseResponse(
+          success: true,
+          data: json.decode(response.body),
+        );
+      } 
+      return DatabaseResponse(
+        success: false, 
+        data: {
+          'error': 'Failed to fetch session from chat'
+        }
+      );
+    } catch (err) {
+      return DatabaseResponse(
+        success: false, 
+        data: {
+          'error': err.toString()
+        }
+      );
+    }
+  }
+
+  static Future<bool> createTransaction(int sessionId) async {
+    final url = Uri.parse('$backendUrl/transactions');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: { 'Content-type': 'application/json' },
+        body: json.encode({ 
+          'session_id': sessionId
+        })
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+      return false;
+
+    } catch (err) {
+      return false;
+    }
+  }
+
+  static Future<bool> updateSessionStatus(int sessionId, String status) async {
+    final url = Uri.parse('$backendUrl/sessions/$sessionId');
+
+    try {
+      final response = await http.patch(
+        url,
+        headers: { 'Content-Type': 'application/json' },
+        body: json.encode({'status': status})
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+      return false;
+    } catch (err) {
+      return false;
     }
   }
 

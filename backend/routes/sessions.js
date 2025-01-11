@@ -4,11 +4,11 @@ const router = express.Router();
 
 // POST: /api/sessions, create a session
 router.post('', async (req, res) => {
-    const { requester_id, provider_id, skill_id, session_date, duration_minutes, status } = req.body;
+    const { requester_id, provider_id, skill_id } = req.body;
 
     // validation
-    if (!requester_id || !provider_id || !skill_id || !session_date || !duration_minutes || !status) {
-        return res.status(400).json({ error: 'Requester_id, Provider_id, Skill_id, Session_date, Duration_minutes, and Status are required' });
+    if (!requester_id || !provider_id || !skill_id) {
+        return res.status(400).json({ error: 'Requester_id, Provider_id, Skill_id are required' });
     }
 
     try {
@@ -19,18 +19,16 @@ router.post('', async (req, res) => {
                     requester_id: requester_id,
                     provider_id: provider_id,
                     skill_id: skill_id,
-                    session_date: session_date,
-                    duration_minutes: duration_minutes,
-                    status: status
                 }
             ])
-            .select();
+            .select()
+            .single();
         
         if (error) {
             throw error;
         }
 
-        res.status(201).json({ message: 'Session created successfully', session: data });
+        res.status(201).json({data});
     } catch (err) {
         console.error('Error creating session: ', err.message);
         res.status(500).json({ error: 'Internal server error' });
@@ -52,7 +50,7 @@ router.get('/:session_id', async (req, res) => {
             throw error;
         }
 
-        res.status(200).json({ session: data });
+        res.status(200).json(data);
 
     } catch (err) {
         console.error('Error getting session ', err.message);
@@ -63,19 +61,15 @@ router.get('/:session_id', async (req, res) => {
 // PATCH: /api/sessions/{session_id}, update session by session_id
 router.patch('/:session_id', async (req, res) => {
     const session_id = req.params.session_id;
-    const { session_date, status } = req.body;
+    const { status } = req.body;
 
     // check for empty or invalid request body
-    if (!session_date && !status) {
+    if (!status) {
         return res.status(400).json({ error: 'At least one field required' });
     }
 
     try {
         const updates = {};
-
-        if (session_date) {
-            updates.session_date = session_date;
-        }
 
         if (status) {
             updates.status = status;

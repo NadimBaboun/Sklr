@@ -9,6 +9,7 @@ const chatRoutes = require("./chat");
 const sessionRoutes = require("./sessions");
 const skillsRoutes = require("./skills");
 const categoryRoutes = require("./categories");
+const transactionRoutes = require("./transactions");
 
 // make use of imported routes
 router.use('/api', testRoutes);
@@ -18,5 +19,6 @@ router.use('/api/chat', chatRoutes);
 router.use('/api/sessions', sessionRoutes);
 router.use('/api/skills', skillsRoutes);
 router.use('/api/categories', categoryRoutes);
+router.use('/api/transactions', transactionRoutes);
 
 module.exports = router;
