@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sklr/Profile.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'database/database.dart';
 import 'userpage.dart';
@@ -103,7 +104,18 @@ class Skillinfo extends StatelessWidget {
                             ),
                             const SizedBox(height: 20),
                             InkWell(
-                              onTap: () {
+                              onTap: () async {
+                                final loggedInUserId = await UserIdStorage.getLoggedInUserId();
+                                if(skill['user_id'] == loggedInUserId) {
+                                  Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        ProfilePage(),
+                                  ),
+                                  );
+                                }else{
+
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -111,6 +123,7 @@ class Skillinfo extends StatelessWidget {
                                         UserPage(userId: skill['user_id']),
                                   ),
                                 );
+                                }
                               },
                               child: Text(
                                 'Created by: ${user['username']}',
