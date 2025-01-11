@@ -83,56 +83,62 @@ class Skillinfo extends StatelessWidget {
                     );
                   } else {
                     final user = userSnapshot.data!;
-                    return Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Center(
+                    return Center(
+                      // Centering all content
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment
+                              .center, // Centered horizontally
+                          mainAxisAlignment:
+                              MainAxisAlignment.start, // Centered vertically
                           children: [
+                            const SizedBox(height: 20),
                             Text(
                               '${skill['name']}',
                               style: GoogleFonts.mulish(
-                                fontSize: 20,
+                                fontSize: 25,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                            const SizedBox(height: 20),
                             InkWell(
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        userpage(userId: skill['user_id']),
+                                        UserPage(userId: skill['user_id']),
                                   ),
                                 );
                               },
                               child: Text(
                                 'Created by: ${user['username']}',
                                 style: GoogleFonts.mulish(
-                                  fontSize: 20,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blue,
-                                  decoration: TextDecoration.underline,
+                                 
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 25),
                             Text(
                               '${skill['description']}',
                               style: GoogleFonts.mulish(
-                                fontSize: 16,
+                                fontSize: 18,
                               ),
                             ),
                             const SizedBox(height: 20),
                             Text(
                               'Category: ${skill['category']}',
                               style: GoogleFonts.mulish(
-                                fontSize: 16,
+                                fontSize: 18,
                               ),
                             ),
                             const SizedBox(height: 20),
                             Text(
-                              'Created At: ${skill['created_at']}',
+                              '${skill['created_at'].toString().substring(0, 10)}',
                               style: GoogleFonts.mulish(
                                 fontSize: 14,
                                 color: Colors.grey,
