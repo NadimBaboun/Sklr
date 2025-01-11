@@ -143,7 +143,7 @@ class VerifyState extends State<PhoneVerify> {
                         shape: PinCodeFieldShape.underline,
                         fieldHeight: 75,
                         fieldWidth: 75,
-                        activeColor: Colors.blue,
+                        activeColor: Color(0xFF6296FF),
                         inactiveColor: Colors.grey,
                         selectedColor: Colors.black,
                       ),

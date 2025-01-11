@@ -130,7 +130,7 @@ class Skillinfo extends StatelessWidget {
                                 style: GoogleFonts.mulish(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
+                                  color: Color(0xFF6296FF),
                                  
                                 ),
                               ),

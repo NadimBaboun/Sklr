@@ -85,7 +85,7 @@ class _ChatPageState extends State<ChatPage>{
                         margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: isSentByUser ? Colors.blue : Colors.grey[300],
+                          color: isSentByUser ? Color(0xFF6296FF) : Colors.grey[300],
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(

@@ -4,6 +4,7 @@ import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/skillinfo.dart';
 import 'database/database.dart';
 import 'navigationbar-bar.dart';
+import 'addskillpage.dart';
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -109,7 +110,20 @@ class MyOrdersPageState extends State<MyOrdersPage> {
               );
             },
           );
+          
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+            Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AddSkillPage()),
+                      );
+        },
+        tooltip: 'Increment',
+        backgroundColor: const Color(0xFF6296FF),
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
       ),
       bottomNavigationBar:
           CustomBottomNavigationBar(currentIndex: 2),

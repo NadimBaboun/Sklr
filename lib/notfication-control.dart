@@ -82,7 +82,7 @@ class _NotificationSettingsScreenState
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            // Handle back button press
+            Navigator.pop(context);
           },
         ),
         backgroundColor: Colors.white,
@@ -238,7 +238,7 @@ class SectionHeader extends StatelessWidget {
           Switch(
             value: masterToggleValue,
             onChanged: onMasterToggleChanged,
-            activeColor: Colors.blue,
+            activeColor: Color(0xFF6296FF),
           ),
         ],
       ),
@@ -271,7 +271,7 @@ class SwitchTile extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.blue,
+            activeColor:  Color(0xFF6296FF),
           ),
         ],
       ),

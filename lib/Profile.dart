@@ -118,7 +118,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   Icon(
                     Icons.account_balance_wallet, 
-                    color: Colors.blue, 
+                    color: const Color(0xFF6296FF), 
                     size: 30,
                   ),
                   const SizedBox(width: 8), 
@@ -128,7 +128,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       textStyle: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+                        color: const Color(0xFF6296FF),
                       ),
                     ),
                   ),
@@ -177,7 +177,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           width: 30,
                           height: 30,
                           decoration: BoxDecoration(
-                            color: Colors.blue,
+                            color: const Color(0xFF6296FF),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -219,16 +219,7 @@ class _ProfilePageState extends State<ProfilePage> {
             Expanded(
               child: ListView(
                 children: [
-                  OptionTile(
-                    icon: Icons.add,
-                    title: 'Add a skill',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => AddSkillPage()),
-                      );
-                    },
-                  ),
+                  const Divider(height: 20),
                   OptionTile(
                     icon: Icons.person_outline,
                     title: 'Edit profile information',
@@ -255,7 +246,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       icon: Icons.language,
                       title: 'Language',
                       trailing: const Text('English',
-                          style: TextStyle(color: Colors.blue)),
+                          style: TextStyle(color:Color(0xFF6296FF))),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -263,17 +254,6 @@ class _ProfilePageState extends State<ProfilePage> {
                               builder: (context) => LanguageSelectionScreen()),
                         );
                       }),
-                  const Divider(height: 20),
-                  OptionTile(
-                    icon: Icons.lock_outline,
-                    title: 'Security',
-                  ),
-                  OptionTile(
-                    icon: Icons.brightness_6_outlined,
-                    title: 'Theme',
-                    trailing: const Text('Light mode',
-                        style: TextStyle(color: Colors.blue)),
-                  ),
                   const Divider(height: 20),
                   OptionTile(
                     icon: Icons.help_outline,
@@ -340,7 +320,7 @@ class OptionTile extends StatelessWidget {
 
 showSignOutDialog(BuildContext context) {
   Widget button = TextButton(
-    child: const Text('Sign Out'),
+    child: const Text('Sign Out' , style: TextStyle(color: Color(0xFF6296FF))),
     onPressed: () async {
       Navigator.of(context, rootNavigator: true).pop();
       await UserIdStorage.setRememberMe(false);

@@ -26,8 +26,7 @@ class PrivacyPolicy extends StatelessWidget {
             ),
             SizedBox(height: 8.0),
             Text(
-              "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n\n"
-              "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.",
+              "SKLR collects essential information to create and manage your account. This includes your username, email address, and phone number. Additionally, we store data about your in-app activities, such as coin transactions and rewards earned. This helps us enhance your experience and ensure the proper functioning of app features.",
               style: TextStyle(fontSize: 16.0),
             ),
             SizedBox(height: 16.0),
@@ -37,8 +36,7 @@ class PrivacyPolicy extends StatelessWidget {
             ),
             SizedBox(height: 8.0),
             Text(
-              "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae.\n\n"
-              "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.",
+              "The information you provide is used to personalize your experience on SKLR. For example, your data enables us to manage your account, show your profile to others when needed, and track in-app coin usage. We also analyze this information to improve the app and introduce features that match user preferences. Your personal data is never shared with third parties for marketing purposes.",
               style: TextStyle(fontSize: 16.0),
             ),
             SizedBox(height: 16.0),
@@ -48,8 +46,7 @@ class PrivacyPolicy extends StatelessWidget {
             ),
             SizedBox(height: 8.0),
             Text(
-              "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga.\n\n"
-              "Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.",
+              "We prioritize your privacy and do not share your personal data with third parties unless required by law. In certain situations, such as to comply with legal obligations or to prevent misuse of the platform, we may disclose limited data. SKLR ensures that any data shared follows strict security protocols to protect your information.",
               style: TextStyle(fontSize: 16.0),
             ),
           ],

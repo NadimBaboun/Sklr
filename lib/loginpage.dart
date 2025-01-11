@@ -184,14 +184,17 @@ class _LoginPageState extends State<LoginPage> {
                 Center(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: const Color(0xFF6296FF),
                       minimumSize: const Size.fromHeight(50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     onPressed: isLoginEnabled ? _checkLogin : null,
-                    child: const Text("Login"),
+                    child: const Text("Login",
+                    style: TextStyle(
+                      color: Colors.white,
+                    ),),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -230,7 +233,7 @@ class _LoginPageState extends State<LoginPage> {
                           style: GoogleFonts.mulish(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue,
+                            color: const Color(0xFF6296FF),
                           ),
                           recognizer: TapGestureRecognizer()
                             ..onTap = () {
