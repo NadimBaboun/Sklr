@@ -1,13 +1,14 @@
 import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'database/database.dart';
+import 'userpage.dart';
 
 class Skillinfo extends StatelessWidget {
   final int id;
-  const Skillinfo({super.key, required this.id});
+  Skillinfo({super.key, required this.id});
+  String userName = '';
 
   Future<Map<String, dynamic>> fetchSkill(int? id) async {
     if (id == null) {
@@ -18,6 +19,15 @@ class Skillinfo extends StatelessWidget {
       return DatabaseHelper.fetchOneSkill(id);
     } catch (error) {
       throw Exception('Failed to fetch skill: $error');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchUser(int id) async {
+    final response = await DatabaseHelper.fetchUserFromId(id);
+    if (response.success) {
+      return response.data;
+    } else {
+      throw Exception('Failed to fetch user');
     }
   }
 
@@ -44,58 +54,96 @@ class Skillinfo extends StatelessWidget {
         ),
         body: FutureBuilder<Map<String, dynamic>?>(
           future: fetchSkill(id),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+          builder: (context, skillSnapshot) {
+            if (skillSnapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
+            } else if (skillSnapshot.hasError) {
               return Center(
-                child: Text('Error: ${snapshot.error}'),
+                child: Text('Error: ${skillSnapshot.error}'),
               );
-            } else if (!snapshot.hasData || snapshot.data == null) {
+            } else if (!skillSnapshot.hasData || skillSnapshot.data == null) {
               return Center(
                 child: Text('Skill not found'),
               );
             } else {
-              // Skill data is available
-              final skill = snapshot.data!;
-              return Padding(
-                padding: const EdgeInsets.all(16),
-                child: Center(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Name: ${skill['name']}',
-                        style: GoogleFonts.mulish(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+              final skill = skillSnapshot.data!;
+              return FutureBuilder<Map<String, dynamic>>(
+                future: fetchUser(skill['user_id']),
+                builder: (context, userSnapshot) {
+                  if (userSnapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (userSnapshot.hasError) {
+                    return Center(
+                      child: Text('Error: ${userSnapshot.error}'),
+                    );
+                  } else if (!userSnapshot.hasData ||
+                      userSnapshot.data == null) {
+                    return Center(
+                      child: Text('User not found'),
+                    );
+                  } else {
+                    final user = userSnapshot.data!;
+                    return Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Center(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${skill['name']}',
+                              style: GoogleFonts.mulish(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        userpage(userId: skill['user_id']),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                'Created by: ${user['username']}',
+                                style: GoogleFonts.mulish(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              '${skill['description']}',
+                              style: GoogleFonts.mulish(
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Category: ${skill['category']}',
+                              style: GoogleFonts.mulish(
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Created At: ${skill['created_at']}',
+                              style: GoogleFonts.mulish(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Description: ${skill['description']}',
-                        style: GoogleFonts.mulish(
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Category: ${skill['category']}',
-                        style: GoogleFonts.mulish(
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Created At: ${skill['created_at']}',
-                        style: GoogleFonts.mulish(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    );
+                  }
+                },
               );
             }
           },
