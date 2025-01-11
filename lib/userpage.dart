@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:sklr/skillinfo.dart';
 import 'database/database.dart';
+import 'navigationbar-bar.dart';
 
 class UserPage extends StatefulWidget {
   final int userId;
@@ -45,6 +47,10 @@ class _UserPageState extends State<UserPage>{
         isLoading = false;
       });
     }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchUserListings(int userId) async{
+    return await DatabaseHelper.fetchSkills(userId);
   }
 
   @override
@@ -154,23 +160,110 @@ class _UserPageState extends State<UserPage>{
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: () {
-              // To message function
-            },
-            icon: const Icon(Icons.message, color: Colors.white),
-            label: const Text('Message'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(
+            Container(
+              height: 100,
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[350],
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.black, width: 1)
+              ),
+              child: Center(
+              child: Text(
+                userData!['bio'] ?? 'No Bio Available',
+                style: GoogleFonts.lexend(
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black,
+                  ),
+                ),
+                textAlign: TextAlign.center,
+              ),
               ),
             ),
+          const SizedBox(height: 20),
+          const Divider(),
+          const Text(
+            'Listings',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: fetchUserListings(widget.userId),
+              builder: (context, snapshot) {
+                if(snapshot.connectionState == ConnectionState.waiting){
+                  return const Center(child: CircularProgressIndicator());
+                }
+                else if(snapshot.hasError){
+                  return Center(child: Text('Error: ${snapshot.hasError}'));
+                }
+                else if(!snapshot.hasData || snapshot.data!.isEmpty){
+                  return const Center(child: Text('No listings found'));
+                }
+
+                final listings = snapshot.data!;
+
+                return ListView.builder(
+                  itemCount: listings.length,
+                  itemBuilder: (context, index){
+                    final listing = listings[index];
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: InkWell(
+                        onTap: (){
+                          Navigator.of(context).push(MaterialPageRoute(builder: (context)=> Skillinfo(id: listing['id']),
+                          ),
+                        );
+                       },
+
+                       child: Card(
+                        color: Colors.grey[200],
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                listing['name'] ?? 'No name',
+                                style: GoogleFonts.lexend(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                listing['description'] ?? 'No Description',
+                                style: GoogleFonts.lexend(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w200,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            )
+          )
         ],
       ),
     ),
+    bottomNavigationBar: CustomBottomNavigationBar(
+      currentIndex: 0),
   );
   }
 }

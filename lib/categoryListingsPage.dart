@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'database/database.dart';
 import 'skillinfo.dart';
+import 'navigationbar-bar.dart';
 
 class CategoryListingsPage extends StatelessWidget{
   final String categoryName;
@@ -80,7 +81,7 @@ class CategoryListingsPage extends StatelessWidget{
                           listing['name'] ?? 'No Name',
                           style: GoogleFonts.lexend(
                               color: Colors.black,
-                              fontWeight: FontWeight.w400,
+                              fontWeight: FontWeight.w200,
                             ),
                           textAlign: TextAlign.center,
                         ),
@@ -111,7 +112,7 @@ class CategoryListingsPage extends StatelessWidget{
                               '${user['username'] ?? 'Unknown User'}',
                               style: GoogleFonts.lexend(
                               color: Colors.black,
-                              fontWeight: FontWeight.w200,
+                              fontWeight: FontWeight.w300,
                             ),
                               textAlign: TextAlign.center,
                             );
@@ -130,6 +131,8 @@ class CategoryListingsPage extends StatelessWidget{
           );
         },
       ),
+      bottomNavigationBar: CustomBottomNavigationBar(
+      currentIndex: 0),
     );
   }
 }
