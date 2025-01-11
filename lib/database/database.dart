@@ -267,6 +267,24 @@ class DatabaseHelper {
     }
   } 
 
+  static Future<List<Map<String, dynamic>>> fetchListingsByCategory(String categoryName) async {
+  final url = Uri.parse('$backendUrl/skills/category/$categoryName');
+
+  try {
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(json.decode(response.body));
+    } else {
+      print('Error fetching listings: ${response.statusCode} - ${response.body}');
+      return [];
+    }
+  } catch (err) {
+    print('Error fetching listings by category: $err');
+    return [];
+  }
+  }
+
   //fetch one skill from id
   static Future<Map<String, dynamic>> fetchOneSkill(int id) async {
     final response = await http.get(Uri.parse('$backendUrl/skills/$id'));

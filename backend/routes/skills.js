@@ -51,6 +51,31 @@ router.get("/recent/:limit", async (req, res) => {
     }
 });
 
+// lists all listings in a specific category, and includes author
+router.get("/category/:categoryName", async (req, res) => {
+    try {
+        const categoryName = req.params.categoryName;
+
+        const { data, error } = await supabase
+            .from('skills')
+            .select(`*, users(username)`)
+            .eq('category', categoryName);
+
+        if (error) {
+            throw error;
+        }
+
+        if (!data || data.length === 0) {
+            return res.status(404).json({ message: "No listings found in this category" });
+        }
+
+        res.status(200).json(data);
+    } catch (err) {
+        console.error('Error fetching listings by category:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 
 //fetches all skills
 router.get("/user/:user_id", async (req, res) =>{

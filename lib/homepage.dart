@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sklr/categoryListingsPage.dart';
 import 'package:sklr/service-categories.dart';
 import 'package:sklr/navigationbar-bar.dart';
 import 'package:sklr/database/userIdStorage.dart';
@@ -292,7 +293,7 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
         .map(
           (category) => InkWell(
             onTap: () {
-              // 
+              Navigator.push(context, MaterialPageRoute(builder: (context) => CategoryListingsPage(categoryName: category['name'])));
             },
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
