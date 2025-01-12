@@ -251,7 +251,8 @@ class DatabaseHelper {
   }
 
   // fetch recent listings
-  static Future<List<Map<String, dynamic>>> fetchRecentListings(int limit) async {
+  static Future<List<Map<String, dynamic>>> fetchRecentListings(
+      int limit) async {
     final url = Uri.parse('$backendUrl/skills/recent/$limit');
 
     try {
@@ -265,24 +266,26 @@ class DatabaseHelper {
     } catch (err) {
       return [];
     }
-  } 
+  }
 
-  static Future<List<Map<String, dynamic>>> fetchListingsByCategory(String categoryName) async {
-  final url = Uri.parse('$backendUrl/skills/category/$categoryName');
+  static Future<List<Map<String, dynamic>>> fetchListingsByCategory(
+      String categoryName) async {
+    final url = Uri.parse('$backendUrl/skills/category/$categoryName');
 
-  try {
-    final response = await http.get(url);
+    try {
+      final response = await http.get(url);
 
-    if (response.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
-    } else {
-      print('Error fetching listings: ${response.statusCode} - ${response.body}');
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(json.decode(response.body));
+      } else {
+        print(
+            'Error fetching listings: ${response.statusCode} - ${response.body}');
+        return [];
+      }
+    } catch (err) {
+      print('Error fetching listings by category: $err');
       return [];
     }
-  } catch (err) {
-    print('Error fetching listings by category: $err');
-    return [];
-  }
   }
 
   //fetch one skill from id
@@ -291,12 +294,10 @@ class DatabaseHelper {
 
     if (response.statusCode == 200) {
       return json.decode(response.body);
-
     } else {
       throw Exception('Failed to load skill');
     }
   }
-
 
   //fetching the skills of a user
   static Future<List<Map<String, dynamic>>> fetchSkills(int userId) async {
@@ -414,6 +415,18 @@ class DatabaseHelper {
     }
   }
 
+  //fetches skills based on name and description
+  static Future<List<Map<String, dynamic>>> searchResults(String search) async {
+    final response =
+        await http.get(Uri.parse('$backendUrl/skills/search/$search'));
+
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(json.decode(response.body));
+    } else {
+      throw Exception('Failed to load skills');
+    }
+  }
+
   //                  Message / Chat Functionallity
   /*--------------------------------------------------------------------------------------*/
 
@@ -453,11 +466,13 @@ class DatabaseHelper {
     }
   }
 
-  static Future<int> getOrCreateChat(int user1Id, int user2Id, int sessionId) async {    
+  static Future<int> getOrCreateChat(
+      int user1Id, int user2Id, int sessionId) async {
     final response = await http.post(
       Uri.parse('$backendUrl/chat/get-or-create'),
       headers: {'Content-Type': 'application/json'},
-      body: json.encode({'user1Id': user1Id, 'user2Id': user2Id, 'session_id': sessionId}),
+      body: json.encode(
+          {'user1Id': user1Id, 'user2Id': user2Id, 'session_id': sessionId}),
     );
 
     if (response.statusCode == 200) {
@@ -468,42 +483,30 @@ class DatabaseHelper {
     }
   }
 
-  static Future<DatabaseResponse> createSession(int requester_id, int skill_id) async {
+  static Future<DatabaseResponse> createSession(
+      int requester_id, int skill_id) async {
     final url = Uri.parse('$backendUrl/sessions');
 
     try {
       final skill = await fetchOneSkill(skill_id);
       log('found skill ${skill.toString()}');
 
-      final response = await http.post(
-        url,
-        headers: { 'Content-type': 'application/json' },
-        body: json.encode({
-          'requester_id': requester_id,
-          'provider_id': skill['user_id'],
-          'skill_id': skill_id
-        })
-      );
+      final response = await http.post(url,
+          headers: {'Content-type': 'application/json'},
+          body: json.encode({
+            'requester_id': requester_id,
+            'provider_id': skill['user_id'],
+            'skill_id': skill_id
+          }));
 
       if (response.statusCode == 201) {
         return DatabaseResponse(
-          success: true,
-          data: json.decode(response.body)
-        );
+            success: true, data: json.decode(response.body));
       }
       return DatabaseResponse(
-        success: false, 
-        data: {
-          'error': 'Failed to create session'
-        } 
-      );
+          success: false, data: {'error': 'Failed to create session'});
     } catch (err) {
-      return DatabaseResponse(
-        success: false,
-        data: {
-          'error': err.toString()
-        }
-      );  
+      return DatabaseResponse(success: false, data: {'error': err.toString()});
     }
   }
 
@@ -515,21 +518,11 @@ class DatabaseHelper {
 
       if (response.statusCode == 200) {
         return DatabaseResponse(
-          success: true,
-          data: json.decode(response.body)
-        );
+            success: true, data: json.decode(response.body));
       }
-      return DatabaseResponse(
-        success: false,
-        data: json.decode(response.body)
-      );
+      return DatabaseResponse(success: false, data: json.decode(response.body));
     } catch (err) {
-      return DatabaseResponse(
-        success: false,
-        data: {
-          'error': err.toString()
-        }
-      );  
+      return DatabaseResponse(success: false, data: {'error': err.toString()});
     }
   }
 
@@ -544,20 +537,11 @@ class DatabaseHelper {
           success: true,
           data: json.decode(response.body),
         );
-      } 
+      }
       return DatabaseResponse(
-        success: false, 
-        data: {
-          'error': 'Failed to fetch session from chat'
-        }
-      );
+          success: false, data: {'error': 'Failed to fetch session from chat'});
     } catch (err) {
-      return DatabaseResponse(
-        success: false, 
-        data: {
-          'error': err.toString()
-        }
-      );
+      return DatabaseResponse(success: false, data: {'error': err.toString()});
     }
   }
 
@@ -565,19 +549,14 @@ class DatabaseHelper {
     final url = Uri.parse('$backendUrl/transactions');
 
     try {
-      final response = await http.post(
-        url,
-        headers: { 'Content-type': 'application/json' },
-        body: json.encode({ 
-          'session_id': sessionId
-        })
-      );
+      final response = await http.post(url,
+          headers: {'Content-type': 'application/json'},
+          body: json.encode({'session_id': sessionId}));
 
       if (response.statusCode == 200) {
         return true;
       }
       return false;
-
     } catch (err) {
       return false;
     }
@@ -587,11 +566,9 @@ class DatabaseHelper {
     final url = Uri.parse('$backendUrl/sessions/$sessionId');
 
     try {
-      final response = await http.patch(
-        url,
-        headers: { 'Content-Type': 'application/json' },
-        body: json.encode({'status': status})
-      );
+      final response = await http.patch(url,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({'status': status}));
 
       if (response.statusCode == 200) {
         return true;

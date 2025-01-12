@@ -216,4 +216,35 @@ router.get("/:name/:user_id", async (req, res) => {
     }
 });
 
+//fetches all skills that match either name or description
+router.get("/search/:search", async (req, res) =>{
+
+    try {
+        const search = req.params.search;
+       
+    
+        const { data, error } = await supabase
+            .from('skills')
+            .select('*')
+            .or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+            
+    
+            if(error){
+                return res.status(400).send({error: error.message});
+            }
+    
+            if(!data || data.length == 0){
+                return res.status(404).send({message: "No skill ads found for this user."})
+            }
+    
+            res.status(200).send(data);
+    }
+    catch (err){
+        console.error(err);
+        res.status(500).send({ error: "Internal server error"});
+    };
+    
+    
+    });
+
 module.exports = router;
