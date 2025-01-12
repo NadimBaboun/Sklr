@@ -82,17 +82,22 @@ class _ChatsHomePageState extends State<ChatsHomePage>{
           }
           return ListView.builder(
             itemCount: snapshot.data!.length,
-            itemBuilder: (context, index){
+            itemBuilder: (context, index) {
               final chat = snapshot.data![index];
               final otherUserId = chat['other_user_id'];
               final lastMessage = chat['last_message'] ?? 'No messages yet.';
+              final skillName = chat['skill'];
               final username = usernameCache[otherUserId] ?? 'Loading...';
 
               return ListTile(
                 leading: CircleAvatar(
                   child: Text(username.isNotEmpty ? username[0] : '?'),
                 ),
-                title: Text(username),
+                title: Text(
+                  '$username ($skillName)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis
+                ),
                 subtitle: Text(lastMessage),
                 trailing: Text(
                   chat['last_updated'] != null ? chat['last_updated'].toString().substring(0,10) : '',

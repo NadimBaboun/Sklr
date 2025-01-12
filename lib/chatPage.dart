@@ -183,23 +183,23 @@ class _ChatPageState extends State<ChatPage>{
   }
 
   Widget _buildStateButton(String status, Map<String, dynamic> session) {
+    if (session['provider_id'] == widget.loggedInUserId) {
+      return Center(
+        child: Text("You are providing this service!")
+      );
+    }
     switch (status) {
       case 'Idle':
         return Center(
           child: ElevatedButton(
             onPressed: () async {
-              // Open the dialog through RequestServiceButton
+              // Open the dialog through RequestService
               bool? result = await RequestService(session: session).showRequestDialog(context);
 
               if (result == true) {
-                // create transaction entity
-                final response = await DatabaseHelper.createTransaction(session['id']);
-
-                if (response) {
-                  setState(() {
-                    _loadSession();
-                  });
-                }
+                setState(() {
+                  _loadSession();
+                });
               }
             },
             child: const Text('Request Service'),
@@ -209,17 +209,16 @@ class _ChatPageState extends State<ChatPage>{
         return Center(
           child: ElevatedButton(
             onPressed: () async {
-              // Open the dialog through RequestServiceButton
-              bool? result = await CompleteService(session: session).showRequestDialog(context);
+              // Open the dialog through CompleteService
+              bool? result = await CompleteService(session: session).showFinalizeDialog(context);
 
               if (result == true) {
-                // 
                 setState(() {
                   _loadSession();
                 });
               }
             },
-            child: const Text('Request Service'),
+            child: const Text('Complete'),
           ),
         );
       default:

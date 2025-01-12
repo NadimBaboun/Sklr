@@ -7,7 +7,7 @@ router.get("/user/:userId", async (req, res) =>{
     const userId = parseInt(req.params.userId, 10);
     const { data, error } = await supabase
         .from('chats')
-        .select(`id, user1_id, user2_id, last_message,last_updated`)
+        .select(`id, user1_id, user2_id, last_message, last_updated, sessions(skill_id, skills(name))`)
         .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
         .order('last_updated', { ascending: false });
 
@@ -18,6 +18,7 @@ router.get("/user/:userId", async (req, res) =>{
             chat_id: chat.id,
             last_message: chat.last_message,
             last_updated: chat.last_updated,
+            skill: chat.sessions.skills.name,
             other_user_id: chat.user1_id === userId ? chat.user2_id : chat.user1_id,
         }));
         res.status(200).json(formattedData);
@@ -48,7 +49,7 @@ router.post("/get-or-create", async (req, res) => {
         .from('chats')
         .select('*')
         .or(
-        `and(user1_id.eq.${user1Id},user2_id.eq.${user2Id}),and(user1_id.eq.${user2Id},user2_id.eq.${user1Id})`
+            `and(user1_id.eq.${user1Id}, user2_id.eq.${user2Id}, session_id.eq.${session_id}),and(user1_id.eq.${user2Id}, user2_id.eq.${user1Id}, session_id.eq.${session_id})`
         )
         .limit(1);
 

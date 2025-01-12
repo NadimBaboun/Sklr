@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:sklr/database/database.dart';
 
@@ -17,6 +19,7 @@ class RequestService {
           Navigator.of(context, rootNavigator: true).pop(false);
         }
         if (requester.data['credits'] <= 0) { // user has insufficient funds
+          Navigator.of(context, rootNavigator: true).pop(false);
           showDialog(
             context: context,
             builder: (BuildContext context) {
@@ -35,9 +38,11 @@ class RequestService {
             }
           );
         }
-        // Create transaction: subtracts credit from requester, creates transaction entity, updates session status
-        final result = await DatabaseHelper.createTransaction(session['id']);
-        Navigator.of(context, rootNavigator: true).pop(result);
+        else { // user has sufficient funds
+          // Create transaction: subtracts credit from requester, creates transaction entity, updates session status
+          final result = await DatabaseHelper.createTransaction(session['id']);
+          Navigator.of(context, rootNavigator: true).pop(result);
+        }
       },
     );
 
@@ -74,12 +79,19 @@ class CompleteService {
 
   CompleteService({required this.session});
   
-  Future<bool?> showRequestDialog(BuildContext context) async {
+  Future<bool?> showFinalizeDialog(BuildContext context) async {
     Widget confirmButton = TextButton(
-      child: const Text("Confirm"),
+      child: const Text("Complete"),
       onPressed: () async {
-        await DatabaseHelper.updateSessionStatus(session['id'], 'Idle');
-        Navigator.of(context, rootNavigator: true).pop(true);
+        // fetch transaction
+        final transaction = await DatabaseHelper.fetchTransactionFromSession(session['id']);
+        log('status: ${transaction.success}, data: ${transaction.data.toString()}');
+        if (!transaction.success) { // failed to fetch transaction
+          Navigator.of(context, rootNavigator: true).pop(false);
+        }
+        // finalize transaction, set session status to 'Idle', award provider with credit, remove transaction
+        final result = await DatabaseHelper.finalizeTransaction(transaction.data['id']);
+        Navigator.of(context, rootNavigator: true).pop(result);
       },
     );
 
@@ -91,8 +103,8 @@ class CompleteService {
     );
 
     AlertDialog requestDialog = AlertDialog(
-      title: const Text("Confirm Completion"),
-      content: const Text("Please note that this action is irreversible."),
+      title: const Text("Confirm Request"),
+      content: const Text("Are you sure you want to mark this session as complete? Once finalized, no further changes can be made."),
       actions: [
         confirmButton,
         cancelButton,

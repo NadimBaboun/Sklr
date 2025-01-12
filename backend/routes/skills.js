@@ -218,18 +218,20 @@ router.get("/:name/:user_id", async (req, res) => {
 
 //fetches all skills that match either name or description
 router.get("/search/:search", async (req, res) =>{
-
     try {
         const search = req.params.search;
-       
+
+        if (!search || typeof search !== 'string') {
+            return res.status(400).send({ error: 'Invalid search term' });
+        }
     
         const { data, error } = await supabase
-            .from('skills')
-            .select('*')
-            .or(`name.ilike.%${search}%,description.ilike.%${search}%`);
-            
+            .rpc('search_skills', {
+                search_term: search
+            });
     
             if(error){
+                console.error("RPC error: ", error);
                 return res.status(400).send({error: error.message});
             }
     
@@ -243,8 +245,6 @@ router.get("/search/:search", async (req, res) =>{
         console.error(err);
         res.status(500).send({ error: "Internal server error"});
     };
-    
-    
-    });
+});
 
 module.exports = router;

@@ -545,6 +545,57 @@ class DatabaseHelper {
     }
   }
 
+  static Future<DatabaseResponse> fetchTransaction(int transactionId) async {
+    final url = Uri.parse('$backendUrl/transactions/$transactionId');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        return DatabaseResponse(success: true, data: json.decode(response.body));
+      }
+
+      return DatabaseResponse(
+        success: false,
+        data: json.decode(response.body)
+      );
+    } catch (err) {
+      return DatabaseResponse(
+        success: false, 
+        data: {
+          'error': err.toString()
+        }
+      );
+    }
+  }
+
+  static Future<DatabaseResponse> fetchTransactionFromSession(int sessionId) async {
+    final url = Uri.parse('$backendUrl/transactions/session/$sessionId');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 404 || response.statusCode == 500) {
+        return DatabaseResponse(
+          success: false,
+          data: json.decode(response.body)
+        );
+      }
+
+      return DatabaseResponse(
+        success: true, 
+        data: json.decode(response.body) 
+      );
+    } catch (err) {
+      return DatabaseResponse(
+        success: false,
+        data: {
+          'error': err.toString()
+        }
+      );
+    }
+  }
+
   static Future<bool> createTransaction(int sessionId) async {
     final url = Uri.parse('$backendUrl/transactions');
 
@@ -556,6 +607,36 @@ class DatabaseHelper {
       if (response.statusCode == 200) {
         return true;
       }
+      return false;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  static Future<bool> finalizeTransaction(int transactionId) async {
+    final url = Uri.parse('$backendUrl/transactions/finalize');
+
+    final transaction = await fetchTransaction(transactionId);
+    log(transaction.data.toString());
+    if (!transaction.success) {
+      return false;
+    }
+
+    try {
+      final response = await http.post(
+        url,
+        headers: { 'Content-type': 'application/json' },
+        body: json.encode({
+          'provider_id': transaction.data['provider_id'],
+          'session_id': transaction.data['session_id'],
+          'transaction_id': transactionId
+        })
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+
       return false;
     } catch (err) {
       return false;

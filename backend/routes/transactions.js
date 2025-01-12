@@ -24,6 +24,28 @@ router.get('/:transaction_id', async (req, res) => {
     }
 }); 
 
+// GET: /api/transactions/session/{session_id}
+router.get('/session/:session_id', async (req, res) => {
+    const session_id = req.params.session_id;
+
+    try {
+        const { data, error } = await supabase
+            .from('transactions')
+            .select("*")
+            .eq('session_id', session_id)
+            .single();
+
+        if (error) {
+            return res.status(404).json(error);
+        }
+
+        return res.status(200).json(data);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+}); 
+
 // POST: /api/transactions, create transaction (proof of payment)
 router.post('/', async (req, res) => {
     const { session_id } = req.body;
@@ -80,6 +102,33 @@ router.delete('/:transaction_id', async (req, res) => {
         }
 
         return res.status(200).json({ message: 'Transaction deleted successfully', user: data });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+}); 
+
+// POST: /api/transactions/finalize
+router.post('/finalize', async (req, res) => {
+    const { provider_id, session_id, transaction_id } = req.body;
+
+    if (!provider_id || !session_id || !transaction_id) {
+        return res.status(400).json({'error': 'missing parameters'});
+    }
+
+    try {
+        const { data, error } = await supabase
+            .rpc('finalize-transaction', {
+                provider_id: provider_id,
+                session_id: session_id,
+                transaction_id: transaction_id
+            });
+
+        if (error) {
+            throw error;
+        }
+
+        res.status(200).json(data);
     } catch (err) {
         console.error(err);
         return res.status(500).json({ error: 'Internal server error' });
