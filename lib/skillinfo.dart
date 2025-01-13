@@ -159,25 +159,29 @@ class Skillinfo extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            ElevatedButton.icon(
-                              onPressed: () async {
-                                // fetch logged in user
-                                final self = await UserIdStorage.getLoggedInUserId();
-                                // create session between users
-                                final session = await DatabaseHelper.createSession(self!, skill['id']);
-                                final result = await DatabaseHelper.getOrCreateChat(self, skill['user_id'], session.data['data']['id']);
-                                Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context) => ChatPage(chatId: result, loggedInUserId: self, otherUsername: user['username'])));
-                              },
-                              icon: const Icon(Icons.message, color: Colors.white),
-                              label: Text('Start Conversation', style: GoogleFonts.mulish()),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)
+                            // start chat button, disable when viewing own listing
+                            UserIdStorage.getLoggedInUserId() == skill['user_id'] ?
+                              ElevatedButton.icon( 
+                                onPressed: () async {
+                                  // fetch logged in user
+                                  final self = await UserIdStorage.getLoggedInUserId();
+                                  // create session between users
+                                  final session = await DatabaseHelper.createSession(self!, skill['id']);
+                                  final result = await DatabaseHelper.getOrCreateChat(self, skill['user_id'], session.data['data']['id']);
+                                  Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context) => ChatPage(chatId: result, loggedInUserId: self, otherUsername: user['username'])));
+                                },
+                                icon: const Icon(Icons.message, color: Colors.white),
+                                label: Text('Start Conversation', style: GoogleFonts.mulish()),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)
+                                  )
                                 )
                               )
-                            )
+                              :
+                              Text('This is your own skill!')
                           ],
                         ),
                       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/chatSessionUtil.dart';
 import 'database/database.dart';
 
@@ -202,7 +203,10 @@ class _ChatPageState extends State<ChatPage>{
                 });
               }
             },
-            child: const Text('Request Service'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4169E1)
+            ),
+            child: Text('Request Service', style: GoogleFonts.mulish(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         );
       case 'Pending':
@@ -218,7 +222,10 @@ class _ChatPageState extends State<ChatPage>{
                 });
               }
             },
-            child: const Text('Complete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF228B22)
+            ),
+            child: Text('Complete', style: GoogleFonts.mulish(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         );
       default:
