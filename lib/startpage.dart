@@ -28,7 +28,8 @@ class StartPage extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    SizedBox(height: screenHeight * 0.1), // 10% of screen height
+                    SizedBox(
+                        height: screenHeight * 0.1), // 10% of screen height
                     Text(
                       'Sklr',
                       style: GoogleFonts.averiaSansLibre(
@@ -51,7 +52,7 @@ class StartPage extends StatelessWidget {
                     Image.asset(
                       'assets/images/skillerlogo.png',
                       height: screenWidth * 0.6, // 60% of screen width
-                      width: screenWidth * 0.6,  // 60% of screen width
+                      width: screenWidth * 0.6, // 60% of screen width
                       fit: BoxFit.cover,
                     ),
                     Text(
@@ -64,7 +65,8 @@ class StartPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.02), // 2% of screen height
+                    SizedBox(
+                        height: screenHeight * 0.02), // 2% of screen height
                     Builder(
                       builder: (BuildContext context) {
                         return SizedBox(
@@ -78,8 +80,10 @@ class StartPage extends StatelessWidget {
                               );
                             },
                             style: ButtonStyle(
-                              backgroundColor: WidgetStateProperty.all(Colors.white),
-                              shape: WidgetStateProperty.all<RoundedRectangleBorder>(
+                              backgroundColor:
+                                  WidgetStateProperty.all(Colors.white),
+                              shape: WidgetStateProperty.all<
+                                  RoundedRectangleBorder>(
                                 RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                   side: BorderSide(color: Colors.blueGrey),
@@ -91,7 +95,8 @@ class StartPage extends StatelessWidget {
                               style: GoogleFonts.mulish(
                                 textStyle: TextStyle(
                                   color: Colors.black,
-                                  fontSize: screenWidth * 0.04, // 4% of screen width
+                                  fontSize:
+                                      screenWidth * 0.04, // 4% of screen width
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -100,7 +105,8 @@ class StartPage extends StatelessWidget {
                         );
                       },
                     ),
-                    SizedBox(height: screenHeight * 0.02), // 2% of screen height
+                    SizedBox(
+                        height: screenHeight * 0.02), // 2% of screen height
                     Builder(
                       builder: (BuildContext context) {
                         return SizedBox(
@@ -108,76 +114,29 @@ class StartPage extends StatelessWidget {
                           height: 50,
                           child: ElevatedButton(
                             onPressed: () {
-                              //go to google login page!
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (context) => Register()),
+                              );
                             },
                             style: ButtonStyle(
-                                backgroundColor: WidgetStateProperty.all(Colors.white),
-                                shape: WidgetStateProperty.all<RoundedRectangleBorder>(
+                                backgroundColor:
+                                    WidgetStateProperty.all(Colors.white),
+                                shape: WidgetStateProperty.all<
+                                        RoundedRectangleBorder>(
                                     RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                   side: BorderSide(color: Colors.blueGrey),
                                 ))),
                             child: Text(
-                              'Google',
+                              'Create account',
                               style: GoogleFonts.mulish(
                                 textStyle: TextStyle(
                                   color: Colors.black,
-                                  fontSize: screenWidth * 0.04, // 4% of screen width
+                                  fontSize:
+                                      screenWidth * 0.04, // 4% of screen width
                                   fontWeight: FontWeight.bold,
                                 ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    SizedBox(height: screenHeight * 0.02), // 2% of screen height
-                    Builder(
-                      builder: (BuildContext context) {
-                        return SizedBox(
-                          width: screenWidth * 0.7, // 70% of screen width
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              //go to apple login page!
-                            },
-                            style: ButtonStyle(
-                                backgroundColor: WidgetStateProperty.all(Colors.black),
-                                shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                                    RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  side: BorderSide(color: Colors.black),
-                                ))),
-                            child: Text(
-                              'Apple',
-                              style: GoogleFonts.mulish(
-                                textStyle: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: screenWidth * 0.04, // 4% of screen width
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    SizedBox(height: screenHeight * 0.02), // 2% of screen height
-                    Builder(
-                      builder: (context) {
-                        return InkWell(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (context) => Register()),
-                            );
-                          },
-                          child: Text(
-                            'Create an account',
-                            style: GoogleFonts.mulish(
-                              textStyle: TextStyle(
-                                color: Color(0xFF6296FF),
-                                fontSize: screenWidth * 0.05, // 5% of screen width
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
@@ -195,4 +154,4 @@ class StartPage extends StatelessWidget {
   }
 }
 
-//responsive check done 
+//responsive check done
