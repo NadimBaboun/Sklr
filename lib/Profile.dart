@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sklr/PrivacyPolicy.dart';
+import 'package:sklr/dashboard.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/startpage.dart';
 import 'dart:io';
@@ -25,6 +26,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Map<String, dynamic>? userData;
   bool isLoading = true;
+  bool isModerator = false;
 
   @override
   void initState(){
@@ -41,6 +43,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           userData = response.data;
           isLoading = false;
+          isModerator = userData!['moderator'];
         });
       }
       else{
@@ -219,6 +222,19 @@ class _ProfilePageState extends State<ProfilePage> {
             Expanded(
               child: ListView(
                 children: [
+                  isModerator ? OptionTile(
+                    icon: Icons.report_gmailerrorred_outlined,
+                    title: 'Reports',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ModeratorDashboard()
+                        ),
+                      );
+                    }
+                  )
+                  : SizedBox.shrink(),
                   const Divider(height: 20),
                   OptionTile(
                     icon: Icons.person_outline,

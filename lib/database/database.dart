@@ -661,4 +661,71 @@ class DatabaseHelper {
   }
 
   /*--------------------------------------------------------------------------------------*/
+
+  static Future<List<Map<String, dynamic>>> fetchReports() async {
+    final url = Uri.parse('$backendUrl/reports');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(json.decode(response.body));
+      }
+
+      return [] as List<Map<String, dynamic>>;
+    } catch (err) {
+      return [] as List<Map<String, dynamic>>;
+    }
+  }
+
+  static Future<bool> removeReport(int reportId) async {
+    final url = Uri.parse('$backendUrl/reports/$reportId');
+
+    try {
+      final response = await http.delete(url);
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+      return false;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  static Future<bool> resolveReport(int reportId) async {
+    final url = Uri.parse('$backendUrl/reports/resolve/$reportId');
+
+    try {
+      final response = await http.delete(url);
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+      return false;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  static Future<bool> createReport(int skillId) async {
+    final url = Uri.parse('$backendUrl/reports');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: { 'Content-Type': 'application/json' },
+        body: json.encode({
+          'skill_id': skillId
+        })
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+      return false;
+    } catch (err) {
+      return false;
+    }
+  }
 }

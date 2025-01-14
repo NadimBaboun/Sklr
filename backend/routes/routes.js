@@ -10,6 +10,7 @@ const sessionRoutes = require("./sessions");
 const skillsRoutes = require("./skills");
 const categoryRoutes = require("./categories");
 const transactionRoutes = require("./transactions");
+const reportRoutes = require("./reports");
 
 // make use of imported routes
 router.use('/api', testRoutes);
@@ -20,5 +21,6 @@ router.use('/api/sessions', sessionRoutes);
 router.use('/api/skills', skillsRoutes);
 router.use('/api/categories', categoryRoutes);
 router.use('/api/transactions', transactionRoutes);
+router.use('/api/reports', reportRoutes);
 
 module.exports = router;

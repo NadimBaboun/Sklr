@@ -160,28 +160,74 @@ class Skillinfo extends StatelessWidget {
                             ),
                             const SizedBox(height: 20),
                             // start chat button, disable when viewing own listing
-                            UserIdStorage.getLoggedInUserId() == skill['user_id'] ?
-                              ElevatedButton.icon( 
-                                onPressed: () async {
-                                  // fetch logged in user
-                                  final self = await UserIdStorage.getLoggedInUserId();
-                                  // create session between users
-                                  final session = await DatabaseHelper.createSession(self!, skill['id']);
-                                  final result = await DatabaseHelper.getOrCreateChat(self, skill['user_id'], session.data['data']['id']);
-                                  Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context) => ChatPage(chatId: result, loggedInUserId: self, otherUsername: user['username'])));
-                                },
-                                icon: const Icon(Icons.message, color: Colors.white),
-                                label: Text('Start Conversation', style: GoogleFonts.mulish()),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)
+                            FutureBuilder(
+                              future: UserIdStorage.getLoggedInUserId(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) {
+                                  return const CircularProgressIndicator();
+                                }
+
+                                final loggedInUserId = snapshot.data;
+                                if (loggedInUserId == skill['user_id']) {
+                                  return Text(
+                                    'This is your own skill!',
+                                    style: GoogleFonts.mulish(
+                                      color: Colors.grey
+                                    )
+                                  );
+                                }
+
+                                return ElevatedButton.icon( 
+                                  onPressed: () async {
+                                    // fetch logged in user
+                                    final self = await UserIdStorage.getLoggedInUserId();
+                                    // create session between users
+                                    final session = await DatabaseHelper.createSession(self!, skill['id']);
+                                    final result = await DatabaseHelper.getOrCreateChat(self, skill['user_id'], session.data['data']['id']);
+                                    Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context) => ChatPage(chatId: result, loggedInUserId: self, otherUsername: user['username'])));
+                                  },
+                                  icon: const Icon(Icons.message, color: Colors.white),
+                                  label: Text('Start Conversation', style: GoogleFonts.mulish(color: Colors.white)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)
+                                    )
                                   )
-                                )
-                              )
-                              :
-                              Text('This is your own skill!')
+                                );
+                              }
+                            ),
+                            const SizedBox(height: 8),
+                            FutureBuilder(
+                              future: UserIdStorage.getLoggedInUserId(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) {
+                                  return const SizedBox.shrink();
+                                }
+
+                                final loggedInUserId = snapshot.data!;
+                                if (loggedInUserId == skill['user_id']) {
+                                  return const SizedBox.shrink();
+                                }
+
+                                return ElevatedButton.icon(
+                                  onPressed: () {
+                                    // create report
+                                    _confirmReport(context, skill['id']);
+                                  },
+                                  icon: const Icon(Icons.report_outlined, color: Colors.white),
+                                  label: Text('Report', style: GoogleFonts.mulish(color: Colors.white)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)
+                                    )
+                                  )
+                                );
+                              }
+                            ),
                           ],
                         ),
                       ),
@@ -193,6 +239,33 @@ class Skillinfo extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+
+  Future<void> _confirmReport(BuildContext context, int skillId) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Report'),
+          content: const Text('Are you sure you want to report this skill?'),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await DatabaseHelper.createReport(skillId);
+              },
+              child: const Text('Report'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+          ]
+        );
+      }
     );
   }
 }
