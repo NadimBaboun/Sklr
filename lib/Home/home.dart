@@ -64,7 +64,7 @@ class _HomePageState extends State<HomePage> {
       home: Scaffold(
         backgroundColor: Colors.white,
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(220.0),
+          preferredSize: const Size.fromHeight(100.0),
           child: AppBar(
             backgroundColor: const Color(0xFF6296FF),
             flexibleSpace: Padding(
@@ -87,57 +87,57 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       const SizedBox(height: 5),
-                      Text(
-                        "Let's find the best talent for you",
-                        style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: constraints.maxWidth > 600 ? 36 : 30,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
+                      // Text(
+                      //   "Let's find the best talent for you",
+                      //   style: GoogleFonts.mulish(
+                      //     textStyle: TextStyle(
+                      //       color: Colors.white,
+                      //       fontSize: constraints.maxWidth > 600 ? 36 : 30,
+                      //       fontWeight: FontWeight.bold,
+                      //     ),
+                      //   ),
+                      // ),
+                      // const SizedBox(height: 10),
                       // Adjusting the Search Bar
-                      Flexible(
-                        child: SizedBox(
-                          height: 50,
-                          width: constraints.maxWidth * 0.8,
-                          child: TextField(
-                            onSubmitted: (value) {
-                              if (value.isNotEmpty) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => SearchResultsPage(
-                                      search: value,
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white,
-                              prefixIcon: const Icon(
-                                Icons.search,
-                                color: Color(0xFF6296FF),
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              hintText: 'Search service',
-                              hintStyle: GoogleFonts.mulish(
-                                textStyle: TextStyle(
-                                  color: Colors.grey[500],
-                                  fontSize:
-                                      constraints.maxWidth > 600 ? 18 : 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                      // Flexible(
+                      //   child: SizedBox(
+                      //     height: 50,
+                      //     width: constraints.maxWidth * 0.8,
+                      //     child: TextField(
+                      //       onSubmitted: (value) {
+                      //         if (value.isNotEmpty) {
+                      //           Navigator.push(
+                      //             context,
+                      //             MaterialPageRoute(
+                      //               builder: (context) => SearchResultsPage(
+                      //                 search: value,
+                      //               ),
+                      //             ),
+                      //           );
+                      //         }
+                      //       },
+                      //       decoration: InputDecoration(
+                      //         filled: true,
+                      //         fillColor: Colors.white,
+                      //         prefixIcon: const Icon(
+                      //           Icons.search,
+                      //           color: Color(0xFF6296FF),
+                      //         ),
+                      //         border: OutlineInputBorder(
+                      //           borderRadius: BorderRadius.circular(8),
+                      //         ),
+                      //         hintText: 'Search service',
+                      //         hintStyle: GoogleFonts.mulish(
+                      //           textStyle: TextStyle(
+                      //             color: Colors.grey[500],
+                      //             fontSize:
+                      //                 constraints.maxWidth > 600 ? 18 : 16,
+                      //           ),
+                      //         ),
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   );
                 },
