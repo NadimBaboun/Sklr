@@ -63,6 +63,14 @@ class _ChatPageState extends State<ChatPage>{
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
         child: AppBar(
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_outlined),
+              onPressed: () {
+                _loadMessages();
+              }
+            )
+          ],
           iconTheme: const IconThemeData(color: Colors.white),
           backgroundColor: const Color(0xFF6296FF),
           title: Text(widget.otherUsername,
@@ -196,7 +204,7 @@ class _ChatPageState extends State<ChatPage>{
             )
           )
         ],
-      )
+      ),
     );
   }
 
