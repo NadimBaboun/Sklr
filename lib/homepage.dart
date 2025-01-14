@@ -106,14 +106,16 @@ class _HomePageState extends State<HomePage> {
                           height: 50,
                           width: constraints.maxWidth * 0.8,
                           child: TextField(
-                            onChanged: (value) {
-                              if (value.length >= 3) {
+                            onSubmitted: (value) {
+                              if (value.isNotEmpty) {
                                 Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => SearchResultsPage(
-                                              search: value,
-                                            )));
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => SearchResultsPage(
+                                      search: value,
+                                    ),
+                                  ),
+                                );
                               }
                             },
                             decoration: InputDecoration(

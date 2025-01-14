@@ -9,7 +9,7 @@ import 'dart:io';
 import 'Edit_Profile.dart'; // Import the Edit Profile page
 import 'package:sklr/notfication-control.dart';
 import 'package:sklr/Choose-languge.dart';
-import 'addskillpage.dart';
+import 'package:sklr/addskillpage.dart';
 import 'navigationbar-bar.dart';
 import 'database/database.dart';
 
@@ -29,24 +29,23 @@ class _ProfilePageState extends State<ProfilePage> {
   bool isModerator = false;
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
     _loadUserData();
   }
 
-  Future<void> _loadUserData() async{
+  Future<void> _loadUserData() async {
     final userId = await UserIdStorage.getLoggedInUserId();
 
-    if(userId != null && userId > 0){
+    if (userId != null && userId > 0) {
       final response = await DatabaseHelper.fetchUserFromId(userId);
-      if(response.success){
+      if (response.success) {
         setState(() {
           userData = response.data;
           isLoading = false;
           isModerator = userData!['moderator'];
         });
-      }
-      else{
+      } else {
         setState(() {
           isLoading = true;
         });
@@ -120,11 +119,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.account_balance_wallet, 
-                    color: const Color(0xFF6296FF), 
+                    Icons.account_balance_wallet,
+                    color: const Color(0xFF6296FF),
                     size: 30,
                   ),
-                  const SizedBox(width: 8), 
+                  const SizedBox(width: 8),
                   Text(
                     "${userData?['credits'] ?? 0}",
                     style: GoogleFonts.lexend(
@@ -222,19 +221,18 @@ class _ProfilePageState extends State<ProfilePage> {
             Expanded(
               child: ListView(
                 children: [
-                  isModerator ? OptionTile(
-                    icon: Icons.report_gmailerrorred_outlined,
-                    title: 'Reports',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ModeratorDashboard()
-                        ),
-                      );
-                    }
-                  )
-                  : SizedBox.shrink(),
+                  isModerator
+                      ? OptionTile(
+                          icon: Icons.report_gmailerrorred_outlined,
+                          title: 'Reports',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => ModeratorDashboard()),
+                            );
+                          })
+                      : SizedBox.shrink(),
                   const Divider(height: 20),
                   OptionTile(
                     icon: Icons.person_outline,
@@ -262,7 +260,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       icon: Icons.language,
                       title: 'Language',
                       trailing: const Text('English',
-                          style: TextStyle(color:Color(0xFF6296FF))),
+                          style: TextStyle(color: Color(0xFF6296FF))),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -303,8 +301,9 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
-      bottomNavigationBar:
-          CustomBottomNavigationBar(currentIndex: 3,),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        currentIndex: 3,
+      ),
     );
   }
 }
@@ -336,7 +335,7 @@ class OptionTile extends StatelessWidget {
 
 showSignOutDialog(BuildContext context) {
   Widget button = TextButton(
-    child: const Text('Sign Out' , style: TextStyle(color: Color(0xFF6296FF))),
+    child: const Text('Sign Out', style: TextStyle(color: Color(0xFF6296FF))),
     onPressed: () async {
       Navigator.of(context, rootNavigator: true).pop();
       await UserIdStorage.setRememberMe(false);
