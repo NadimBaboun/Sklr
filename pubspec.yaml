@@ -31,12 +31,20 @@ dependencies:
   flutter:
     sdk: flutter
   google_fonts: ^6.2.1
-  
+  sqflite: ^2.2.0
+  path: ^1.8.3
+  path_provider: ^2.0.12
+  flutter_rating_bar: ^4.0.0
+  shared_preferences: ^2.3.5
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   flutter_native_splash: ^2.4.3
+  country_flags: ^3.1.0
+  pin_code_fields: ^8.0.1
+  image_picker: ^1.1.2
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:
@@ -69,15 +77,19 @@ flutter:
       - assets/images/skillerlogo.png
       - assets/images/splash_background.png
       - assets/images/splash_image.png
-      - assets/images/paintbrush.png
       - assets/images/marketing.png
       - assets/images/video.png
       - assets/images/tech.png
       - assets/images/music.png
       - assets/images/photography.png
-      - assets/images/design.png
-      - assets/images/ai.png
-     
+      - assets/images/checkmail.png
+      - assets/images/illustration-smartphone.png
+      - assets/images/forgot-password.png
+      - assets/images/avatar.png
+      - assets/images/others.png
+      - assets/images/cooking.png
+      - assets/images/fitness.png
+      - assets/images/language.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
