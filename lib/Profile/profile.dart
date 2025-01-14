@@ -6,7 +6,7 @@ import 'package:sklr/Profile/dashboard.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/Util/startpage.dart';
 import 'dart:io';
-import '../Edit_Profile.dart'; 
+import 'editProfile.dart'; 
 import '../Util/navigationbar-bar.dart';
 import '../database/database.dart';
 

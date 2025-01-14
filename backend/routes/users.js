@@ -20,6 +20,54 @@ router.get("", async (req, res) => {
     }
 });
 
+// GET: /api/users/username/{username}
+router.get("/username/:username", async (req, res) => {
+    const username = req.params.username;
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('username', username);
+
+        if (error) {
+            throw error;
+        }
+
+        if (data.length > 0) {
+            return res.status(200).json({ exists: true });
+        }
+
+        res.status(200).json({ exists: false });
+    } catch (err) {
+        console.error('Error fetching users: ', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// GET: /api/users/email/{email}
+router.get("/email/:email", async (req, res) => {
+    const email = req.params.email;
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email);
+
+        if (error) {
+            throw error;
+        }
+
+        if (data.length > 0) {
+            return res.status(200).json({ exists: true });
+        }
+
+        res.status(200).json({ exists: false });
+    } catch (err) {
+        console.error('Error fetching users: ', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // GET: /api/users/{user_id}, fetch specific user with user_id
 router.get("/:user_id", async (req, res) => {
     const user_id = req.params.user_id;
@@ -44,7 +92,7 @@ router.get("/:user_id", async (req, res) => {
 // PATCH: /api/users/{user_id}, update user by user_id
 router.patch("/:user_id", async (req, res) => {
     const user_id = req.params.user_id;
-    const { email, password, phone_number, bio } = req.body;
+    const { username, email, password, phone_number, bio } = req.body;
 
     // check for empty or invalid request body
     if (!email && !password && !phone_number && !bio) {
@@ -53,6 +101,10 @@ router.patch("/:user_id", async (req, res) => {
 
     try {
         const updates = {};
+
+        if (username) {
+            updates.username = username;
+        }
 
         if (email) {
             updates.email = email;

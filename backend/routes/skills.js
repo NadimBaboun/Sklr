@@ -217,7 +217,7 @@ router.get("/:name/:user_id", async (req, res) => {
 });
 
 //fetches all skills that match either name or description
-router.get("/search/:search", async (req, res) =>{
+router.get("/search/:search", async (req, res) => {
     try {
         const search = req.params.search;
 
@@ -241,7 +241,7 @@ router.get("/search/:search", async (req, res) =>{
     
             res.status(200).send(data);
     }
-    catch (err){
+    catch (err) {
         console.error(err);
         res.status(500).send({ error: "Internal server error"});
     };
