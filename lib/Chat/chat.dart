@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/chatSessionUtil.dart';
-import 'database/database.dart';
+import 'package:sklr/Chat/chatSessionUtil.dart';
+import '../database/database.dart';
 
 
 const String backendUrl = 'http://localhost:3000/api/chat';

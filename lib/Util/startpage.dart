@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 
-import 'register.dart';
-import 'loginpage.dart';
+import '../Auth/register.dart';
+import '../Auth/login.dart';
 
 class StartPage extends StatelessWidget {
   const StartPage({super.key});

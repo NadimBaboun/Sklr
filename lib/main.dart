@@ -2,8 +2,8 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:sklr/database/database.dart';
 import 'package:sklr/database/userIdStorage.dart';
-import 'package:sklr/homepage.dart';
-import 'package:sklr/startpage.dart';
+import 'package:sklr/Home/home.dart';
+import 'package:sklr/Util/startpage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure widgets are initialized

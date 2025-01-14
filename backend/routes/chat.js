@@ -2,6 +2,7 @@ const express = require("express");
 const supabase = require("../db/supabase");
 const router = express.Router();
 
+//gets chats for homepage : lastmessage, lastupdated
 router.get("/user/:userId", async (req, res) =>{
 
     const userId = parseInt(req.params.userId, 10);
@@ -24,7 +25,7 @@ router.get("/user/:userId", async (req, res) =>{
         res.status(200).json(formattedData);
 });
 
-
+//getting messages in a chat
 router.get("/:chatId/messages", async (req, res) => {
     const chatId = req.params.chatId;
     const {data, error} = await supabase
@@ -41,7 +42,7 @@ router.get("/:chatId/messages", async (req, res) => {
     res.status(200).json(data);
 });
 
-
+//creates or finds chat for user
 router.post("/get-or-create", async (req, res) => {
     const { user1Id, user2Id, session_id } = req.body;
 
@@ -83,7 +84,7 @@ router.post("/get-or-create", async (req, res) => {
     res.status(200).json({chat_id: newChat[0].id});
 });
 
-
+//sends chat
 router.post("/:chatId/message", async (req, res) => {
     const chatId = req.params.chatId;
     const { senderId, message} = req.body;

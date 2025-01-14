@@ -2,8 +2,8 @@ import 'package:country_flags/country_flags.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
-import 'package:sklr/homepage.dart';
-import 'package:sklr/phone-verify.dart';
+import 'package:sklr/Home/home.dart';
+import 'package:sklr/Auth/phoneVerify.dart';
 
 class Country {
   final String code;

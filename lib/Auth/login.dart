@@ -3,8 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/database/database.dart';
-import 'package:sklr/homepage.dart';
-import 'package:sklr/register.dart';
+import 'package:sklr/Home/home.dart';
+import 'package:sklr/Auth/register.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/categoryListingsPage.dart';
-import 'package:sklr/searchresultspage.dart';
-import 'package:sklr/navigationbar-bar.dart';
+import 'package:sklr/Home/categoryListings.dart';
+import 'package:sklr/Home/searchResult.dart';
+import 'package:sklr/Util/navigationbar-bar.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/database/database.dart';
-import 'package:sklr/skillinfo.dart';
+import 'package:sklr/Skills/skillInfo.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

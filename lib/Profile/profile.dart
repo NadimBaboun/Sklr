@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:sklr/PrivacyPolicy.dart';
-import 'package:sklr/dashboard.dart';
+import 'package:sklr/Util/PrivacyPolicy.dart';
+import 'package:sklr/Profile/dashboard.dart';
 import 'package:sklr/database/userIdStorage.dart';
-import 'package:sklr/startpage.dart';
+import 'package:sklr/Util/startpage.dart';
 import 'dart:io';
-import 'Edit_Profile.dart'; 
-import 'package:sklr/notfication-control.dart';
-import 'package:sklr/Choose-languge.dart';
-import 'package:sklr/addskillpage.dart';
-import 'navigationbar-bar.dart';
-import 'database/database.dart';
+import '../Edit_Profile.dart'; 
+import '../Util/navigationbar-bar.dart';
+import '../database/database.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -52,7 +49,8 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     }
   }
-
+  //Didnt have time to implement storing images into database
+/*
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
@@ -102,7 +100,7 @@ class _ProfilePageState extends State<ProfilePage> {
       },
     );
   }
-
+*/
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -144,12 +142,11 @@ class _ProfilePageState extends State<ProfilePage> {
               children: [
                 Stack(
                   children: [
-                    // Outer circle with background color
                     Container(
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: Color(0xFFDCEBFF), // Light blue background
+                        color: Color(0xFFDCEBFF), 
                         shape: BoxShape.circle,
                       ),
                       child: Center(
@@ -163,7 +160,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   height: 80,
                                 )
                               : Image.asset(
-                                  'assets/images/avatar.png', // Replace with your default avatar image path
+                                  'assets/images/avatar.png',
                                   fit: BoxFit.cover,
                                   width: 80,
                                   height: 80,

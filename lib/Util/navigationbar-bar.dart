@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'chatsHomePage.dart';
-import 'myorderspage.dart';
-import 'homepage.dart';
-import 'Profile.dart';
+import '../Chat/chatsHome.dart';
+import '../Skills/myOrders.dart';
+import '../Home/home.dart';
+import '../Profile/profile.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;

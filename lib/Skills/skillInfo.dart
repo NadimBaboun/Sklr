@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/Profile.dart';
-import 'package:sklr/chatPage.dart';
+import 'package:sklr/Profile/profile.dart';
+import 'package:sklr/Chat/chat.dart';
 import 'package:sklr/database/userIdStorage.dart';
-import 'database/database.dart';
-import 'userpage.dart';
+import '../database/database.dart';
+import '../Profile/user.dart';
 
 class Skillinfo extends StatelessWidget {
   final int id;
@@ -86,14 +86,13 @@ class Skillinfo extends StatelessWidget {
                   } else {
                     final user = userSnapshot.data!;
                     return Center(
-                      // Centering all content
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment
-                              .center, // Centered horizontally
+                              .center, 
                           mainAxisAlignment:
-                              MainAxisAlignment.start, // Centered vertically
+                              MainAxisAlignment.start, 
                           children: [
                             const SizedBox(height: 20),
                             Text(

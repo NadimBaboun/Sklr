@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/database/database.dart';
-import 'package:sklr/skillinfo.dart';
+import 'package:sklr/Skills/skillInfo.dart';
 
 class ModeratorDashboard extends StatefulWidget {
   const ModeratorDashboard({Key? key}) : super(key: key);

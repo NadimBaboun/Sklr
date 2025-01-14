@@ -4,9 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:sklr/database/database.dart';
 import 'package:sklr/database/userIdStorage.dart';
-import 'package:sklr/phone-number.dart';
-import 'loginpage.dart';
-import 'PrivacyPolicy.dart';
+import 'package:sklr/Auth/phoneNumber.dart';
+import 'login.dart';
+import '../Util/PrivacyPolicy.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});
@@ -223,8 +223,6 @@ class RegisterState extends State<Register> {
                               ),
                               recognizer: TapGestureRecognizer()
                                 ..onTap = () {
-                                  // Handle click for "Privacy Policy"
-                                  print("Privacy Policy clicked");
                                   // Navigate to the Privacy Policy page
                                   Navigator.push(
                                     context,

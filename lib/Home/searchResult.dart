@@ -1,13 +1,7 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/categoryListingsPage.dart';
-import 'package:sklr/service-categories.dart';
-import 'package:sklr/navigationbar-bar.dart';
-import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/database/database.dart';
-import 'package:sklr/skillinfo.dart';
+import 'package:sklr/Skills/skillInfo.dart';
 
 class SearchResultsPage extends StatelessWidget {
   String search;
@@ -73,7 +67,7 @@ class SearchResultsPage extends StatelessWidget {
                 padding: const EdgeInsets.all(8.0),
                 child: InkWell(
                   onTap: () {
-                    // Navigate to Skillinfo page with specific skill ID
+                    // navigate to skillpage with id of listing
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => Skillinfo(id: listing['id']),

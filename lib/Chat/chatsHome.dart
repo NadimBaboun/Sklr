@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'database/database.dart';
-import 'chatPage.dart';
-import 'navigationbar-bar.dart';
-import 'database/userIdStorage.dart';
+import '../database/database.dart';
+import 'chat.dart';
+import '../Util/navigationbar-bar.dart';
+import '../database/userIdStorage.dart';
 
 class ChatsHomePage extends StatefulWidget{
 

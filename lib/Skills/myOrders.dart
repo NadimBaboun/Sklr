@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/database/userIdStorage.dart';
-import 'package:sklr/skillinfo.dart';
-import 'database/database.dart';
-import 'navigationbar-bar.dart';
-import 'addskillpage.dart';
+import 'package:sklr/Skills/skillInfo.dart';
+import '../database/database.dart';
+import '../Util/navigationbar-bar.dart';
+import 'addSkill.dart';
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});

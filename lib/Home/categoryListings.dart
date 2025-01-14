@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'database/database.dart';
-import 'skillinfo.dart';
-import 'navigationbar-bar.dart';
+import '../database/database.dart';
+import '../Skills/skillInfo.dart';
+import '../Util/navigationbar-bar.dart';
 
 class CategoryListingsPage extends StatelessWidget{
   final String categoryName;
@@ -63,7 +63,7 @@ class CategoryListingsPage extends StatelessWidget{
                 padding: const EdgeInsets.all(8.0),
                 child: InkWell(
                   onTap: () {
-                    // Navigate to Skillinfo page with specific skill ID
+                    // navigate to skillpage with id of listing
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => Skillinfo(id: listing['id']),

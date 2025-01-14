@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:sklr/skillinfo.dart';
-import 'database/database.dart';
-import 'navigationbar-bar.dart';
+import 'package:sklr/Skills/skillInfo.dart';
+import '../database/database.dart';
+import '../Util/navigationbar-bar.dart';
 
 class UserPage extends StatefulWidget {
   final int userId;

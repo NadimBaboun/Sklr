@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/startpage.dart';
+import 'package:sklr/Util/startpage.dart';
 
 // using "flutter_native_splash" instead
 
