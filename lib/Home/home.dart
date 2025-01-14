@@ -64,7 +64,7 @@ class _HomePageState extends State<HomePage> {
       home: Scaffold(
         backgroundColor: Colors.white,
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(100.0),
+          preferredSize: const Size.fromHeight(200.0),
           child: AppBar(
             backgroundColor: const Color(0xFF6296FF),
             flexibleSpace: Padding(
@@ -87,17 +87,17 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       const SizedBox(height: 5),
-                      // Text(
-                      //   "Let's find the best talent for you",
-                      //   style: GoogleFonts.mulish(
-                      //     textStyle: TextStyle(
-                      //       color: Colors.white,
-                      //       fontSize: constraints.maxWidth > 600 ? 36 : 30,
-                      //       fontWeight: FontWeight.bold,
-                      //     ),
-                      //   ),
-                      // ),
-                      // const SizedBox(height: 10),
+                      Text(
+                        "Let's find the best talent for you",
+                        style: GoogleFonts.mulish(
+                          textStyle: TextStyle(
+                            color: Colors.white,
+                            fontSize: constraints.maxWidth > 600 ? 36 : 30,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       // Adjusting the Search Bar
                       // Flexible(
                       //   child: SizedBox(
