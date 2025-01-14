@@ -85,6 +85,21 @@ router.post('/', async (req, res) => {
     const { skill_id, text } = req.body;
 
     try {
+        const { data: exists_data, error: exists_error } = await supabase
+            .from('reports')
+            .select('*')
+            .eq('skill_id', skill_id)
+            .single();
+
+        if (exists_error && exists_error.code !== "PGRST116") {
+            res.status(400).json({ error: exists_error });
+            throw exists_error;
+        }
+
+        if (exists_data) {
+            return res.status(200).json(exists_data);
+        }
+
         const { data, error } = await supabase
             .from('reports')
             .insert({
