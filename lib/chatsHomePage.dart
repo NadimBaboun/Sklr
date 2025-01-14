@@ -98,7 +98,7 @@ class _ChatsHomePageState extends State<ChatsHomePage>{
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis
                 ),
-                subtitle: Text(lastMessage),
+                subtitle: Text(lastMessage, maxLines: 2, overflow: TextOverflow.ellipsis),
                 trailing: Text(
                   chat['last_updated'] != null ? chat['last_updated'].toString().substring(0,10) : '',
                   style: const TextStyle(color: Colors.grey, fontSize: 12),

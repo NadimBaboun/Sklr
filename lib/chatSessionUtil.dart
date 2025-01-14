@@ -41,7 +41,7 @@ class RequestService {
         else { // user has sufficient funds
           // Create transaction: subtracts credit from requester, creates transaction entity, updates session status
           final result = await DatabaseHelper.createTransaction(session['id']);
-          Navigator.of(context, rootNavigator: true).pop(result);
+          Navigator.of(context, rootNavigator: true).pop(true);
         }
       },
     );
@@ -85,7 +85,6 @@ class CompleteService {
       onPressed: () async {
         // fetch transaction
         final transaction = await DatabaseHelper.fetchTransactionFromSession(session['id']);
-        log('status: ${transaction.success}, data: ${transaction.data.toString()}');
         if (!transaction.success) { // failed to fetch transaction
           Navigator.of(context, rootNavigator: true).pop(false);
         }
@@ -108,6 +107,55 @@ class CompleteService {
       actions: [
         confirmButton,
         cancelButton,
+      ],
+    );
+
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return requestDialog;
+      },
+    );
+  }
+}
+
+// Cancel session
+class CancelService {
+  final Map<String, dynamic> session;
+
+  CancelService({required this.session});
+  
+  Future<bool?> showFinalizeDialog(BuildContext context) async {
+    Widget cancelButton = TextButton(
+      child: const Text("Cancel"),
+      onPressed: () async {
+        // cancel session
+        // basically the same thing as complete ..?
+        // fetch transaction
+        final transaction = await DatabaseHelper.fetchTransactionFromSession(session['id']);
+        if (!transaction.success) { // failed to fetch transaction
+          Navigator.of(context, rootNavigator: true).pop(false);
+        }
+        // finalize transaction, set session status to 'Idle', award provider with credit, remove transaction
+        final result = await DatabaseHelper.finalizeTransaction(transaction.data['id']);
+        Navigator.of(context, rootNavigator: true).pop(result);
+      },
+    );
+
+    Widget dismissButton = TextButton(
+      child: const Text("Dismiss"),
+      onPressed: () {
+        Navigator.of(context, rootNavigator: true).pop(false);
+      },
+    );
+
+    AlertDialog requestDialog = AlertDialog(
+      title: const Text("Cancel Request"),
+      content: const Text("Are you sure you want to cancel this session? You will not be refunded."),
+      actions: [
+        cancelButton,
+        dismissButton,
       ],
     );
 

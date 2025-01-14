@@ -107,6 +107,26 @@ class _ChatPageState extends State<ChatPage>{
                   itemBuilder: (context, index){
                     final message = snapshot.data![index];
                     final isSentByUser = message['sender_id'] == widget.loggedInUserId;
+                    
+                    if (message['sender_id'] == -1) {
+                      return Align(
+                        alignment: Alignment.center,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            message['message'],
+                            style: TextStyle(
+                              color: Colors.black,
+                            )
+                          )
+                        )
+                      );
+                    }
 
                     return Align(
                       alignment: isSentByUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -190,43 +210,76 @@ class _ChatPageState extends State<ChatPage>{
       );
     }
     switch (status) {
-      case 'Idle':
+      case 'Idle': // request service button
         return Center(
-          child: ElevatedButton(
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.handshake_outlined, color: Colors.white),
             onPressed: () async {
               // Open the dialog through RequestService
               bool? result = await RequestService(session: session).showRequestDialog(context);
 
               if (result == true) {
+                // append request message
+                await DatabaseHelper.sendMessage(widget.chatId, -1, 'The Service was Requested!');
                 setState(() {
                   _loadSession();
+                  _loadMessages();
                 });
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4169E1)
             ),
-            child: Text('Request Service', style: GoogleFonts.mulish(color: Colors.white, fontWeight: FontWeight.w600)),
+            label: Text('Request Service', style: GoogleFonts.mulish(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         );
-      case 'Pending':
-        return Center(
-          child: ElevatedButton(
-            onPressed: () async {
-              // Open the dialog through CompleteService
-              bool? result = await CompleteService(session: session).showFinalizeDialog(context);
+      case 'Pending': // complete service button, cancel session button
+        return Column(
+          children: [
+            Center( // complete service button
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                onPressed: () async {
+                  // Open the dialog through CompleteService
+                  bool? result = await CompleteService(session: session).showFinalizeDialog(context);
 
-              if (result == true) {
-                setState(() {
-                  _loadSession();
-                });
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF228B22)
+                  if (result == true) {
+                    // append complete message
+                    await DatabaseHelper.sendMessage(widget.chatId, -1, 'The Service was Completed!');
+                    setState(() {
+                      _loadSession();
+                      _loadMessages();
+                    });
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF228B22)
+                ),
+                label: Text('Complete', style: GoogleFonts.mulish(color: Colors.white, fontWeight: FontWeight.w600)),
+              ),
             ),
-            child: Text('Complete', style: GoogleFonts.mulish(color: Colors.white, fontWeight: FontWeight.w600)),
-          ),
+            Center(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.cancel_outlined, color: Colors.white),
+                onPressed: () async {
+                  // Open the dialog through CancelService
+                  bool? result = await CancelService(session: session).showFinalizeDialog(context);
+
+                  if (result == true) {
+                    await DatabaseHelper.sendMessage(widget.chatId, -1, 'The Service was Cancelled!');
+                    setState(() {
+                      _loadSession();
+                      _loadMessages();
+                    });
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
+                label: Text('Cancel', style: GoogleFonts.mulish(color: Colors.white, fontWeight: FontWeight.w600)),
+              )
+            )
+          ]
         );
       default:
         return const Center(child: Text('Null'));
