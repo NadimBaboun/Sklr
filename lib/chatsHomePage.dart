@@ -66,8 +66,14 @@ class _ChatsHomePageState extends State<ChatsHomePage>{
       );
     }
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Chats'),
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: const Color(0xFF6296FF),
+        title: const Text('Chats',
+        style: TextStyle(
+          color: Colors.white
+        ),),
         centerTitle: true,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -91,6 +97,8 @@ class _ChatsHomePageState extends State<ChatsHomePage>{
 
               return ListTile(
                 leading: CircleAvatar(
+                  backgroundColor: Color(0xFF6296FF),
+                  foregroundColor: Colors.white,
                   child: Text(username.isNotEmpty ? username[0] : '?'),
                 ),
                 title: Text(

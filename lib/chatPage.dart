@@ -59,10 +59,16 @@ class _ChatPageState extends State<ChatPage>{
   @override
   Widget build (BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
         child: AppBar(
-          title: Text(widget.otherUsername),
+          iconTheme: const IconThemeData(color: Colors.white),
+          backgroundColor: const Color(0xFF6296FF),
+          title: Text(widget.otherUsername,
+          style: TextStyle(
+            color: Colors.white
+          )),
           centerTitle: true,
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(30),
@@ -78,7 +84,10 @@ class _ChatPageState extends State<ChatPage>{
                   }
                   else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                     final skillName = snapshot.data!['skillName'] ?? 'Unknown Skill';
-                    return Text(skillName);
+                    return Text(skillName,
+                    style: TextStyle(
+                      color: Colors.white
+                    ));
                   } else {
                     return const Center(
                       child: Text('No data available')
@@ -228,7 +237,7 @@ class _ChatPageState extends State<ChatPage>{
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4169E1)
+              backgroundColor: const Color(0xFF6296FF)
             ),
             label: Text('Request Service', style: GoogleFonts.mulish(color: Colors.white, fontWeight: FontWeight.w600)),
           ),

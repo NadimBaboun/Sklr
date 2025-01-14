@@ -43,7 +43,9 @@ class MyOrdersPageState extends State<MyOrdersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           "My Skill Listings",
           style: GoogleFonts.mulish(
@@ -74,39 +76,42 @@ class MyOrdersPageState extends State<MyOrdersPage> {
             itemBuilder: (context, index) {
               final skill = skills[index];
 
-              return Dismissible(
-                key: Key(skill['id'].toString()),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerRight,
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Icon(
-                    Icons.delete,
-                    color: Colors.white,
+              return Column(
+                children: [
+                  Dismissible(
+                    key: Key(skill['id'].toString()),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: const Icon(
+                        Icons.delete,
+                        color: Colors.white,
+                      ),
+                    ),
+                    onDismissed: (direction) {
+                      DatabaseHelper.deleteSkill(skill['name'], loggedInUserId);
+                      skills.removeAt(index);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('${skill['name']} deleted')),
+                      );
+                    },
+                    child: ListTile(
+                      title: Text(skill['name'] ?? 'No Skill Name'),
+                      subtitle: Text(skill['description'] ?? 'No Description'),
+                      trailing: Text(skill['created_at'].toString().substring(0, 10)),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => Skillinfo(id: skill['id']),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                onDismissed: (direction) {
-                  //skill is deleted
-                  DatabaseHelper.deleteSkill(skill['name'], loggedInUserId);
-                  skills.removeAt(index);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${skill['name']} deleted')),
-                  );
-                },
-                child: ListTile(
-                  title: Text(skill['name'] ?? 'No Skill Name'),
-                  subtitle: Text(skill['description'] ?? 'No Description'),
-                  trailing:
-                      Text(skill['created_at'].toString().substring(0, 10)),
-                  onTap: () {
-                    // Navigate to skill details page
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (context) => Skillinfo(id: skill['id'])),
-                    );
-                  },
-                ),
+                  if (index != skills.length - 1) const Divider(height: 1),
+                ],
               );
             },
           );

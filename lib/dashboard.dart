@@ -28,8 +28,17 @@ class _ModeratorDashboardState extends State<ModeratorDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Moderation Dashboard'),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          "Moderation Dashboard",
+          style: GoogleFonts.mulish(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: const Color(0xFF6296FF),
         centerTitle: true,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -48,8 +57,7 @@ class _ModeratorDashboardState extends State<ModeratorDashboard> {
               itemBuilder: (context, index) {
                 final report = reports[index];
                 final skillId = report['skill_id'];
-                final reportText = report['text'] ?? 'No additional details provided';
-                
+               
                 return FutureBuilder<Map<String, dynamic>>(
                   future: DatabaseHelper.fetchOneSkill(skillId),
                   builder: (context, skillSnapshot) {
@@ -65,6 +73,7 @@ class _ModeratorDashboardState extends State<ModeratorDashboard> {
                       final skillDesc = skill['description'];
 
                       return Card(
+                        color: Colors.grey[200],
                         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         child: InkWell(
                           onTap: () {

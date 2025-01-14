@@ -6,7 +6,7 @@ import 'package:sklr/dashboard.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/startpage.dart';
 import 'dart:io';
-import 'Edit_Profile.dart'; // Import the Edit Profile page
+import 'Edit_Profile.dart'; 
 import 'package:sklr/notfication-control.dart';
 import 'package:sklr/Choose-languge.dart';
 import 'package:sklr/addskillpage.dart';
@@ -106,6 +106,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -130,7 +131,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       textStyle: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF6296FF),
+                        color: Color(0xFF6296FF),
                       ),
                     ),
                   ),
@@ -169,7 +170,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                         ),
                       ),
-                    ),
+                    ),/*
                     Positioned(
                       bottom: 0,
                       right: 0,
@@ -189,7 +190,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ),
                       ),
-                    ),
+                    ),*/
                   ],
                 ),
               ],
@@ -198,7 +199,7 @@ class _ProfilePageState extends State<ProfilePage> {
             // User Name and Details
             Text(
               userData?['username'] ?? 'Unknown User',
-              style: GoogleFonts.lexend(
+              style: GoogleFonts.mulish(
                 textStyle: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -208,7 +209,7 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 5),
             Text(
               '${userData?['email'] ?? 'No Email'} | ${userData?['phone_number'] ?? 'No Phone'}',
-              style: GoogleFonts.lexend(
+              style: GoogleFonts.mulish(
                 textStyle: TextStyle(
                   fontSize: 14,
                   color: Colors.grey,
@@ -244,38 +245,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             builder: (context) => EditProfilePage()),
                       );
                     },
-                  ),
-                  OptionTile(
-                    icon: Icons.notifications_none,
-                    title: 'Notifications',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => NotificationSettingsScreen()),
-                      );
-                    },
-                  ),
-                  OptionTile(
-                      icon: Icons.language,
-                      title: 'Language',
-                      trailing: const Text('English',
-                          style: TextStyle(color: Color(0xFF6296FF))),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => LanguageSelectionScreen()),
-                        );
-                      }),
-                  const Divider(height: 20),
-                  OptionTile(
-                    icon: Icons.help_outline,
-                    title: 'Help & Support',
-                  ),
-                  OptionTile(
-                    icon: Icons.mail_outline,
-                    title: 'Contact us',
                   ),
                   OptionTile(
                     icon: Icons.privacy_tip_outlined,

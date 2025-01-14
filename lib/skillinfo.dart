@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/Profile.dart';
@@ -37,6 +36,7 @@ class Skillinfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
+        backgroundColor: Colors.white,
         appBar: AppBar(
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: Colors.white),
@@ -48,7 +48,7 @@ class Skillinfo extends StatelessWidget {
             'Skill Info',
             style: GoogleFonts.mulish(
               color: Colors.white,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
             ),
           ),
           backgroundColor: const Color(0xFF6296FF),
@@ -102,6 +102,7 @@ class Skillinfo extends StatelessWidget {
                                 fontSize: 25,
                                 fontWeight: FontWeight.bold,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 20),
                             InkWell(
@@ -127,7 +128,7 @@ class Skillinfo extends StatelessWidget {
                                 }
                               },
                               child: Text(
-                                'Created by: ${user['username']}',
+                                '${user['username']}',
                                 style: GoogleFonts.mulish(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -142,6 +143,7 @@ class Skillinfo extends StatelessWidget {
                               style: GoogleFonts.mulish(
                                 fontSize: 18,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 20),
                             Text(

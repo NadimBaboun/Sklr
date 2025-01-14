@@ -141,7 +141,7 @@ class _UserPageState extends State<UserPage>{
           const SizedBox(height: 20),
           Text(
             userData!['username'] ?? 'Unknown User',
-            style: GoogleFonts.lexend(
+            style: GoogleFonts.mulish(
               textStyle: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -151,7 +151,7 @@ class _UserPageState extends State<UserPage>{
           const SizedBox(height: 5),
           Text(
             '${userData!['email'] ?? 'No Email'} | ${userData!['phone_number'] ?? 'No Phone'}',
-            style: GoogleFonts.lexend(
+            style: GoogleFonts.mulish(
               textStyle: const TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
@@ -172,7 +172,7 @@ class _UserPageState extends State<UserPage>{
               child: Center(
               child: Text(
                 userData!['bio'] ?? 'No Bio Available',
-                style: GoogleFonts.lexend(
+                style: GoogleFonts.mulish(
                   textStyle: const TextStyle(
                     fontSize: 14,
                     color: Colors.black,
@@ -231,7 +231,7 @@ class _UserPageState extends State<UserPage>{
                             children: [
                               Text(
                                 listing['name'] ?? 'No name',
-                                style: GoogleFonts.lexend(
+                                style: GoogleFonts.mulish(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w400,
                                 ),
@@ -240,7 +240,7 @@ class _UserPageState extends State<UserPage>{
                               const SizedBox(height: 8),
                               Text(
                                 listing['description'] ?? 'No Description',
-                                style: GoogleFonts.lexend(
+                                style: GoogleFonts.mulish(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w200,
                                 ),

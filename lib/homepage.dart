@@ -1,10 +1,7 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/categoryListingsPage.dart';
 import 'package:sklr/searchresultspage.dart';
-import 'package:sklr/service-categories.dart';
 import 'package:sklr/navigationbar-bar.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/database/database.dart';
@@ -65,6 +62,7 @@ class _HomePageState extends State<HomePage> {
       debugShowCheckedModeBanner: false,
       title: 'Responsive Example',
       home: Scaffold(
+        backgroundColor: Colors.white,
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(220.0),
           child: AppBar(
@@ -79,8 +77,8 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       const SizedBox(height: 40),
                       Text(
-                        'Hello, ${username ?? "User"}',
-                        style: GoogleFonts.lexend(
+                        'Hello, ${username ?? "Unknown User"}',
+                        style: GoogleFonts.mulish(
                           textStyle: TextStyle(
                             color: Colors.white,
                             fontSize: constraints.maxWidth > 600 ? 28 : 20,
@@ -91,7 +89,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 5),
                       Text(
                         "Let's find the best talent for you",
-                        style: GoogleFonts.lexend(
+                        style: GoogleFonts.mulish(
                           textStyle: TextStyle(
                             color: Colors.white,
                             fontSize: constraints.maxWidth > 600 ? 36 : 30,
@@ -129,7 +127,7 @@ class _HomePageState extends State<HomePage> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               hintText: 'Search service',
-                              hintStyle: GoogleFonts.lexend(
+                              hintStyle: GoogleFonts.mulish(
                                 textStyle: TextStyle(
                                   color: Colors.grey[500],
                                   fontSize:
@@ -162,7 +160,7 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Text(
                           'Service Categories',
-                          style: GoogleFonts.lexend(
+                          style: GoogleFonts.mulish(
                             textStyle: const TextStyle(
                               color: Colors.black,
                               fontSize: 16,
@@ -170,25 +168,6 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                         ),
-                        // InkWell(
-                        //   onTap: () {
-                        //     Navigator.push(
-                        //       context,
-                        //       MaterialPageRoute(
-                        //         builder: (context) => const ServiceCategoryPage(),
-                        //       ),
-                        //     );
-                        //   },
-                        //   child: Text(
-                        //     'See All',
-                        //     style: GoogleFonts.lexend(
-                        //       textStyle: const TextStyle(
-                        //         color: Color(0xFF6296FF),
-                        //         fontSize: 16,
-                        //       ),
-                        //     ),
-                        //   ),
-                        // ),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -196,7 +175,7 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 20),
                     Text(
                       'Recent Listings',
-                      style: GoogleFonts.lexend(
+                      style: GoogleFonts.mulish(
                         textStyle: const TextStyle(
                           color: Colors.black,
                           fontSize: 16,
@@ -211,12 +190,18 @@ class _HomePageState extends State<HomePage> {
                       // load more button
                       padding: const EdgeInsets.all(16),
                       child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6296FF),
+                        ),
                         onPressed: () {
                           setState(() {
                             limit += 10;
                           });
                         },
-                        child: Text('Load more!'),
+                        child: Text('Load more!',
+                        style: TextStyle(
+                          color: Colors.white
+                        )),
                       ),
                     )),
                   ],
@@ -228,62 +213,6 @@ class _HomePageState extends State<HomePage> {
         bottomNavigationBar: CustomBottomNavigationBar(currentIndex: 0),
       ),
     );
-  }
-
-  List<Widget> _buildServiceCategoryCards(BoxConstraints constraints) {
-    const categories = [
-      {'icon': 'assets/images/paintbrush.png', 'label': 'Graphic Design'},
-      {'icon': 'assets/images/marketing.png', 'label': 'Digital Marketing'},
-      {'icon': 'assets/images/video.png', 'label': 'Video & Animation'},
-      {'icon': 'assets/images/tech.png', 'label': 'Program & Tech'},
-      {'icon': 'assets/images/music.png', 'label': 'Music & Audio'},
-      {'icon': 'assets/images/photography.png', 'label': 'Product Photography'},
-      {'icon': 'assets/images/design.png', 'label': 'UI/UX Design'},
-      {'icon': 'assets/images/ai.png', 'label': 'Build AI Services'},
-      {'icon': 'assets/images/others.png', 'label': 'Others'},
-    ];
-
-    return categories
-        .map(
-          (category) => InkWell(
-            onTap: () {
-              // Navigate to the respective category page
-            },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  width: constraints.maxWidth > 600 ? 80 : 74,
-                  height: constraints.maxWidth > 600 ? 80 : 74,
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Image.asset(
-                      category['icon']!,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  category['label']!,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.lexend(
-                    textStyle: TextStyle(
-                      color: Colors.black,
-                      fontSize: constraints.maxWidth > 600 ? 15 : 13,
-                      fontWeight: FontWeight.w300,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        )
-        .toList();
   }
 }
 
@@ -329,7 +258,7 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
                 Text(
                   category['name'],
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.lexend(
+                  style: GoogleFonts.mulish(
                     textStyle: TextStyle(
                       color: Colors.black,
                       fontSize: constraints.maxWidth > 600 ? 15 : 13,
@@ -411,7 +340,7 @@ class _recentListingsState extends State<RecentListings> {
               const SizedBox(height: 8),
               Text(
                 listing['name'],
-                style: GoogleFonts.lexend(
+                style: GoogleFonts.mulish(
                   color: Colors.black,
                   fontWeight: FontWeight.w400,
                 ),
@@ -421,7 +350,7 @@ class _recentListingsState extends State<RecentListings> {
               const SizedBox(height: 8),
               Text(
                 listing['description'],
-                style: GoogleFonts.lexend(
+                style: GoogleFonts.mulish(
                   color: Colors.black,
                   fontWeight: FontWeight.w200,
                 ),
@@ -440,7 +369,7 @@ class _recentListingsState extends State<RecentListings> {
                   } else if (snapshot.hasData) {
                     return Text(
                       snapshot.data!.data['username'],
-                      style: GoogleFonts.lexend(
+                      style: GoogleFonts.mulish(
                         color: Colors.black,
                         fontWeight: FontWeight.w300,
                       ),

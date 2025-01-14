@@ -27,7 +27,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: const Color(0xFF6296FF),
-        title: const Text('Edit Profile'),
+        title: Text(
+          "Edit Profile",
+          style: GoogleFonts.mulish(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         centerTitle: true,
       ),
       body: Padding(
@@ -43,13 +49,35 @@ class _EditProfilePageState extends State<EditProfilePage> {
               // Nickname
               TextField(
                 controller: _usernameController,
-                decoration: const InputDecoration(labelText: 'Username'),
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  labelStyle: TextStyle(
+                    color: Colors.black, // Ändra färgen på etiketten
+                  ),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey), // Default underline color
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blue), // Color when focused
+                  ),
+                ),
               ),
               const SizedBox(height: 25),
               // Email
               TextField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  labelStyle: TextStyle(
+                    color: Colors.black, // Ändra färgen på etiketten
+                  ),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey), // Default underline color
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blue), // Color when focused
+                  ),
+                ),
               ),
               const SizedBox(height: 15),
               // Submit Button

@@ -15,17 +15,21 @@ class CategoryListingsPage extends StatelessWidget{
   @override
   Widget build(BuildContext context){
     return Scaffold(
+    backgroundColor: Colors.white,
       appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           categoryName,
-          style: GoogleFonts.lexend(
+          style: GoogleFonts.mulish(
             textStyle: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
+              color: Colors.white
             ),
+            
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF6296FF),
         centerTitle: true,
       ),
     body: FutureBuilder<List<Map<String,dynamic>>>(
@@ -79,16 +83,16 @@ class CategoryListingsPage extends StatelessWidget{
                       children: [
                         Text(
                           listing['name'] ?? 'No Name',
-                          style: GoogleFonts.lexend(
+                          style: GoogleFonts.mulish(
                               color: Colors.black,
-                              fontWeight: FontWeight.w200,
+                              fontWeight: FontWeight.w400,
                             ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           listing['description'] ?? 'No Description',
-                          style: GoogleFonts.lexend(
+                          style: GoogleFonts.mulish(
                               color: Colors.black,
                               fontWeight: FontWeight.w200,
                             ),
@@ -110,9 +114,9 @@ class CategoryListingsPage extends StatelessWidget{
                             final user = userSnapshot.data!.data;
                             return Text(
                               '${user['username'] ?? 'Unknown User'}',
-                              style: GoogleFonts.lexend(
+                              style: GoogleFonts.mulish(
                               color: Colors.black,
-                              fontWeight: FontWeight.w300,
+                              fontWeight: FontWeight.w400,
                             ),
                               textAlign: TextAlign.center,
                             );

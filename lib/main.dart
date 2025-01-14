@@ -1,5 +1,4 @@
 import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:sklr/database/database.dart';
 import 'package:sklr/database/userIdStorage.dart';

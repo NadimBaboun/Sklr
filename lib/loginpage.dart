@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
 import 'package:sklr/database/userIdStorage.dart';
-import 'package:sklr/forgot-passowrd.dart'; // Corrected filename
-import 'package:sklr/database/database.dart'; // Import the database helper
-// Import sqflite to access the database
+import 'package:sklr/database/database.dart';
 import 'package:sklr/homepage.dart';
 import 'package:sklr/register.dart';
 
@@ -175,6 +173,7 @@ class _LoginPageState extends State<LoginPage> {
                           _keepLogIn = value!;
                         });
                       },
+                      activeColor: const Color(0xFF6296FF),
                     ),
                     const Text("Keep me logged in"),
                   ],
@@ -198,27 +197,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                // "Forgot Password?" Text
-                Center(
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.black87,
-                      textStyle: GoogleFonts.mulish(
-                        fontSize: 16,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ForgotPasswordPage(),
-                        ),
-                      );
-                    },
-                    child: const Text("Forgot Password?"),
-                  ),
-                ),
-                const SizedBox(height: 20),
+                
                 // "Don't have an account? Sign up" Text
                 Center(
                   child: Text.rich(

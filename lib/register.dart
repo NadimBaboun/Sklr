@@ -6,6 +6,7 @@ import 'package:sklr/database/database.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/phone-number.dart';
 import 'loginpage.dart';
+import 'PrivacyPolicy.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});
@@ -191,8 +192,7 @@ class RegisterState extends State<Register> {
                               termsAccepted = value ?? false;
                             });
                           },
-                          activeColor: Colors.white,
-                          checkColor: const Color(0xFF6296FF),
+                          activeColor: const Color(0xFF6296FF),
                           materialTapTargetSize: MaterialTapTargetSize.padded,
                         ),
                         const Text("I agree to the"),
@@ -202,10 +202,14 @@ class RegisterState extends State<Register> {
                       child: RichText(
                         text: TextSpan(
                           text: 'Terms of Service ',
-                          style: const TextStyle(
+                          style: GoogleFonts.mulish(
                             color: Color(0xFF6296FF),
                             fontWeight: FontWeight.bold,
                           ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                                //Dont exist
+                            },
                           children: [
                             const TextSpan(
                               text: 'and ',
@@ -213,10 +217,20 @@ class RegisterState extends State<Register> {
                             ),
                             TextSpan(
                               text: 'Privacy Policy',
-                              style: const TextStyle(
+                              style: GoogleFonts.mulish(
                                 color: Color(0xFF6296FF),
                                 fontWeight: FontWeight.bold,
                               ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () {
+                                  // Handle click for "Privacy Policy"
+                                  print("Privacy Policy clicked");
+                                  // Navigate to the Privacy Policy page
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => PrivacyPolicy()),
+                                  );
+                                },
                             ),
                           ],
                         ),
@@ -246,36 +260,38 @@ class RegisterState extends State<Register> {
                   ),
                 ),
                 const SizedBox(height: 30),
-                RichText(
-                  text: TextSpan(
-                    text: 'Already have an account? ',
-                    style: GoogleFonts.mulish(
-                      textStyle: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: 'Login',
-                        style: GoogleFonts.mulish(
-                          textStyle: const TextStyle(
-                            color: Color(0xFF6296FF),
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                Center(
+                  child:RichText(
+                    text: TextSpan(
+                      text: 'Already have an account? ',
+                      style: GoogleFonts.mulish(
+                        textStyle: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const LoginPage(),
-                              ),
-                            );
-                          },
                       ),
-                    ],
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: 'Login',
+                          style: GoogleFonts.mulish(
+                            textStyle: const TextStyle(
+                              color: Color(0xFF6296FF),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginPage(),
+                                ),
+                              );
+                            },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

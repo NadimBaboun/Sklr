@@ -49,6 +49,7 @@ class AddSkillPageState extends State<AddSkillPage> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
+        backgroundColor: Colors.white,
         appBar: AppBar(
           title: Text(
             "Add a skill to share with someone!",
@@ -67,6 +68,8 @@ class AddSkillPageState extends State<AddSkillPage> {
             children: [
               const SizedBox(height: 20),
               TextField(
+                maxLength: 40,
+                maxLines: 1,
                 onChanged: (value) {
                   setState(() {
                     skillname = value;
@@ -91,6 +94,7 @@ class AddSkillPageState extends State<AddSkillPage> {
                   });
                 },
                 maxLines: 4,
+                maxLength: 150,
                 decoration: InputDecoration(
                   hintText: "Enter skill description",
                   prefixIcon: const Icon(Icons.description),
@@ -101,6 +105,7 @@ class AddSkillPageState extends State<AddSkillPage> {
                     borderSide: BorderSide.none,
                   ),
                 ),
+                textAlign: TextAlign.start,
               ),
               const SizedBox(height: 30),
               Center(
@@ -108,6 +113,7 @@ class AddSkillPageState extends State<AddSkillPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     DropdownButton<String>(
+                      dropdownColor: Colors.white,
                       value: chosenCategory,
                       hint: Text('Choose a category'),
                       icon: Icon(
@@ -123,7 +129,11 @@ class AddSkillPageState extends State<AddSkillPage> {
                       items: _choices.map((String choice) {
                         return DropdownMenuItem<String>(
                           value: choice,
-                          child: Text(choice),
+                          child: Text(choice,
+                          style: GoogleFonts.mulish(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          ),
                         );
                       }).toList(),
                       onChanged: (String? newValue) {
@@ -167,6 +177,9 @@ class AddSkillPageState extends State<AddSkillPage> {
                       DatabaseHelper.insertSkill(loggedInUserId, skillname,
                           skilldescription, chosenCategory);
                       Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Skill added'),
+                      ),);
                     } else {
                       setState(() {
                         errorMessage = 'This skill already exists!';
