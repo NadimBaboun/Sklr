@@ -41,13 +41,12 @@
 
 
 <div align="center">
-  <a href="mailto:mhh24001@student.mdu.se">Contact Us</a> •  
-  <a href="https://linkedin.com/hamarshehmhmd">LinkedIn</a>
+  <a href="https://hamarshehmhmd.netlify.app/">Portfolio</a> • 
+  <a href="mailto:mhh24001@student.mdu.se">Contact Me</a> •  
+  <a href="https://linkedin.com/in/hamarshehmhmd">LinkedIn</a>
 </div>
 
-## Dynamic Status
 
-![Beta-Version](https://img.shields.io/badge/Beta-Version-active-blue)  
-![Secure](https://img.shields.io/badge/Security-blockchain-brightgreen)
+
 
 *This ReadMe Has Been Done by Mohammad Hamarsheh*
