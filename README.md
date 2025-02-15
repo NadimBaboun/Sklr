@@ -28,7 +28,7 @@
 
 | Technology                 | Description                                                              |
 | -------------------------- | ------------------------------------------------------------------------ |
-| **Flutter**                | Frontend.               |
+| **Flutter**                | Frontend.  <a href="https://www.figma.com/design/89T97CQIlNzEuWu7WIvWpq/SKLR_Group1?node-id=0-1&t=rwyJmYOgasuW5eAQ-1">Figma Link</a>               |
 | **FireBase**               | Used to Ensure Real Time Synchronization in Messaging and also for Authentication .    |
 | **Figma**                  | Used Mainly For Planning and Designing the UI, ensuring a Slick and balanced UI        |
 
@@ -40,10 +40,11 @@
 - **Nadeem Baboun**
 
 
+
 <div align="center">
   <a href="https://hamarshehmhmd.netlify.app/">Portfolio</a> • 
   <a href="mailto:mhh24001@student.mdu.se">Contact Me</a> •  
-  <a href="https://linkedin.com/in/hamarshehmhmd">LinkedIn</a>
+  <a href="https://linkedin.com/in/hamarshehmhmd">LinkedIn</a> • 
 </div>
 
 
