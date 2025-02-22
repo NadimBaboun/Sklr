@@ -19,7 +19,7 @@ class PhoneVerify extends StatefulWidget {
   @override
   State<StatefulWidget> createState() => VerifyState();
 }
-
+//phone verify page done  
 class VerifyState extends State<PhoneVerify> {
   String? otp;
   bool otpFilled = false;

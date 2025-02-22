@@ -62,6 +62,51 @@ class DatabaseHelper {
     }
   }
 
+  // Get user data
+  static Future<DatabaseResponse> getUser(int userId) async {
+    final url = Uri.parse('$backendUrl/users/$userId');
+
+    try {
+      final response = await http.get(url);
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        return DatabaseResponse(
+          success: true,
+          data: data['user'],
+        );
+      } else {
+        return DatabaseResponse(
+          success: false,
+          data: {'error': data['error']},
+        );
+      }
+    } catch (err) {
+      return DatabaseResponse(
+        success: false,
+        data: {'error': err.toString()},
+      );
+    }
+  }
+
+  // Search users by username or email
+  static Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    final url = Uri.parse('$backendUrl/users/search/$query');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(json.decode(response.body));
+      } else {
+        return [];
+      }
+    } catch (err) {
+      log('Error searching users: $err');
+      return [];
+    }
+  }
+
   // auth: Register
   static Future<LoginResponse> registerUser(
       String username, String email, String password) async {
@@ -321,24 +366,40 @@ class DatabaseHelper {
 
   //fetch one skill from id
   static Future<Map<String, dynamic>> fetchOneSkill(int id) async {
-    final response = await http.get(Uri.parse('$backendUrl/skills/$id'));
+    final url = Uri.parse('$backendUrl/skills/$id');
+    
+    try {
+      final response = await http.get(url);
 
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to load skill');
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        log('Error fetching skill: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to load skill');
+      }
+    } catch (err) {
+      log('Error fetching skill: $err');
+      throw Exception('Failed to load skill: $err');
     }
   }
 
   //fetching the skills of a user
   static Future<List<Map<String, dynamic>>> fetchSkills(int userId) async {
-    final response =
-        await http.get(Uri.parse('$backendUrl/skills/user/$userId'));
+    final url = Uri.parse('$backendUrl/skills/user/$userId');
 
-    if (response.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
-    } else {
-      throw Exception('Failed to load skills');
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((item) => Map<String, dynamic>.from(item)).toList();
+      } else {
+        log('Error fetching skills: ${response.statusCode} - ${response.body}');
+        return [];
+      }
+    } catch (err) {
+      log('Error fetching skills: $err');
+      return [];
     }
   }
 
@@ -362,8 +423,9 @@ class DatabaseHelper {
         }),
       );
 
+      final data = json.decode(response.body);
+
       if (response.statusCode == 201) {
-        // skill added
         return Response(
           success: true,
           message: 'Skill added successfully',
@@ -371,12 +433,17 @@ class DatabaseHelper {
       } else if (response.statusCode == 409) {
         return Response(
           success: false,
-          message: 'Skill could not be added',
+          message: data['error'] ?? 'Skill could not be added',
         );
       } else {
-        throw Exception('Failed to insert skill');
+        log('Error inserting skill: ${response.statusCode} - ${response.body}');
+        return Response(
+          success: false,
+          message: data['error'] ?? 'Failed to insert skill',
+        );
       }
     } catch (err) {
+      log('Error inserting skill: $err');
       return Response(
         success: false,
         message: err.toString(),
@@ -511,6 +578,21 @@ class DatabaseHelper {
       return data['chat_id'];
     } else {
       throw Exception('Failed to create or fetch chat');
+    }
+  }
+
+  static Future<bool> deleteChat(int chatId) async {
+    final url = Uri.parse('$backendUrl/chat/$chatId');
+
+    try {
+      final response = await http.delete(url);
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+      return false;
+    } catch (err) {
+      return false;
     }
   }
 

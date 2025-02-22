@@ -115,3 +115,4 @@ class ForgotPasswordPage extends StatelessWidget {
   }
 }
 // responsive check done 
+//forgot password page done 

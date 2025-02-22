@@ -78,3 +78,4 @@ class _CheckMailPageState extends State<CheckMailPage> {
   }
 }
 //responsive check done 
+//check mail page done 

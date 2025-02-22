@@ -51,167 +51,155 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     if (loggedInUserId == null) {
-      return Directionality(
-        textDirection: TextDirection.ltr,
-        child: const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       );
     }
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Responsive Example',
-      home: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(200.0),
-          child: AppBar(
-            backgroundColor: const Color(0xFF6296FF),
-            flexibleSpace: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 40),
-                      Text(
-                        'Hello, ${username ?? "Unknown User"}',
-                        style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: constraints.maxWidth > 600 ? 28 : 20,
-                            fontWeight: FontWeight.w300,
-                          ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(180.0),
+        child: AppBar(
+          backgroundColor: const Color(0xFF6296FF),
+          elevation: 0,
+          flexibleSpace: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hello, ${username ?? "Unknown User"}',
+                    style: GoogleFonts.mulish(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Let's find the best talent for you",
+                    style: GoogleFonts.mulish(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        "Let's find the best talent for you",
-                        style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: constraints.maxWidth > 600 ? 36 : 30,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      ],
+                    ),
+                    child: TextField(
+                      onSubmitted: (value) {
+                        if (value.isNotEmpty) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SearchResultsPage(search: value),
+                            ),
+                          );
+                        }
+                      },
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Search service',
+                        hintStyle: GoogleFonts.mulish(
+                          color: Colors.grey[400],
+                          fontSize: 16,
                         ),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Color(0xFF6296FF),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                       ),
-                      const SizedBox(height: 10),
-                      // Adjusting the Search Bar
-                      // Flexible(
-                      //   child: SizedBox(
-                      //     height: 50,
-                      //     width: constraints.maxWidth * 0.8,
-                      //     child: TextField(
-                      //       onSubmitted: (value) {
-                      //         if (value.isNotEmpty) {
-                      //           Navigator.push(
-                      //             context,
-                      //             MaterialPageRoute(
-                      //               builder: (context) => SearchResultsPage(
-                      //                 search: value,
-                      //               ),
-                      //             ),
-                      //           );
-                      //         }
-                      //       },
-                      //       decoration: InputDecoration(
-                      //         filled: true,
-                      //         fillColor: Colors.white,
-                      //         prefixIcon: const Icon(
-                      //           Icons.search,
-                      //           color: Color(0xFF6296FF),
-                      //         ),
-                      //         border: OutlineInputBorder(
-                      //           borderRadius: BorderRadius.circular(8),
-                      //         ),
-                      //         hintText: 'Search service',
-                      //         hintStyle: GoogleFonts.mulish(
-                      //           textStyle: TextStyle(
-                      //             color: Colors.grey[500],
-                      //             fontSize:
-                      //                 constraints.maxWidth > 600 ? 18 : 16,
-                      //           ),
-                      //         ),
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ),
-                    ],
-                  );
-                },
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                controller: _scrollController,
-                key: _scrollKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Service Categories',
-                          style: GoogleFonts.mulish(
-                            textStyle: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    const ServiceCategoryCards(), // dynamically loaded categories
-                    const SizedBox(height: 20),
-                    Text(
-                      'Recent Listings',
-                      style: GoogleFonts.mulish(
-                        textStyle: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    RecentListings(limit: limit),
-                    Center(
-                        child: Padding(
-                      // load more button
-                      padding: const EdgeInsets.all(16),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6296FF),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            limit += 10;
-                          });
-                        },
-                        child: Text('Load more!',
-                        style: TextStyle(
-                          color: Colors.white
-                        )),
-                      ),
-                    )),
-                  ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: RefreshIndicator(
+          color: const Color(0xFF6296FF),
+          onRefresh: () async {
+            setState(() {});
+          },
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            key: _scrollKey,
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Service Categories',
+                  style: GoogleFonts.mulish(
+                    color: Colors.black87,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              );
-            },
+                const SizedBox(height: 20),
+                const ServiceCategoryCards(),
+                const SizedBox(height: 32),
+                Text(
+                  'Recent Listings',
+                  style: GoogleFonts.mulish(
+                    color: Colors.black87,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                RecentListings(limit: limit),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6296FF),
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          limit += 10;
+                        });
+                      },
+                      child: Text(
+                        'Load more',
+                        style: GoogleFonts.mulish(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        bottomNavigationBar: CustomBottomNavigationBar(currentIndex: 0),
       ),
+      bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 0),
     );
   }
 }
@@ -231,39 +219,46 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
           (category) => InkWell(
             onTap: () {
               Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => CategoryListingsPage(
-                          categoryName: category['name'])));
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CategoryListingsPage(categoryName: category['name']),
+                ),
+              );
             },
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        spreadRadius: 1,
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  width: constraints.maxWidth > 600 ? 80 : 74,
-                  height: constraints.maxWidth > 600 ? 80 : 74,
+                  width: 90,
+                  height: 90,
                   child: Padding(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(20),
                     child: Image.asset(
                       'assets/images/${category['asset']}.png',
                       fit: BoxFit.contain,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
                   category['name'],
                   textAlign: TextAlign.center,
                   style: GoogleFonts.mulish(
-                    textStyle: TextStyle(
-                      color: Colors.black,
-                      fontSize: constraints.maxWidth > 600 ? 15 : 13,
-                      fontWeight: FontWeight.w300,
-                    ),
+                    color: Colors.black87,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -276,29 +271,40 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-        future: DatabaseHelper.fetchCategories(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return const Center(child: Text('Failed to load categories.'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Failed to load categories.'));
-          } else {
-            final categories = snapshot.data!;
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                return GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 3,
-                  children:
-                      _buildAsyncServiceCategoryCards(constraints, categories),
-                );
-              },
+      future: DatabaseHelper.fetchCategories(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6296FF)),
+            ),
+          );
+        } else if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Text(
+              'Failed to load categories',
+              style: GoogleFonts.mulish(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+            ),
+          );
+        }
+        
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 3,
+              mainAxisSpacing: 24,
+              crossAxisSpacing: 16,
+              children: _buildAsyncServiceCategoryCards(constraints, snapshot.data!),
             );
-          }
-        });
+          },
+        );
+      },
+    );
   }
 }
 
@@ -311,124 +317,174 @@ class RecentListings extends StatefulWidget {
 }
 
 class _recentListingsState extends State<RecentListings> {
-  Widget _skillListing(
-      Map<String, dynamic> listing, Map<dynamic, dynamic> categoryMap) {
+  Widget _skillListing(Map<String, dynamic> listing, Map<dynamic, dynamic> categoryMap) {
     return Container(
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-            padding: const EdgeInsets.all(8),
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                width: 64,
-                height: 64,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6296FF).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  width: 60,
+                  height: 60,
+                  padding: const EdgeInsets.all(14),
                   child: Image.asset(
                     'assets/images/${categoryMap[listing['category']]}.png',
                     fit: BoxFit.contain,
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                listing['name'],
-                style: GoogleFonts.mulish(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w400,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                listing['description'],
-                style: GoogleFonts.mulish(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w200,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              FutureBuilder<DatabaseResponse>(
-                future: DatabaseHelper.fetchUserFromId(listing['user_id']),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  } else if (snapshot.hasError) {
-                    return const Text('Error loading provider');
-                  } else if (snapshot.hasData) {
-                    return Text(
-                      snapshot.data!.data['username'],
-                      style: GoogleFonts.mulish(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w300,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        listing['name'],
+                        style: GoogleFonts.mulish(
+                          color: Colors.black87,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    );
-                  } else {
-                    return const Text("Error loading provider");
-                  }
-                },
-              ),
-            ])));
+                      const SizedBox(height: 6),
+                      Text(
+                        listing['description'],
+                        style: GoogleFonts.mulish(
+                          color: Colors.grey[700],
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            FutureBuilder<DatabaseResponse>(
+              future: DatabaseHelper.fetchUserFromId(listing['user_id']),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6296FF)),
+                    ),
+                  );
+                } else if (snapshot.hasData) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6296FF).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'By ${snapshot.data!.data['username']}',
+                      style: GoogleFonts.mulish(
+                        color: const Color(0xFF6296FF),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                }
+                return Text(
+                  'Unknown Provider',
+                  style: GoogleFonts.mulish(
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  List<Widget> _buildListings(BoxConstraints constraints,
-      List<Map<String, dynamic>> listings, Map<dynamic, dynamic> categoryMap) {
-    return listings
-        .map((listing) => InkWell(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (context) => Skillinfo(id: listing['id'])),
-              );
-            },
-            child: _skillListing(listing, categoryMap)))
-        .expand((element) {
-      return [element, const SizedBox(height: 16)];
-    }).toList();
+  List<Widget> _buildListings(
+    BoxConstraints constraints,
+    List<Map<String, dynamic>> listings,
+    Map<dynamic, dynamic> categoryMap,
+  ) {
+    return listings.map((listing) => InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => Skillinfo(id: listing['id'])),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: _skillListing(listing, categoryMap),
+      ),
+    )).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<List<Map<String, dynamic>>>>(
-        future: Future.wait([
-          DatabaseHelper.fetchRecentListings(widget.limit),
-          DatabaseHelper.fetchCategories(),
-        ]),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return const Center(child: Text('Failed to load listing'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Failed to load listing'));
-          } else {
-            final data = snapshot.data as List<dynamic>;
-            final listings = data[0] as List<Map<String, dynamic>>;
-            final categoryMap = {
-              for (var category in data[1]) category['name']: category['asset']
-            };
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                return ListView(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    children:
-                        _buildListings(constraints, listings, categoryMap));
-              },
+      future: Future.wait([
+        DatabaseHelper.fetchRecentListings(widget.limit),
+        DatabaseHelper.fetchCategories(),
+      ]),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6296FF)),
+            ),
+          );
+        } else if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Text(
+              'Failed to load listings',
+              style: GoogleFonts.mulish(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+            ),
+          );
+        }
+
+        final data = snapshot.data!;
+        final listings = data[0] as List<Map<String, dynamic>>;
+        final categoryMap = {
+          for (var category in data[1]) category['name']: category['asset']
+        };
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return Column(
+              children: _buildListings(constraints, listings, categoryMap),
             );
-          }
-        });
+          },
+        );
+      },
+    );
   }
 }

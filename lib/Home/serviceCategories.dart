@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'categoryListings.dart';
 
 class ServiceCategoryPage extends StatelessWidget {
   const ServiceCategoryPage({super.key});
@@ -10,7 +12,7 @@ class ServiceCategoryPage extends StatelessWidget {
       'subtitle': 'Logo & brand identity',
     },
     {
-      'icon': "assets/images/marketing.png",
+      'icon': "assets/images/marketing.png", 
       'title': 'Digital Marketing',
       'subtitle': 'Social media marketing, SEO',
     },
@@ -50,76 +52,119 @@ class ServiceCategoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Service Category',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+          style: GoogleFonts.mulish(
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+              fontSize: 20,
+            ),
           ),
         ),
-        centerTitle: true,  // Centers the title
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
-        backgroundColor: Colors.white,
-        elevation: 1,
-        toolbarHeight: 60, // Adjust height of the AppBar to bring the title a little closer to the top
+        backgroundColor: const Color(0xFF6296FF),
+        elevation: 0,
       ),
       body: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 16),
         itemCount: categories.length,
-        separatorBuilder: (context, index) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 50), // Adds space on the sides of the divider
-          child: Divider(
-            thickness: 1, // Sets the thickness of the line
-            color: Colors.grey.shade400.withOpacity(0.3), // 50% less transparent
-            ),
-        ),
+        separatorBuilder: (context, index) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           final category = categories[index];
-          return ListTile(
-            leading: Container(
-              width: 48, // Set width of the square (adjust size as needed)
-              height: 48, // Set height of the square (same as width for a square)
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200.withOpacity(0.4), // Less transparent background
-                borderRadius: BorderRadius.circular(12), // Rounded corners
-              ),
-              child: Image.asset(
-                category['icon'],  // Use Image.asset to load the image
-                width: 28,  // Adjust the width of the image
-                height: 28, // Adjust the height of the image
-                fit: BoxFit.cover,  // Ensure the image scales appropriately
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CategoryListingsPage(
+                      categoryName: category['title'],
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6296FF).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Image.asset(
+                            category['icon'],
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              category['title'],
+                              style: GoogleFonts.mulish(
+                                textStyle: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  color: Color(0xFF2D3142),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              category['subtitle'],
+                              style: GoogleFonts.mulish(
+                                textStyle: TextStyle(
+                                  fontSize: 14,
+                                  color: const Color(0xFF2D3142).withOpacity(0.7),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: const Color(0xFF2D3142).withOpacity(0.5),
+                        size: 24,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-
-            title: Text(
-              category['title'],
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-            subtitle: Text(
-              category['subtitle'],
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
-            ),
-            trailing: const Icon(
-              Icons.chevron_right,
-              color: Colors.grey,
-            ),
-            onTap: () {
-              // Handle tap event
-            },
           );
         },
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F7FA),
     );
   }
 }
