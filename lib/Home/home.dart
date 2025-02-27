@@ -17,7 +17,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int? loggedInUserId;
   String? username;
-  int limit = 10;
   final ScrollController _scrollController = ScrollController();
   final _scrollKey = GlobalKey();
 
@@ -52,150 +51,193 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     if (loggedInUserId == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+            child: CircularProgressIndicator(
+          color: Color(0xFF2196F3),
+          strokeWidth: 3,
+        )),
       );
     }
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(180.0),
-        child: AppBar(
-          backgroundColor: const Color(0xFF6296FF),
-          elevation: 0,
-          flexibleSpace: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hello, ${username ?? "Unknown User"}',
-                    style: GoogleFonts.mulish(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w300,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Let's find the best talent for you",
-                    style: GoogleFonts.mulish(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      onSubmitted: (value) {
-                        if (value.isNotEmpty) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SearchResultsPage(search: value),
-                            ),
-                          );
-                        }
-                      },
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Search service',
-                        hintStyle: GoogleFonts.mulish(
-                          color: Colors.grey[400],
-                          fontSize: 16,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Color(0xFF6296FF),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF2196F3),
+                const Color(0xFF2196F3).withOpacity(0.8),
+              ],
+            ),
+          ),
+          child: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0, vertical: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hello, ${username ?? "Unknown User"}',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w300,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      "Let's find the best talent for you",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        onSubmitted: (value) {
+                          if (value.isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    SearchResultsPage(search: value),
+                              ),
+                            );
+                          }
+                        },
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Search service',
+                          hintStyle: GoogleFonts.poppins(
+                            color: Colors.grey[400],
+                            fontSize: 16,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search_rounded,
+                            color: Color(0xFF2196F3),
+                            size: 24,
+                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-        child: RefreshIndicator(
-          color: const Color(0xFF6296FF),
-          onRefresh: () async {
-            setState(() {});
-          },
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            key: _scrollKey,
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Service Categories',
-                  style: GoogleFonts.mulish(
-                    color: Colors.black87,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        key: _scrollKey,
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Service Categories',
+                style: GoogleFonts.poppins(
+                  color: Colors.black87,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
                 ),
-                const SizedBox(height: 20),
-                const ServiceCategoryCards(),
-                const SizedBox(height: 32),
-                Text(
-                  'Recent Listings',
-                  style: GoogleFonts.mulish(
-                    color: Colors.black87,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
+              ),
+              const SizedBox(height: 20),
+              const ServiceCategoryCards(),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Recent Listings',
+                    style: GoogleFonts.poppins(
+                      color: Colors.black87,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                RecentListings(limit: limit),
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6296FF),
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          limit += 10;
-                        });
-                      },
-                      child: Text(
-                        'Load more',
-                        style: GoogleFonts.mulish(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                  TextButton(
+                    onPressed: () {
+                      // Add view all functionality
+                    },
+                    child: Text(
+                      'View All',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF2196F3),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const SizedBox(
+                height: 280,
+                child: RecentListings(),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Popular Services',
+                    style: GoogleFonts.poppins(
+                      color: Colors.black87,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      // Add view all functionality
+                    },
+                    child: Text(
+                      'View All',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF2196F3),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const SizedBox(
+                height: 280,
+                child: PopularServices(),
+              ),
+            ],
           ),
         ),
       ),
@@ -221,7 +263,8 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CategoryListingsPage(categoryName: category['name']),
+                  builder: (context) =>
+                      CategoryListingsPage(categoryName: category['name']),
                 ),
               );
             },
@@ -230,21 +273,28 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white,
+                        const Color(0xFF2196F3).withOpacity(0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        spreadRadius: 1,
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                        color: Colors.black.withOpacity(0.05),
+                        spreadRadius: 0,
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
                       ),
                     ],
                   ),
-                  width: 90,
-                  height: 90,
+                  width: 100,
+                  height: 100,
                   child: Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(25),
                     child: Image.asset(
                       'assets/images/${category['asset']}.png',
                       fit: BoxFit.contain,
@@ -255,7 +305,7 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
                 Text(
                   category['name'],
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.mulish(
+                  style: GoogleFonts.poppins(
                     color: Colors.black87,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -276,21 +326,24 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6296FF)),
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+              strokeWidth: 3,
             ),
           );
-        } else if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+        } else if (snapshot.hasError ||
+            !snapshot.hasData ||
+            snapshot.data!.isEmpty) {
           return Center(
             child: Text(
               'Failed to load categories',
-              style: GoogleFonts.mulish(
+              style: GoogleFonts.poppins(
                 color: Colors.grey[600],
                 fontSize: 16,
               ),
             ),
           );
         }
-        
+
         return LayoutBuilder(
           builder: (context, constraints) {
             return GridView.count(
@@ -299,7 +352,8 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
               crossAxisCount: 3,
               mainAxisSpacing: 24,
               crossAxisSpacing: 16,
-              children: _buildAsyncServiceCategoryCards(constraints, snapshot.data!),
+              children:
+                  _buildAsyncServiceCategoryCards(constraints, snapshot.data!),
             );
           },
         );
@@ -309,30 +363,39 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
 }
 
 class RecentListings extends StatefulWidget {
-  final int limit;
-  const RecentListings({Key? key, required this.limit}) : super(key: key);
+  const RecentListings({Key? key}) : super(key: key);
 
   @override
   _recentListingsState createState() => _recentListingsState();
 }
 
 class _recentListingsState extends State<RecentListings> {
-  Widget _skillListing(Map<String, dynamic> listing, Map<dynamic, dynamic> categoryMap) {
+  Widget _skillListing(
+      Map<String, dynamic> listing, Map<dynamic, dynamic> categoryMap) {
     return Container(
+      width: 300,
+      margin: const EdgeInsets.only(right: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            const Color(0xFF2196F3).withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -340,39 +403,48 @@ class _recentListingsState extends State<RecentListings> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF6296FF).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFF2196F3).withOpacity(0.2),
+                        const Color(0xFF2196F3).withOpacity(0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  width: 60,
-                  height: 60,
-                  padding: const EdgeInsets.all(14),
+                  width: 70,
+                  height: 70,
+                  padding: const EdgeInsets.all(16),
                   child: Image.asset(
                     'assets/images/${categoryMap[listing['category']]}.png',
                     fit: BoxFit.contain,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         listing['name'],
-                        style: GoogleFonts.mulish(
+                        style: GoogleFonts.poppins(
                           color: Colors.black87,
-                          fontSize: 17,
+                          fontSize: 18,
                           fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Text(
                         listing['description'],
-                        style: GoogleFonts.mulish(
+                        style: GoogleFonts.poppins(
                           color: Colors.grey[700],
                           fontSize: 14,
                           height: 1.4,
+                          letterSpacing: -0.2,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -382,7 +454,7 @@ class _recentListingsState extends State<RecentListings> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             FutureBuilder<DatabaseResponse>(
               future: DatabaseHelper.fetchUserFromId(listing['user_id']),
               builder: (context, snapshot) {
@@ -392,29 +464,39 @@ class _recentListingsState extends State<RecentListings> {
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6296FF)),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
                     ),
                   );
                 } else if (snapshot.hasData) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6296FF).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          const Color(0xFF2196F3).withOpacity(0.2),
+                          const Color(0xFF2196F3).withOpacity(0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                     child: Text(
                       'By ${snapshot.data!.data['username']}',
-                      style: GoogleFonts.mulish(
-                        color: const Color(0xFF6296FF),
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF2196F3),
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
                       ),
                     ),
                   );
                 }
                 return Text(
                   'Unknown Provider',
-                  style: GoogleFonts.mulish(
+                  style: GoogleFonts.poppins(
                     color: Colors.grey[600],
                     fontStyle: FontStyle.italic,
                   ),
@@ -427,43 +509,28 @@ class _recentListingsState extends State<RecentListings> {
     );
   }
 
-  List<Widget> _buildListings(
-    BoxConstraints constraints,
-    List<Map<String, dynamic>> listings,
-    Map<dynamic, dynamic> categoryMap,
-  ) {
-    return listings.map((listing) => InkWell(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => Skillinfo(id: listing['id'])),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 20),
-        child: _skillListing(listing, categoryMap),
-      ),
-    )).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<List<Map<String, dynamic>>>>(
       future: Future.wait([
-        DatabaseHelper.fetchRecentListings(widget.limit),
+        DatabaseHelper.fetchRecentListings(10),
         DatabaseHelper.fetchCategories(),
       ]),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6296FF)),
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+              strokeWidth: 3,
             ),
           );
-        } else if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+        } else if (snapshot.hasError ||
+            !snapshot.hasData ||
+            snapshot.data!.isEmpty) {
           return Center(
             child: Text(
               'Failed to load listings',
-              style: GoogleFonts.mulish(
+              style: GoogleFonts.poppins(
                 color: Colors.grey[600],
                 fontSize: 16,
               ),
@@ -477,10 +544,144 @@ class _recentListingsState extends State<RecentListings> {
           for (var category in data[1]) category['name']: category['asset']
         };
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            return Column(
-              children: _buildListings(constraints, listings, categoryMap),
+        return ListView.builder(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: listings.length,
+          itemBuilder: (context, index) {
+            return InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          Skillinfo(id: listings[index]['id'])),
+                );
+              },
+              child: _skillListing(listings[index], categoryMap),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class PopularServices extends StatelessWidget {
+  const PopularServices({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future:
+          DatabaseHelper.fetchUserFromId(1).then((response) => [response.data]),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+              strokeWidth: 3,
+            ),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Text(
+              'No popular services found',
+              style: GoogleFonts.poppins(color: Colors.grey[600]),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: snapshot.data!.length,
+          itemBuilder: (context, index) {
+            final user = snapshot.data![index];
+            return Container(
+              width: 300,
+              margin: const EdgeInsets.only(right: 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    const Color(0xFF2196F3).withOpacity(0.05),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    spreadRadius: 0,
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                const Color(0xFF2196F3).withOpacity(0.2),
+                                const Color(0xFF2196F3).withOpacity(0.1),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: CircleAvatar(
+                            radius: 35,
+                            backgroundColor: Colors.transparent,
+                            child: Text(
+                              user['username'][0].toUpperCase(),
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF2196F3),
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user['username'],
+                                style: GoogleFonts.poppins(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              Text(
+                                'Profile',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.grey[600],
+                                  fontSize: 16,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         );

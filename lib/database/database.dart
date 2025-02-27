@@ -515,13 +515,19 @@ class DatabaseHelper {
 
   //fetches skills based on name and description
   static Future<List<Map<String, dynamic>>> searchResults(String search) async {
-    final response =
-        await http.get(Uri.parse('$backendUrl/skills/search/$search'));
+    try {
+      final response = await http.get(Uri.parse('$backendUrl/skills/search/$search'));
 
-    if (response.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
-    } else {
-      throw Exception('Failed to load skills');
+      if (response.statusCode == 200) {
+        final List<dynamic> results = json.decode(response.body);
+        return results.map((result) => Map<String, dynamic>.from(result)).toList();
+      } else {
+        log('Error searching skills: ${response.statusCode} - ${response.body}');
+        return [];
+      }
+    } catch (err) {
+      log('Error searching skills: $err');
+      return [];
     }
   }
 
