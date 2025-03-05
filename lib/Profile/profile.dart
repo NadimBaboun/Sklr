@@ -284,6 +284,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 ? Image.network(
                     _avatarUrl!,
                     fit: BoxFit.cover,
+                    width: 134,
+                    height: 134,
                     errorBuilder: (context, error, stackTrace) =>
                       Image.asset('assets/images/avatar.png'),
                   )
@@ -346,10 +348,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             style: GoogleFonts.lexend(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              background: Paint()
-                ..shader = const LinearGradient(
-                  colors: [Color(0xFF6296FF), Color(0xFF4A7BFF)],
-                ).createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+              color: const Color(0xFF6296FF),
             ),
           ),
           const SizedBox(height: 10),
@@ -365,7 +364,12 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                   color: Colors.grey[600],
                 ),
               ),
-              const SizedBox(width: 15),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
               Icon(Icons.phone_outlined, size: 16, color: Colors.grey[600]),
               const SizedBox(width: 5),
               Text(

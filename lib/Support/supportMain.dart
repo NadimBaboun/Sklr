@@ -86,15 +86,16 @@ class SupportMainPage extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // AI Support Card
               GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SupportFinderPage()),
+                    MaterialPageRoute(
+                        builder: (context) => const SupportFinderPage()),
                   );
                 },
                 child: Container(
@@ -157,9 +158,9 @@ class SupportMainPage extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // FAQ Section
               Text(
                 'Frequently Asked Questions',
@@ -170,33 +171,33 @@ class SupportMainPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               _buildFaqItem(
                 context,
                 'How do I create a new skill?',
                 'To create a new skill, go to the "My Skills" tab and tap on the "+" button. Fill in the required details like title, description, cost, and category.',
               ),
-              
+
               _buildFaqItem(
                 context,
                 'How do I edit my profile?',
                 'You can edit your profile by going to the Profile tab and tapping on the Edit Profile button. From there, you can update your personal information.',
               ),
-              
+
               _buildFaqItem(
                 context,
                 'How does payment work?',
                 'Currently, we display prices for skills but actual payment processing is coming soon. Stay tuned for updates!',
               ),
-              
+
               _buildFaqItem(
                 context,
                 'Can I delete my account?',
                 'Yes, you can delete your account from the Profile settings. Please note that this action is irreversible and all your data will be permanently removed.',
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Contact Info
               Container(
                 padding: const EdgeInsets.all(20),
@@ -218,9 +219,11 @@ class SupportMainPage extends StatelessWidget {
                     const SizedBox(height: 12),
                     _buildContactItem(Icons.email_outlined, 'support@sklr.app'),
                     const SizedBox(height: 8),
-                    _buildContactItem(Icons.phone_outlined, '+44 123 456 7890'),
+                    _buildContactItem(
+                        Icons.phone_outlined, '+972 123 456 7890'),
                     const SizedBox(height: 8),
-                    _buildContactItem(Icons.access_time_outlined, 'Mon-Fri, 9am-5pm GMT'),
+                    _buildContactItem(
+                        Icons.access_time_outlined, 'Mon-Fri, 9am-5pm GMT'),
                   ],
                 ),
               ),
@@ -293,4 +296,4 @@ class SupportMainPage extends StatelessWidget {
       ],
     );
   }
-} 
+}
