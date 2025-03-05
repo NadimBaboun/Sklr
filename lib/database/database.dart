@@ -367,7 +367,7 @@ class DatabaseHelper {
   //fetch one skill from id
   static Future<Map<String, dynamic>> fetchOneSkill(int id) async {
     final url = Uri.parse('$backendUrl/skills/$id');
-    
+
     try {
       final response = await http.get(url);
 
@@ -516,11 +516,14 @@ class DatabaseHelper {
   //fetches skills based on name and description
   static Future<List<Map<String, dynamic>>> searchResults(String search) async {
     try {
-      final response = await http.get(Uri.parse('$backendUrl/skills/search/$search'));
+      final response =
+          await http.get(Uri.parse('$backendUrl/skills/search/$search'));
 
       if (response.statusCode == 200) {
         final List<dynamic> results = json.decode(response.body);
-        return results.map((result) => Map<String, dynamic>.from(result)).toList();
+        return results
+            .map((result) => Map<String, dynamic>.from(result))
+            .toList();
       } else {
         log('Error searching skills: ${response.statusCode} - ${response.body}');
         return [];
@@ -671,24 +674,18 @@ class DatabaseHelper {
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        return DatabaseResponse(success: true, data: json.decode(response.body));
+        return DatabaseResponse(
+            success: true, data: json.decode(response.body));
       }
 
-      return DatabaseResponse(
-        success: false,
-        data: json.decode(response.body)
-      );
+      return DatabaseResponse(success: false, data: json.decode(response.body));
     } catch (err) {
-      return DatabaseResponse(
-        success: false, 
-        data: {
-          'error': err.toString()
-        }
-      );
+      return DatabaseResponse(success: false, data: {'error': err.toString()});
     }
   }
 
-  static Future<DatabaseResponse> fetchTransactionFromSession(int sessionId) async {
+  static Future<DatabaseResponse> fetchTransactionFromSession(
+      int sessionId) async {
     final url = Uri.parse('$backendUrl/transactions/session/$sessionId');
 
     try {
@@ -696,22 +693,12 @@ class DatabaseHelper {
 
       if (response.statusCode == 404 || response.statusCode == 500) {
         return DatabaseResponse(
-          success: false,
-          data: json.decode(response.body)
-        );
+            success: false, data: json.decode(response.body));
       }
 
-      return DatabaseResponse(
-        success: true, 
-        data: json.decode(response.body) 
-      );
+      return DatabaseResponse(success: true, data: json.decode(response.body));
     } catch (err) {
-      return DatabaseResponse(
-        success: false,
-        data: {
-          'error': err.toString()
-        }
-      );
+      return DatabaseResponse(success: false, data: {'error': err.toString()});
     }
   }
 
@@ -742,15 +729,13 @@ class DatabaseHelper {
     }
 
     try {
-      final response = await http.post(
-        url,
-        headers: { 'Content-type': 'application/json' },
-        body: json.encode({
-          'provider_id': transaction.data['provider_id'],
-          'session_id': transaction.data['session_id'],
-          'transaction_id': transactionId
-        })
-      );
+      final response = await http.post(url,
+          headers: {'Content-type': 'application/json'},
+          body: json.encode({
+            'provider_id': transaction.data['provider_id'],
+            'session_id': transaction.data['session_id'],
+            'transaction_id': transactionId
+          }));
 
       if (response.statusCode == 200) {
         return true;
@@ -831,13 +816,9 @@ class DatabaseHelper {
     final url = Uri.parse('$backendUrl/reports');
 
     try {
-      final response = await http.post(
-        url,
-        headers: { 'Content-Type': 'application/json' },
-        body: json.encode({
-          'skill_id': skillId
-        })
-      );
+      final response = await http.post(url,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({'skill_id': skillId}));
 
       if (response.statusCode == 200) {
         return true;

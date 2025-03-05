@@ -12,8 +12,7 @@ class SearchResultsPage extends StatefulWidget {
 }
 
 class _SearchResultsPageState extends State<SearchResultsPage> {
-  late Future<Map<String, List<Map<String, dynamic>>>> _searchResults;
-  String _selectedFilter = 'All';
+  late Future<List<Map<String, dynamic>>> _searchResults;
 
   @override
   void initState() {
@@ -21,37 +20,34 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
     _searchResults = _fetchSearchResults();
   }
 
-  Future<Map<String, List<Map<String, dynamic>>>> _fetchSearchResults() async {
+  Future<List<Map<String, dynamic>>> _fetchSearchResults() async {
     if (widget.search.trim().isEmpty) {
-      return {
-        'skills': [],
-        'users': [],
-        'categories': []
-      };
+      return [];
     }
 
     try {
-      // Search across multiple entities
-      final results = await DatabaseHelper.searchAll(widget.search.trim());
-      
-      // Sort each category by relevance
-      for (var category in results.keys) {
-        results[category]?.sort((a, b) {
-          final aName = (a['name'] ?? '').toString().toLowerCase();
-          final bName = (b['name'] ?? '').toString().toLowerCase();
-          final searchLower = widget.search.toLowerCase();
-          
-          if (aName == searchLower && bName != searchLower) return -1;
-          if (bName == searchLower && aName != searchLower) return 1;
-          
-          final aContains = aName.contains(searchLower);
-          final bContains = bName.contains(searchLower);
-          if (aContains && !bContains) return -1;
-          if (bContains && !aContains) return 1;
-          
-          return aName.compareTo(bName);
-        });
-      }
+      // Search in both skill names and descriptions
+      final results = await DatabaseHelper.searchResults(widget.search.trim());
+
+      // Sort results by relevance - exact matches first, then partial matches
+      results.sort((a, b) {
+        final aName = (a['name'] ?? '').toString().toLowerCase();
+        final bName = (b['name'] ?? '').toString().toLowerCase();
+        final searchLower = widget.search.toLowerCase();
+
+        // Exact matches get highest priority
+        if (aName == searchLower && bName != searchLower) return -1;
+        if (bName == searchLower && aName != searchLower) return 1;
+
+        // Then check if name contains search term
+        final aContains = aName.contains(searchLower);
+        final bContains = bName.contains(searchLower);
+        if (aContains && !bContains) return -1;
+        if (bContains && !aContains) return 1;
+
+        // Finally sort alphabetically
+        return aName.compareTo(bName);
+      });
 
       return results;
     } catch (error) {
@@ -59,29 +55,19 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
     }
   }
 
-  List<Map<String, dynamic>> _getFilteredResults(Map<String, List<Map<String, dynamic>>> results) {
-    if (_selectedFilter == 'All') {
-      return [
-        ...results['skills'] ?? [],
-        ...results['users'] ?? [],
-        ...results['categories'] ?? []
-      ];
-    } else {
-      return results[_selectedFilter.toLowerCase()] ?? [];
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isLargeScreen = size.width > 600;
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
         title: Text(
           'Results for "${widget.search}"',
@@ -91,39 +77,11 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.filter_list, color: Colors.white),
-            onSelected: (String value) {
-              setState(() {
-                _selectedFilter = value;
-              });
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'All',
-                child: Text('All Results'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'Skills',
-                child: Text('Skills Only'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'Users',
-                child: Text('Users Only'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'Categories',
-                child: Text('Categories Only'),
-              ),
-            ],
-          ),
-        ],
         backgroundColor: const Color(0xFF6296FF),
         centerTitle: true,
         elevation: 0,
       ),
-      body: FutureBuilder<Map<String, List<Map<String, dynamic>>>>(
+      body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _searchResults,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -149,20 +107,16 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
                 ],
               ),
             );
-          }
-
-          final results = snapshot.data ?? {};
-          final filteredResults = _getFilteredResults(results);
-
-          if (filteredResults.isEmpty) {
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.search_off, size: 60, color: Color(0xFF9094A7)),
+                  const Icon(Icons.search_off,
+                      size: 60, color: Color(0xFF9094A7)),
                   const SizedBox(height: 16),
                   Text(
-                    'No $_selectedFilter results found for "${widget.search}"',
+                    'No results found for "${widget.search}"',
                     style: GoogleFonts.mulish(
                       fontSize: isLargeScreen ? 20 : 18,
                       color: const Color(0xFF9094A7),
@@ -173,25 +127,22 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
             );
           }
 
+          final listings = snapshot.data!;
+
           return ListView.builder(
             padding: EdgeInsets.all(isLargeScreen ? 24 : 16),
-            itemCount: filteredResults.length,
+            itemCount: listings.length,
             itemBuilder: (context, index) {
-              final item = filteredResults[index];
-              final itemType = item['type'] ?? 'unknown';
-
+              final listing = listings[index];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: InkWell(
                   onTap: () {
-                    if (itemType == 'skill') {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => Skillinfo(id: item['id']),
-                        ),
-                      );
-                    }
-                    // Add navigation for other types as needed
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => Skillinfo(id: listing['id']),
+                      ),
+                    );
                   },
                   child: Container(
                     decoration: BoxDecoration(
@@ -211,47 +162,83 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Text(
-                                item['name'] ?? 'No Name',
-                                style: GoogleFonts.mulish(
-                                  fontSize: isLargeScreen ? 22 : 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF2D3142),
-                                ),
-                              ),
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF6296FF).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  itemType.toUpperCase(),
-                                  style: GoogleFonts.mulish(
-                                    fontSize: 12,
-                                    color: const Color(0xFF6296FF),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (item['description'] != null) ...[
-                            const SizedBox(height: 12),
-                            Text(
-                              item['description'],
-                              style: GoogleFonts.mulish(
-                                fontSize: isLargeScreen ? 16 : 14,
-                                color: const Color(0xFF9094A7),
-                                height: 1.5,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                          Text(
+                            listing['name'] ?? 'No Name',
+                            style: GoogleFonts.mulish(
+                              fontSize: isLargeScreen ? 22 : 18,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF2D3142),
                             ),
-                          ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            listing['description'] ?? 'No Description',
+                            style: GoogleFonts.mulish(
+                              fontSize: isLargeScreen ? 16 : 14,
+                              color: const Color(0xFF9094A7),
+                              height: 1.5,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 20),
+                          FutureBuilder<DatabaseResponse>(
+                            future: DatabaseHelper.fetchUserFromId(
+                                listing['user_id']),
+                            builder: (context, userSnapshot) {
+                              if (userSnapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Color(0xFF6296FF)),
+                                  ),
+                                );
+                              } else if (userSnapshot.hasError ||
+                                  !userSnapshot.hasData) {
+                                return Text(
+                                  'Unknown User',
+                                  style: GoogleFonts.mulish(
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                );
+                              }
+
+                              final user = userSnapshot.data!.data;
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color:
+                                      const Color(0xFF6296FF).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.person_outline,
+                                      size: 18,
+                                      color: Color(0xFF6296FF),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      user['username'] ?? 'Unknown User',
+                                      style: GoogleFonts.mulish(
+                                        fontSize: isLargeScreen ? 16 : 14,
+                                        color: const Color(0xFF6296FF),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
