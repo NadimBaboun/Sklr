@@ -61,18 +61,15 @@ class MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSta
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isLargeScreen = size.width > 600;
-
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         title: Text(
           "My Skills",
           style: GoogleFonts.poppins(
-            color: Colors.black87,
+            color: const Color(0xFF2A2D3E),
             fontSize: 24,
             fontWeight: FontWeight.w600,
           ),
@@ -90,7 +87,7 @@ class MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSta
       ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
-        child: _buildBody(isLargeScreen),
+        child: _buildBody(),
       ),
       floatingActionButton: skills?.isNotEmpty == true
           ? FloatingActionButton.extended(
@@ -115,7 +112,7 @@ class MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSta
     );
   }
 
-  Widget _buildBody(bool isLargeScreen) {
+  Widget _buildBody() {
     if (loggedInUserId == null) {
       return _buildLoadingState();
     }
@@ -130,19 +127,22 @@ class MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSta
 
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: GridView.builder(
-        padding: EdgeInsets.symmetric(
-          horizontal: isLargeScreen ? 32 : 20,
-          vertical: 24,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFFF8FAFF),
+              const Color(0xFFEDF1FF),
+            ],
+          ),
         ),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: isLargeScreen ? 3 : 2,
-          childAspectRatio: 0.85,
-          crossAxisSpacing: isLargeScreen ? 24 : 16,
-          mainAxisSpacing: isLargeScreen ? 24 : 16,
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          itemCount: skills!.length,
+          itemBuilder: (context, index) => _buildSkillCard(skills![index]),
         ),
-        itemCount: skills!.length,
-        itemBuilder: (context, index) => _buildSkillCard(skills![index]),
       ),
     );
   }
@@ -244,13 +244,14 @@ class MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSta
       background: Container(
         decoration: BoxDecoration(
           color: Colors.red[400],
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
         ),
-        alignment: Alignment.center,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
         child: const Icon(
           Icons.delete_outline,
           color: Colors.white,
-          size: 32,
+          size: 28,
         ),
       ),
       onDismissed: (direction) async {
@@ -274,90 +275,198 @@ class MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSta
           ),
         );
       },
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              Colors.white.withOpacity(0.9),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => Skillinfo(id: skill['id']),
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6296FF).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    skill['category'] ?? 'Uncategorized',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => Skillinfo(id: skill['id']),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left side with category icon
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6296FF).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _getCategoryIcon(skill['category']),
                       color: const Color(0xFF6296FF),
-                      fontWeight: FontWeight.w500,
+                      size: 28,
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  skill['name'] ?? 'Untitled Skill',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Text(
-                    skill['description'] ?? 'No description provided',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: Colors.black54,
-                      height: 1.5,
+                  const SizedBox(width: 16),
+                  // Middle content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Category badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6296FF).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            skill['category'] ?? 'Uncategorized',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: const Color(0xFF6296FF),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Skill name
+                        Text(
+                          skill['name'] ?? 'Untitled Skill',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF2A2D3E),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        // Description
+                        Text(
+                          skill['description'] ?? 'No description provided',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.black54,
+                            height: 1.5,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 12),
+                        // Date and rating
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: 14,
+                              color: Colors.black45,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              skill['created_at'].toString().substring(0, 10),
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.black45,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    overflow: TextOverflow.fade,
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today_outlined,
-                      size: 14,
-                      color: Colors.black45,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      skill['created_at'].toString().substring(0, 10),
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.black45,
+                  const SizedBox(width: 12),
+                  // Right side with price
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6296FF), Color(0xFF5A89F2)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF6296FF).withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '£${(skill['cost'] ?? 0).toStringAsFixed(2)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  IconData _getCategoryIcon(String? category) {
+    switch (category) {
+      case 'Cooking & Baking':
+        return Icons.restaurant;
+      case 'Fitness':
+        return Icons.fitness_center;
+      case 'IT & Tech':
+        return Icons.computer;
+      case 'Languages':
+        return Icons.translate;
+      case 'Music & Audio':
+        return Icons.music_note;
+      default:
+        return Icons.lightbulb_outline;
+    }
   }
 }

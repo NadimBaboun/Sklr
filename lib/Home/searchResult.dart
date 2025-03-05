@@ -182,6 +182,22 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6296FF).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '£${(listing['cost'] ?? 0).toStringAsFixed(2)}',
+                              style: GoogleFonts.mulish(
+                                fontSize: isLargeScreen ? 16 : 14,
+                                color: const Color(0xFF6296FF),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
                           FutureBuilder<DatabaseResponse>(
                             future: DatabaseHelper.fetchUserFromId(
                                 listing['user_id']),

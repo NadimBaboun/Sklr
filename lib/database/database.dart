@@ -405,7 +405,7 @@ class DatabaseHelper {
 
   //insert skill into database
   static Future<Response> insertSkill(
-      int? userId, String name, String description, String? category) async {
+      int? userId, String name, String description, String? category, double? cost) async {
     final url = Uri.parse('$backendUrl/skills');
 
     try {
@@ -420,6 +420,7 @@ class DatabaseHelper {
           'description': description,
           'created_at': DateTime.now().toIso8601String(),
           'category': category,
+          'cost': cost,
         }),
       );
 

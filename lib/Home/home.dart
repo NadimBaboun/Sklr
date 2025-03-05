@@ -273,19 +273,12 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white,
-                        const Color(0xFF2196F3).withOpacity(0.1),
-                      ],
-                    ),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        spreadRadius: 0,
+                        color: Colors.grey.withOpacity(0.15),
+                        spreadRadius: 2,
                         blurRadius: 15,
                         offset: const Offset(0, 5),
                       ),
@@ -376,19 +369,12 @@ class _recentListingsState extends State<RecentListings> {
       width: 300,
       margin: const EdgeInsets.only(right: 20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            const Color(0xFF2196F3).withOpacity(0.05),
-          ],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 0,
+            color: Colors.grey.withOpacity(0.15),
+            spreadRadius: 2,
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -403,14 +389,7 @@ class _recentListingsState extends State<RecentListings> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        const Color(0xFF2196F3).withOpacity(0.2),
-                        const Color(0xFF2196F3).withOpacity(0.1),
-                      ],
-                    ),
+                    color: const Color(0xFF2196F3).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   width: 70,
@@ -473,14 +452,7 @@ class _recentListingsState extends State<RecentListings> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          const Color(0xFF2196F3).withOpacity(0.2),
-                          const Color(0xFF2196F3).withOpacity(0.1),
-                        ],
-                      ),
+                      color: const Color(0xFF2196F3).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: Text(
@@ -603,19 +575,12 @@ class PopularServices extends StatelessWidget {
               width: 300,
               margin: const EdgeInsets.only(right: 20),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white,
-                    const Color(0xFF2196F3).withOpacity(0.05),
-                  ],
-                ),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    spreadRadius: 0,
+                    color: Colors.grey.withOpacity(0.15),
+                    spreadRadius: 2,
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -630,14 +595,7 @@ class PopularServices extends StatelessWidget {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                const Color(0xFF2196F3).withOpacity(0.2),
-                                const Color(0xFF2196F3).withOpacity(0.1),
-                              ],
-                            ),
+                            color: const Color(0xFF2196F3).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: CircleAvatar(

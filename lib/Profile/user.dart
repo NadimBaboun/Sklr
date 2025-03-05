@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/Skills/skillInfo.dart';
 import '../database/database.dart';
 import '../Util/navigationbar-bar.dart';
+import 'dart:math';
 
 class UserPage extends StatefulWidget {
   final int userId;
@@ -17,10 +18,20 @@ class _UserPageState extends State<UserPage> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
   bool hasError = false;
+  final List<String> avatars = [
+    '/Users/hamshi/Desktop/Everything/ht24-projects-ht24-group-12/assets/avatars/avatar1.png',
+    '/Users/hamshi/Desktop/Everything/ht24-projects-ht24-group-12/assets/avatars/avatar2.png',
+    '/Users/hamshi/Desktop/Everything/ht24-projects-ht24-group-12/assets/avatars/avatar3.png',
+    '/Users/hamshi/Desktop/Everything/ht24-projects-ht24-group-12/assets/avatars/avatar4.png',
+    '/Users/hamshi/Desktop/Everything/ht24-projects-ht24-group-12/assets/avatars/avatar5.png'
+  ];
+  late String randomAvatar;
 
   @override
   void initState() {
     super.initState();
+    final random = Random();
+    randomAvatar = avatars[random.nextInt(avatars.length)];
     _fetchUserData();
   }
 
@@ -50,22 +61,71 @@ class _UserPageState extends State<UserPage> {
     return await DatabaseHelper.fetchSkills(userId);
   }
 
+  void _showMessageDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Message ${userData!['username']}',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Type your message...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: const BorderSide(color: Color(0xFF2196F3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF2196F3), width: 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2196F3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  'Send Message',
+                  style: GoogleFonts.poppins(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF6296FF),
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
+        backgroundColor: Colors.white,
         body: const Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6296FF)),
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
           ),
         ),
       );
@@ -73,26 +133,20 @@ class _UserPageState extends State<UserPage> {
 
     if (hasError || userData == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF6296FF),
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
+        backgroundColor: Colors.white,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 64, color: Color(0xFFFF1744)),
+              const Icon(Icons.error_outline,
+                  size: 80, color: Color(0xFF2196F3)),
               const SizedBox(height: 16),
               Text(
                 'Error loading user information',
-                style: GoogleFonts.mulish(
-                  fontSize: 18,
-                  color: Colors.grey[800],
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -102,115 +156,125 @@ class _UserPageState extends State<UserPage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF6296FF),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          userData!['username'] ?? 'Profile',
-          style: GoogleFonts.mulish(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF6296FF),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(32),
-                  bottomRight: Radius.circular(32),
-                ),
-              ),
-              child: Column(
+      backgroundColor: Colors.white,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 350,
+            floating: false,
+            pinned: true,
+            backgroundColor: const Color(0xFF2196F3),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
                 children: [
-                  const SizedBox(height: 20),
-                  Stack(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                        ),
-                        child: CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.white,
-                          child: ClipOval(
-                            child: Image.asset(
-                              'assets/images/avatar.png',
-                              width: 90,
-                              height: 90,
-                              fit: BoxFit.cover,
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          const Color(0xFF2196F3),
+                          const Color(0xFF2196F3).withOpacity(0.8),
+                          const Color(0xFF2196F3).withOpacity(0.6),
+                        ],
+                      ),
+                    ),
+                    child: CustomPaint(
+                      painter: CirclesPainter(),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 20,
+                    left: 0,
+                    right: 0,
+                    child: Column(
+                      children: [
+                        Hero(
+                          tag: 'profile-${userData!['username']}',
+                          child: Container(
+                            width: 140,
+                            height: 140,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 20,
+                                ),
+                              ],
+                            ),
+                            child: ClipOval(
+                              child: Image.asset(
+                                randomAvatar,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    userData!['username'] ?? 'Unknown User',
-                    style: GoogleFonts.mulish(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                        const SizedBox(height: 16),
+                        Text(
+                          userData!['username'] ?? 'Unknown User',
+                          style: GoogleFonts.poppins(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.star,
+                                  color: Colors.amber, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${userData!['credits'] ?? 0} Credits',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.email, size: 16, color: Colors.white.withOpacity(0.9)),
-                      const SizedBox(width: 8),
-                      Text(
-                        userData!['email'] ?? 'No Email',
-                        style: GoogleFonts.mulish(
-                          fontSize: 14,
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Icon(Icons.phone, size: 16, color: Colors.white.withOpacity(0.9)),
-                      const SizedBox(width: 8),
-                      Text(
-                        userData!['phone_number'] ?? 'No Phone',
-                        style: GoogleFonts.mulish(
-                          fontSize: 14,
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
-            Padding(
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.message, color: Colors.white),
+                onPressed: _showMessageDialog,
+              ),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          blurRadius: 20,
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
@@ -219,73 +283,100 @@ class _UserPageState extends State<UserPage> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.person_outline, color: Color(0xFF6296FF)),
-                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2196F3).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.person_outline,
+                                  color: Color(0xFF2196F3)),
+                            ),
+                            const SizedBox(width: 16),
                             Text(
                               'About Me',
-                              style: GoogleFonts.mulish(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF2C3E50),
+                              style: GoogleFonts.poppins(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 20),
                         Text(
-                          userData!['bio'] ?? 'No Bio Available',
-                          style: GoogleFonts.mulish(
-                            fontSize: 14,
-                            color: const Color(0xFF7F8C8D),
-                            height: 1.5,
+                          userData!['bio'] ?? 'No bio available',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.black87,
+                            height: 1.6,
                           ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildInfoTile(
+                                icon: Icons.email,
+                                title: 'Email',
+                                value: userData!['email'] ?? 'No email',
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            Expanded(
+                              child: _buildInfoTile(
+                                icon: Icons.phone,
+                                title: 'Phone',
+                                value: userData!['phone_number'] ?? 'No phone',
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 30),
                   Row(
                     children: [
-                      const Icon(Icons.list_alt, color: Color(0xFF6296FF)),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.workspace_premium,
+                          color: Color(0xFF2196F3)),
+                      const SizedBox(width: 12),
                       Text(
                         'Skills & Services',
-                        style: GoogleFonts.mulish(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF2C3E50),
+                        style: GoogleFonts.poppins(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   FutureBuilder<List<Map<String, dynamic>>>(
                     future: fetchUserListings(widget.userId),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6296FF)),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF2196F3)),
                           ),
                         );
-                      } else if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            'Error loading listings',
-                            style: GoogleFonts.mulish(color: Colors.red[700]),
-                          ),
-                        );
-                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
                         return Center(
                           child: Column(
                             children: [
-                              const Icon(Icons.search_off, size: 48, color: Color(0xFF95A5A6)),
+                              Icon(
+                                Icons.search_off,
+                                size: 60,
+                                color: Colors.grey[400],
+                              ),
                               const SizedBox(height: 16),
                               Text(
                                 'No listings found',
-                                style: GoogleFonts.mulish(
-                                  color: const Color(0xFF95A5A6),
+                                style: GoogleFonts.poppins(
                                   fontSize: 16,
+                                  color: Colors.grey[600],
                                 ),
                               ),
                             ],
@@ -300,66 +391,107 @@ class _UserPageState extends State<UserPage> {
                         itemBuilder: (context, index) {
                           final listing = snapshot.data![index];
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.only(bottom: 16),
                             child: InkWell(
                               onTap: () {
-                                Navigator.of(context).push(
+                                Navigator.push(
+                                  context,
                                   MaterialPageRoute(
-                                    builder: (context) => Skillinfo(id: listing['id']),
+                                    builder: (context) =>
+                                        Skillinfo(id: listing['id']),
                                   ),
                                 );
                               },
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withOpacity(0.05),
                                       blurRadius: 10,
-                                      offset: const Offset(0, 4),
+                                      offset: const Offset(0, 5),
                                     ),
                                   ],
                                 ),
                                 child: Padding(
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.all(20),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        listing['name'] ?? 'No name',
-                                        style: GoogleFonts.mulish(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF2C3E50),
-                                        ),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF2196F3)
+                                                  .withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: const Icon(Icons.star,
+                                                color: Color(0xFF2196F3)),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Text(
+                                              listing['name'] ?? 'No name',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 8),
+                                      const SizedBox(height: 12),
                                       Text(
-                                        listing['description'] ?? 'No Description',
-                                        style: GoogleFonts.mulish(
+                                        listing['description'] ??
+                                            'No description',
+                                        style: GoogleFonts.poppins(
                                           fontSize: 14,
-                                          color: const Color(0xFF7F8C8D),
+                                          color: Colors.black87,
                                         ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(height: 12),
+                                      const SizedBox(height: 16),
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
                                         children: [
-                                          Text(
-                                            'View Details',
-                                            style: GoogleFonts.mulish(
-                                              color: const Color(0xFF6296FF),
-                                              fontWeight: FontWeight.w600,
+                                          ElevatedButton.icon(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      Skillinfo(
+                                                          id: listing['id']),
+                                                ),
+                                              );
+                                            },
+                                            icon: const Icon(
+                                                Icons.arrow_forward,
+                                                size: 18),
+                                            label: Text(
+                                              'View Details',
+                                              style: GoogleFonts.poppins(),
                                             ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          const Icon(
-                                            Icons.arrow_forward_ios,
-                                            size: 14,
-                                            color: Color(0xFF6296FF),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  const Color(0xFF2196F3),
+                                              foregroundColor: Colors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 20,
+                                                      vertical: 12),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -376,10 +508,83 @@ class _UserPageState extends State<UserPage> {
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(currentIndex: 0),
+      bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 0),
     );
   }
+
+  Widget _buildInfoTile({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2196F3).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: const Color(0xFF2196F3)),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: const Color(0xFF2196F3),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Colors.black87,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CirclesPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.1)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(
+      Offset(size.width * 0.2, size.height * 0.2),
+      50,
+      paint,
+    );
+
+    canvas.drawCircle(
+      Offset(size.width * 0.8, size.height * 0.3),
+      70,
+      paint,
+    );
+
+    canvas.drawCircle(
+      Offset(size.width * 0.5, size.height * 0.6),
+      40,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

@@ -12,6 +12,7 @@ class AddSkillPage extends StatefulWidget {
 class AddSkillPageState extends State<AddSkillPage> {
   String skillname = '';
   String skilldescription = '';
+  double? skillcost;
   int? loggedInUserId;
   String? chosenCategory;
   String? errorMessage;
@@ -39,10 +40,16 @@ class AddSkillPageState extends State<AddSkillPage> {
   }
 
   Future<void> _loadCategories() async {
-    final result = await DatabaseHelper.fetchCategories();
-    setState(() {
-      _choices = result.map((category) => category['name'] as String).toList();
-    });
+    try {
+      final result = await DatabaseHelper.fetchCategories();
+      if (result.isNotEmpty) {
+        setState(() {
+          _choices = result.map((category) => category['name'] as String).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading categories: $e');
+    }
   }
 
   @override
@@ -176,6 +183,41 @@ class AddSkillPageState extends State<AddSkillPage> {
                       const SizedBox(height: 24),
                       
                       Text(
+                        "Cost",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF2A2D3E),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (value) {
+                          setState(() {
+                            if (value.isNotEmpty) {
+                              skillcost = double.tryParse(value);
+                            } else {
+                              skillcost = null;
+                            }
+                          });
+                        },
+                        style: GoogleFonts.poppins(),
+                        decoration: InputDecoration(
+                          hintText: "Enter cost in pounds (£)",
+                          fillColor: const Color(0xFFF5F7FF),
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          prefixIcon: const Icon(Icons.attach_money, color: Color(0xFF6296FF)),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      Text(
                         "Category",
                         style: GoogleFonts.poppins(
                           fontSize: 16,
@@ -247,22 +289,48 @@ class AddSkillPageState extends State<AddSkillPage> {
                       errorMessage = null;
                     });
                     
-                    if (skillname.isNotEmpty && 
-                        skilldescription.isNotEmpty && 
-                        chosenCategory != null) {
+                    if (skillname.isEmpty || 
+                        skilldescription.isEmpty || 
+                        skillcost == null ||
+                        chosenCategory == null) {
+                      setState(() {
+                        errorMessage = 'Please fill in all fields';
+                      });
+                      return;
+                    }
+                    
+                    if (loggedInUserId == null) {
+                      setState(() {
+                        errorMessage = 'User ID not found. Please log in again.';
+                      });
+                      return;
+                    }
+                    
+                    try {
+                      // Check if skill name already exists for this user
                       bool skillExists = await DatabaseHelper.checkSkillName(
                         skillname, 
                         loggedInUserId
                       );
                       
-                      if (!skillExists) {
-                        await DatabaseHelper.insertSkill(
-                          loggedInUserId,
-                          skillname,
-                          skilldescription,
-                          chosenCategory
-                        );
-                        Navigator.pop(context);
+                      if (skillExists) {
+                        setState(() {
+                          errorMessage = 'You already have a skill with this name';
+                        });
+                        return;
+                      }
+                      
+                      // Insert the skill with proper parameters
+                      final response = await DatabaseHelper.insertSkill(
+                        loggedInUserId!,
+                        skillname,
+                        skilldescription,
+                        chosenCategory!,
+                        skillcost!
+                      );
+                      
+                      if (response.success) {
+                        Navigator.pop(context, true); // Pass true to indicate success
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
@@ -278,13 +346,14 @@ class AddSkillPageState extends State<AddSkillPage> {
                         );
                       } else {
                         setState(() {
-                          errorMessage = 'You already have a skill with this name';
+                          errorMessage = 'Failed to add skill: ${response.message}';
                         });
                       }
-                    } else {
+                    } catch (e) {
                       setState(() {
-                        errorMessage = 'Please fill in all fields';
+                        errorMessage = 'Error: ${e.toString()}';
                       });
+                      debugPrint('Error adding skill: $e');
                     }
                   },
                   style: ElevatedButton.styleFrom(
