@@ -5,6 +5,8 @@ import 'package:sklr/database/database.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/Home/home.dart';
 import 'package:sklr/Util/startpage.dart';
+import 'Support/supportFinder.dart';
+import 'Support/supportMain.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +51,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: home,
+      routes: {
+        '/support': (context) => const SupportMainPage(),
+        '/support/finder': (context) => const SupportFinderPage(),
+      },
     );
   }
 }
