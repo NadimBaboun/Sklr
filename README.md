@@ -28,14 +28,14 @@
 
 | Technology                 | Description                                                              |
 | -------------------------- | ------------------------------------------------------------------------ |
-| **Flutter**                | Frontend.  <a href="https://www.figma.com/design/89T97CQIlNzEuWu7WIvWpq/SKLR_Group1?node-id=0-1&t=rwyJmYOgasuW5eAQ-1">Figma Link</a>               |
-| **FireBase**               | Used to Ensure Real Time Synchronization in Messaging and also for Authentication .    |
-| **Figma**                  | Used Mainly For Planning and Designing the UI, ensuring a Slick and balanced UI        |
+| **Flutter**                | Frontend.             |
+| **SupaBase**               | Used to Ensure Real Time Synchronization in Messaging and also for Authentication .    |
+| **Figma**                  | Used Mainly For Planning and Designing the UI, ensuring a Slick and balanced UI   <a href="https://www.figma.com/design/89T97CQIlNzEuWu7WIvWpq/SKLR_Group1?node-id=0-1&t=rwyJmYOgasuW5eAQ-1">Figma Link</a>       |
 
 
 ## Meet the Team
 
-- **Mohammad Hamarsheh** 
+- **Mohammad Hamarsheh** : ```Responsible for the new UI, 
 - **Mohammad Al-Masri** 
 - **Nadeem Baboun**
 
