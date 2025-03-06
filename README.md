@@ -35,7 +35,7 @@
 
 ## Meet the Team
 
-- **Mohammad Hamarsheh** : ```Responsible for the new UI, 
+- **Mohammad Hamarsheh** : ```Responsible for the new UI, Added & Trained Gemni 2 Model, Created the new database, Built the Overall Current App ``` 
 - **Mohammad Al-Masri** 
 - **Nadeem Baboun**
 
