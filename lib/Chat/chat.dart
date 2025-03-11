@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/Chat/chatSessionUtil.dart';
 import 'package:sklr/Profile/user.dart';
 import '../database/database.dart';
+import '../Util/navigationbar-bar.dart';
+import '../components/CustomBottomNavigationBar.dart';
 
 class ChatPage extends StatefulWidget {
   final int chatId;
@@ -31,6 +33,7 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _loadMessages();
+    _markMessagesAsRead();
     // Set up periodic refresh every 10 seconds
     _startPeriodicRefresh();
   }
@@ -102,6 +105,10 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  Future<void> _markMessagesAsRead() async {
+    await DatabaseHelper.markChatAsRead(widget.chatId);
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -122,6 +129,7 @@ class _ChatPageState extends State<ChatPage> {
             _buildMessageInput(),
           ],
         ),
+        bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 3),
       ),
     );
   }

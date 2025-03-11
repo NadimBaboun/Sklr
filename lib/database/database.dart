@@ -3,6 +3,8 @@ import 'dart:developer';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'userIdStorage.dart';
 
 class Response {
   final bool success;
@@ -514,17 +516,34 @@ class DatabaseHelper {
     }
   }
 
-  //fetches skills based on name and description
-  static Future<List<Map<String, dynamic>>> searchResults(String search) async {
+  //fetches skills based on name and description with filters
+  static Future<List<Map<String, dynamic>>> searchResults(
+    String search, {
+    String? category,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+  }) async {
     try {
-      final response =
-          await http.get(Uri.parse('$backendUrl/skills/search/$search'));
+      final url = Uri.parse('$backendUrl/skills/search');
+      
+      final queryParams = {
+        'search': search.trim(),
+        if (category != null) 'category': category,
+        if (minPrice != null) 'minPrice': minPrice.toString(),
+        if (maxPrice != null) 'maxPrice': maxPrice.toString(),
+        if (sortBy != null) 'sortBy': sortBy,
+      };
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(queryParams),
+      );
 
       if (response.statusCode == 200) {
         final List<dynamic> results = json.decode(response.body);
-        return results
-            .map((result) => Map<String, dynamic>.from(result))
-            .toList();
+        return List<Map<String, dynamic>>.from(results);
       } else {
         log('Error searching skills: ${response.statusCode} - ${response.body}');
         return [];
@@ -826,6 +845,116 @@ class DatabaseHelper {
       }
       return false;
     } catch (err) {
+      return false;
+    }
+  }
+
+  static Future<int> getUnreadMessageCount() async {
+    try {
+      final userId = await UserIdStorage.getLoggedInUserId();
+      if (userId == null) return 0;
+
+      final response = await http.get(
+        Uri.parse('$backendUrl/chat/unread/$userId'),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['count'] ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      debugPrint('Error getting unread message count: $e');
+      return 0;
+    }
+  }
+
+  static Future<void> markChatAsRead(int chatId) async {
+    try {
+      final userId = await UserIdStorage.getLoggedInUserId();
+      if (userId == null) return;
+
+      await http.post(
+        Uri.parse('$backendUrl/chat/$chatId/read'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'userId': userId}),
+      );
+    } catch (e) {
+      debugPrint('Error marking chat as read: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getNotifications() async {
+    try {
+      final userId = await UserIdStorage.getLoggedInUserId();
+      if (userId == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$backendUrl/chat/notifications/$userId'),
+      );
+      
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(json.decode(response.body));
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error getting notifications: $e');
+      return [];
+    }
+  }
+
+  static Future<void> markNotificationAsRead(int sessionId) async {
+    try {
+      await http.post(
+        Uri.parse('$backendUrl/chat/notifications/$sessionId/read'),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      debugPrint('Error marking notification as read: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchActiveServices() async {
+    try {
+      final userId = await UserIdStorage.getLoggedInUserId();
+      if (userId == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$backendUrl/chat/sessions/active/$userId'),
+      );
+      
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(json.decode(response.body));
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching active services: $e');
+      return [];
+    }
+  }
+
+  static Future<bool> completeService(int sessionId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$backendUrl/chat/sessions/$sessionId/complete'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error completing service: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> cancelService(int sessionId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$backendUrl/chat/sessions/$sessionId/cancel'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error canceling service: $e');
       return false;
     }
   }
