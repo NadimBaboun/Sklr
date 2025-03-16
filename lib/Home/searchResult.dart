@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/database/database.dart';
 import 'package:sklr/Skills/skillInfo.dart';
+import '../database/models.dart';
 
 class SearchResultsPage extends StatefulWidget {
   final String search;

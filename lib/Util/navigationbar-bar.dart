@@ -4,15 +4,16 @@ import '../Skills/myOrders.dart';
 import '../Home/home.dart';
 import '../Profile/profile.dart';
 import '../Support/supportMain.dart';
-import '../database/database.dart';
-import '../database/userIdStorage.dart';
+import '../database/supabase_service.dart';
 
 class CustomBottomNavigationBar extends StatefulWidget {
   final int currentIndex;
+  final Function(int)? onTap;
 
   const CustomBottomNavigationBar({
     super.key,
     required this.currentIndex,
+    this.onTap,
   });
 
   @override
@@ -43,7 +44,7 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
 
   Future<void> _loadUnreadMessages() async {
     try {
-      final count = await DatabaseHelper.getUnreadMessageCount();
+      final count = await SupabaseService.getUnreadMessageCount();
       if (mounted) {
         setState(() {
           unreadCount = count;
@@ -57,7 +58,7 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
 
   Future<void> _loadNotifications() async {
     try {
-      final notifications = await DatabaseHelper.getNotifications();
+      final notifications = await SupabaseService.getNotifications();
       if (mounted) {
         setState(() {
           notificationCount = notifications.length;
@@ -147,37 +148,38 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
         ),
       ],
       onTap: (index) {
-        switch (index) {
-          case 0:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const HomePage()),
-            );
-            break;
-          case 1:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const ChatsHomePage()),
-            );
-            break;
-          case 2:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const MyOrdersPage()),
-            );
-            break;
-          case 3:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfilePage()),
-            );
-            break;
-          case 4:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const SupportMainPage()),
-            );
-            break;
+        if (widget.onTap != null) {
+          widget.onTap!(index);
+        } else {
+          // Default navigation logic
+          if (index == widget.currentIndex) return;
+          
+          Widget page;
+          switch (index) {
+            case 0:
+              page = const HomePage();
+              break;
+            case 1:
+              page = const ChatsHomePage();
+              break;
+            case 2:
+              page = const MyOrdersPage();
+              break;
+            case 3:
+              page = const ProfilePage();
+              break;
+            case 4:
+              page = const SupportMainPage();
+              break;
+            default:
+              page = const HomePage();
+          }
+          
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => page),
+            (route) => false,
+          );
         }
       },
       selectedItemColor: const Color(0xFF6296FF),

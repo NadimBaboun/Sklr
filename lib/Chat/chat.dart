@@ -4,7 +4,11 @@ import 'package:sklr/Chat/chatSessionUtil.dart';
 import 'package:sklr/Profile/user.dart';
 import '../database/database.dart';
 import '../Util/navigationbar-bar.dart';
-import '../components/CustomBottomNavigationBar.dart';
+import 'chatsHome.dart';
+import '../Home/home.dart';
+import '../Skills/myOrders.dart';
+import '../Profile/profile.dart';
+import '../Support/supportMain.dart';
 
 class ChatPage extends StatefulWidget {
   final int chatId;
@@ -32,10 +36,20 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    messages = _initializeMessages();
     _markMessagesAsRead();
     // Set up periodic refresh every 10 seconds
     _startPeriodicRefresh();
+  }
+
+  Future<List<Map<String, dynamic>>> _initializeMessages() async {
+    try {
+      final messages = await DatabaseHelper.getChatMessages(widget.chatId);
+      return messages;
+    } catch (e) {
+      debugPrint('Error initializing messages: $e');
+      return [];
+    }
   }
 
   void _startPeriodicRefresh() {
@@ -59,7 +73,13 @@ class _ChatPageState extends State<ChatPage> {
     
     setState(() => isLoading = true);
     try {
-      messages = DatabaseHelper.fetchMessages(widget.chatId);
+      final messagesList = await DatabaseHelper.getChatMessages(widget.chatId);
+      if (mounted) {
+        setState(() {
+          messages = Future.value(messagesList);
+          isLoading = false;
+        });
+      }
       
       // Scroll to bottom after messages load
       await Future.delayed(const Duration(milliseconds: 100));
@@ -72,13 +92,10 @@ class _ChatPageState extends State<ChatPage> {
       }
     } catch (e) {
       if (mounted) {
+        setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading messages: $e'))
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
       }
     }
   }
@@ -89,19 +106,41 @@ class _ChatPageState extends State<ChatPage> {
 
     setState(() => isLoading = true);
     try {
-      await DatabaseHelper.sendMessage(
-        widget.chatId,
-        widget.loggedInUserId,
-        messageText,
+      // Get the recipient ID from the session
+      final sessionData = await DatabaseHelper.fetchSessionFromChat(widget.chatId);
+      if (!sessionData.success) {
+        throw Exception('Failed to fetch session data');
+      }
+      
+      final recipientId = sessionData.data['provider_id'] == widget.loggedInUserId
+          ? sessionData.data['requester_id']
+          : sessionData.data['provider_id'];
+      
+      // Get the sender's name
+      final senderData = await DatabaseHelper.getUserById(widget.loggedInUserId);
+      final senderName = senderData?['username'] ?? 'Unknown User';
+      final senderImage = senderData?['profile_image'];
+
+      await DatabaseHelper.sendMessageWithNotification(
+        chatId: widget.chatId,
+        senderId: widget.loggedInUserId,
+        message: messageText,
+        senderName: senderName,
+        recipientId: recipientId,
+        senderImage: senderImage,
       );
       _messageController.clear();
       await _loadMessages();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send message: $e'))
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send message: $e'))
+        );
+      }
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -111,25 +150,35 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
-        appBar: _buildAppBar(),
-        body: Column(
-          children: [
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadMessages,
-                color: const Color(0xFF6296FF),
-                child: _buildMessageList(),
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const ChatsHomePage()),
+          (route) => false,
+        );
+        return false;
+      },
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF5F7FA),
+          appBar: _buildAppBar(),
+          body: Column(
+            children: [
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _loadMessages,
+                  color: const Color(0xFF6296FF),
+                  child: _buildMessageList(),
+                ),
               ),
-            ),
-            _buildSessionStatus(),
-            _buildMessageInput(),
-          ],
+              _buildSessionStatus(),
+              _buildMessageInput(),
+            ],
+          ),
+          bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 1),
         ),
-        bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 3),
       ),
     );
   }
@@ -142,7 +191,14 @@ class _ChatPageState extends State<ChatPage> {
         backgroundColor: const Color(0xFF6296FF),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            // Navigate to ChatsHomePage when back button is pressed
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const ChatsHomePage()),
+              (route) => false,
+            );
+          },
         ),
         title: FutureBuilder<Map<String, dynamic>>(
           future: _loadSessionAndSkill(),
@@ -271,7 +327,8 @@ class _ChatPageState extends State<ChatPage> {
                 );
               }
 
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              final messagesList = snapshot.data ?? [];
+              if (messagesList.isEmpty) {
                 return Center(
                   child: Text(
                     'No messages yet\nStart the conversation!',
@@ -288,14 +345,14 @@ class _ChatPageState extends State<ChatPage> {
                 controller: _scrollController,
                 reverse: true,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                itemCount: snapshot.data!.length,
+                itemCount: messagesList.length,
                 itemBuilder: (context, index) {
-                  final message = snapshot.data![index];
-                  final bool isSentByUser = message['sender_id'] == widget.loggedInUserId;
+                  final message = messagesList[index];
+                  final bool isSentByUser = message['sender_id'].toString() == widget.loggedInUserId.toString();
                   final bool isNextSameSender = index > 0 &&
-                      snapshot.data![index - 1]['sender_id'] == message['sender_id'];
-                  final bool isPrevSameSender = index < snapshot.data!.length - 1 &&
-                      snapshot.data![index + 1]['sender_id'] == message['sender_id'];
+                      messagesList[index - 1]['sender_id'].toString() == message['sender_id'].toString();
+                  final bool isPrevSameSender = index < messagesList.length - 1 &&
+                      messagesList[index + 1]['sender_id'].toString() == message['sender_id'].toString();
 
                   return Padding(
                     padding: EdgeInsets.only(
