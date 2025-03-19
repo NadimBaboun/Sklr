@@ -52,9 +52,28 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
 
   Future<void> _loadActiveServices() async {
     if (mounted) {
-      setState(() {
-        activeServicesFuture = DatabaseHelper.fetchActiveServices();
-      });
+      final userId = await UserIdStorage.getLoggedInUserId();
+      if (userId != null) {
+        setState(() {
+          activeServicesFuture = DatabaseHelper.fetchActiveServices().then((services) async {
+            // Process each service to include user names
+            final processedServices = await Future.wait(services.map((service) async {
+              final requesterData = await DatabaseHelper.fetchUserFromId(int.parse(service['requester_id']));
+              final providerData = await DatabaseHelper.fetchUserFromId(int.parse(service['provider_id']));
+              final skillData = service['skills'] ?? {};
+              
+              return {
+                ...service,
+                'requester_name': requesterData.success ? requesterData.data['username'] : 'Unknown',
+                'provider_name': providerData.success ? providerData.data['username'] : 'Unknown',
+                'skill_name': skillData['name'] ?? 'Unknown Skill',
+                'session_id': service['id'],
+              };
+            }));
+            return processedServices;
+          });
+        });
+      }
     }
   }
 
@@ -71,10 +90,52 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
       final userId = await UserIdStorage.getLoggedInUserId();
       if (userId != null) {
         setState(() => loggedInUserId = userId);
+        
+        // Call fetchChats instead of getUserChats to ensure consistency
         final chats = await DatabaseHelper.fetchChats(userId);
-        await _cacheUsernames(chats);
-        setState(() => chatsFuture = Future.value(chats));
+        
+        // Process chats to include required information
+        final processedChats = await Future.wait(chats.map((chat) async {
+          // Determine the other user ID in the chat
+          final otherUserId = 
+              (chat['user1_id']?.toString() == userId.toString())
+                  ? chat['user2_id']
+                  : chat['user1_id'];
+          
+          if (otherUserId == null) {
+            debugPrint('Warning: Chat ${chat['id']} has no valid other user ID');
+            return null;
+          }
+          
+          // Get unread messages count
+          final messages = await DatabaseHelper.getChatMessages(chat['id']);
+          final unreadCount = messages.where((msg) => 
+            msg['sender_id']?.toString() != userId.toString() && 
+            !(msg['read'] ?? false)
+          ).length;
+          
+          // Get the last message
+          final lastMessage = messages.isNotEmpty ? messages.first['message'] : 'No messages yet';
+          
+          return {
+            'chat_id': chat['id'],
+            'other_user_id': otherUserId,
+            'last_message': lastMessage,
+            'last_updated': chat['last_updated'],
+            'unread_count': unreadCount,
+            'sender_id': messages.isNotEmpty ? messages.first['sender_id'] : null,
+          };
+        }));
+        
+        // Filter out any null values that might have occurred due to errors
+        final validChats = processedChats.whereType<Map<String, dynamic>>().toList();
+        
+        await _cacheUsernames(validChats);
+        setState(() => chatsFuture = Future.value(validChats));
       }
+    } catch (e) {
+      debugPrint('Error loading chats: $e');
+      setState(() => chatsFuture = Future.value([]));
     } finally {
       setState(() => isLoading = false);
     }
@@ -258,6 +319,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
           _buildActiveServicesList(),
         ],
       ),
+      bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 1),
     );
   }
 

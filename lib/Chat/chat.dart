@@ -109,7 +109,11 @@ class _ChatPageState extends State<ChatPage> {
       // Get the recipient ID from the session
       final sessionData = await DatabaseHelper.fetchSessionFromChat(widget.chatId);
       if (!sessionData.success) {
-        throw Exception('Failed to fetch session data');
+        throw Exception('Failed to fetch session data: ${sessionData.data['error']}');
+      }
+      
+      if (!sessionData.data.containsKey('provider_id') || !sessionData.data.containsKey('requester_id')) {
+        throw Exception('Session data is incomplete: missing user IDs');
       }
       
       final recipientId = sessionData.data['provider_id'] == widget.loggedInUserId
@@ -118,8 +122,12 @@ class _ChatPageState extends State<ChatPage> {
       
       // Get the sender's name
       final senderData = await DatabaseHelper.getUserById(widget.loggedInUserId);
-      final senderName = senderData?['username'] ?? 'Unknown User';
-      final senderImage = senderData?['profile_image'];
+      if (senderData == null) {
+        throw Exception('Failed to get sender data');
+      }
+      
+      final senderName = senderData['username'] ?? 'Unknown User';
+      final senderImage = senderData['profile_image'];
 
       await DatabaseHelper.sendMessageWithNotification(
         chatId: widget.chatId,
@@ -133,8 +141,12 @@ class _ChatPageState extends State<ChatPage> {
       await _loadMessages();
     } catch (e) {
       if (mounted) {
+        debugPrint('Error sending message: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send message: $e'))
+          SnackBar(
+            content: Text('Failed to send message: $e'),
+            backgroundColor: Colors.red,
+          )
         );
       }
     } finally {
@@ -177,7 +189,6 @@ class _ChatPageState extends State<ChatPage> {
               _buildMessageInput(),
             ],
           ),
-          bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 1),
         ),
       ),
     );

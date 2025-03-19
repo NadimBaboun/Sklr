@@ -1,0 +1,10 @@
+--- SignInWithAppleError.swift
++++ SignInWithAppleError.swift
+@@ -97,6 +97,7 @@
+         case .invalidResponse: return "The response received was invalid"
+         case .unknownSignInWithAppleError: return "An unknown error occurred during the Sign In with Apple flow"
+         case .canceled: return "The user canceled the authorization flow"
++        @unknown default: return "An unknown error occurred during the Sign In with Apple flow"
+         }
+     }
+ } 

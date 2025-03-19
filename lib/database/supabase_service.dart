@@ -1078,9 +1078,11 @@ class SupabaseService {
   }
   
   // Get or create chat
-  static Future<Map<String, dynamic>> getOrCreateChat(String userId1, String userId2, int skillId) async {
+  static Future<Map<String, dynamic>> getOrCreateChat(String userId1, String userId2, int sessionId) async {
     try {
-      // Check if chat exists
+      _logOperation('Chats', 'Getting or creating chat for users $userId1, $userId2 with session $sessionId');
+      
+      // Check if chat exists between these users
       final existingChats = await supabase
           .from('chats')
           .select()
@@ -1088,23 +1090,46 @@ class SupabaseService {
           .limit(1);
           
       if (existingChats.isNotEmpty) {
-        return existingChats[0];
+        final existingChat = existingChats[0];
+        
+        // If the chat exists but doesn't have a session_id, update it
+        if (existingChat['session_id'] == null && sessionId != null) {
+          _logOperation('Chats', 'Updating existing chat with session ID: $sessionId');
+          
+          final updatedChat = await supabase
+              .from('chats')
+              .update({
+                'session_id': sessionId,
+                'last_updated': DateTime.now().toIso8601String(),
+              })
+              .eq('id', existingChat['id'])
+              .select()
+              .single();
+              
+          return updatedChat;
+        }
+        
+        return existingChat;
       }
       
       // Create new chat
+      _logOperation('Chats', 'Creating new chat with session ID: $sessionId');
+      
       final newChat = await supabase
           .from('chats')
           .insert({
             'user1_id': userId1,
             'user2_id': userId2,
+            'session_id': sessionId,
             'last_updated': DateTime.now().toIso8601String(),
           })
           .select()
           .single();
           
+      _logOperation('Chats', 'Created new chat with ID: ${newChat['id']}');
       return newChat;
     } catch (e) {
-      log('Error getting or creating chat: $e');
+      _logOperation('Chats', 'Error getting or creating chat: $e', isError: true);
       return {};
     }
   }
@@ -1277,17 +1302,33 @@ class SupabaseService {
   // Get session from chat
   static Future<DatabaseResponse> fetchSessionFromChat(int chatId) async {
     try {
-      final data = await supabase
+      // First get the session_id from the chat
+      final chatData = await supabase
+          .from('chats')
+          .select('session_id')
+          .eq('id', chatId)
+          .single();
+          
+      if (chatData == null || !chatData.containsKey('session_id') || chatData['session_id'] == null) {
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'No session found for this chat'},
+        );
+      }
+      
+      // Then get the session using that ID
+      final sessionData = await supabase
           .from('sessions')
           .select()
-          .eq('chat_id', chatId)
+          .eq('id', chatData['session_id'])
           .single();
           
       return DatabaseResponse(
         success: true,
-        data: data,
+        data: sessionData,
       );
     } catch (e) {
+      _logOperation('Sessions', 'Error fetching session from chat: $e', isError: true);
       return DatabaseResponse(
         success: false,
         data: {'error': e.toString()},

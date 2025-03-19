@@ -333,45 +333,17 @@ class DatabaseHelper {
 
       log('Fetching chats for user $currentUserId');
       
-      // Get all chats where the user is either sender or recipient
-      final response = await supabase
-          .from('chats')
-          .select('*, messages(*)')
-          .or('sender_id.eq.$currentUserId,recipient_id.eq.$currentUserId')
-          .order('created_at', ascending: false);
-
-      if (response == null) {
-        log('No chats found for user $currentUserId');
+      // Use SupabaseService to get chats
+      final response = await SupabaseService.getUserChats(currentUserId);
+      if (!response.success) {
+        log('Error fetching user chats: ${response.data['error']}');
         return [];
       }
-
-      final List<Map<String, dynamic>> chats = List<Map<String, dynamic>>.from(response);
+      
+      final List<Map<String, dynamic>> chats = List<Map<String, dynamic>>.from(response.data);
       log('Successfully fetched ${chats.length} chats');
       
-      // Process chats to include other user's details
-      final processedChats = await Future.wait(chats.map((chat) async {
-        final otherUserId = chat['sender_id'] == currentUserId 
-            ? chat['recipient_id'] 
-            : chat['sender_id'];
-            
-        final otherUser = await getUserById(otherUserId);
-        if (otherUser == null) {
-          log('Warning: Could not find user details for ID $otherUserId');
-          return null;
-        }
-        
-        // Get the latest message for this chat
-        final messages = List<Map<String, dynamic>>.from(chat['messages'] ?? []);
-        messages.sort((a, b) => (b['created_at'] ?? '').compareTo(a['created_at'] ?? ''));
-        
-        return {
-          ...chat,
-          'other_user': otherUser,
-          'last_message': messages.isNotEmpty ? messages.first : {},
-        };
-      }));
-      
-      return processedChats.whereType<Map<String, dynamic>>().toList();
+      return chats;
     } catch (e) {
       log('Error fetching user chats: $e');
       return [];
@@ -383,30 +355,17 @@ class DatabaseHelper {
     try {
       log('Fetching messages for chat $chatId (limit: $limit, offset: $offset)');
       
-      final response = await supabase
-          .from('messages')
-          .select('*, sender:sender_id(*)')
-          .eq('chat_id', chatId)
-          .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
-
-      if (response == null) {
-        log('No messages found for chat $chatId');
+      // Use SupabaseService to get messages
+      final response = await SupabaseService.getChatMessages(chatId);
+      if (!response.success) {
+        log('Error fetching chat messages: ${response.data['error']}');
         return [];
       }
-
-      final List<Map<String, dynamic>> messages = List<Map<String, dynamic>>.from(response);
+      
+      final List<Map<String, dynamic>> messages = List<Map<String, dynamic>>.from(response.data);
       log('Successfully fetched ${messages.length} messages');
-
-      // Process messages to include sender details
-      return messages.map((message) {
-        final sender = message['sender'] as Map<String, dynamic>?;
-        return {
-          ...message,
-          'sender_name': sender?['full_name'] ?? 'Unknown User',
-          'sender_image': sender?['profile_image'],
-        };
-      }).toList();
+      
+      return messages;
     } catch (e) {
       log('Error fetching chat messages: $e');
       return [];
