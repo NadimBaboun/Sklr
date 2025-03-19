@@ -1,13 +1,13 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'userIdStorage.dart';
 import 'models.dart'; // Import shared models
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:http/http.dart' as http;
 
 // Access the Supabase client from main.dart
 final supabase = Supabase.instance.client;
@@ -291,140 +291,6 @@ class SupabaseService {
   // For backward compatibility with original DatabaseHelper
   static Future<LoginResponse> fetchUserId(String email, String password) async {
     return await signInWithEmail(email, password);
-  }
-
-  // Sign in with Google
-  static Future<LoginResponse> signInWithGoogle() async {
-    try {
-      log('Starting Google sign-in process');
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      
-      if (googleUser == null) {
-        log('Google sign-in was canceled by user');
-        return LoginResponse(
-          success: false,
-          message: 'Google sign-in was canceled',
-        );
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      log('Got Google authentication tokens');
-      
-      final AuthResponse res = await supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: googleAuth.idToken!,
-        accessToken: googleAuth.accessToken,
-      );
-
-      if (res.user != null) {
-        log('Successfully signed in with Google, auth user ID: ${res.user!.id}');
-        final authId = res.user!.id;
-        
-        // First check if we have db_user_id in auth metadata
-        final dbUserId = res.user!.userMetadata?['db_user_id'];
-        
-        if (dbUserId != null) {
-          log('Found db_user_id in auth metadata: $dbUserId');
-          
-          // Store this ID for future use
-          await UserIdStorage.saveLoggedInUserId(dbUserId);
-          
-          return LoginResponse(
-            success: true,
-            message: 'Login with Google successful',
-            userId: dbUserId,
-          );
-        }
-        
-        // Check if user with this email already exists
-        try {
-          final userData = await supabase
-              .from('users')
-              .select()
-              .eq('email', googleUser.email)
-              .maybeSingle();
-          
-          // If user exists, link the auth account to it
-          if (userData != null) {
-            final userId = userData['id'];
-            log('Found existing user with this email: $userId');
-            
-            // Store the ID for future use
-            await UserIdStorage.saveLoggedInUserId(userId);
-            
-            // Update auth metadata for future logins
-            await supabase.auth.updateUser(UserAttributes(
-              data: {
-                'db_user_id': userId,
-              }
-            ));
-            
-            return LoginResponse(
-              success: true,
-              message: 'Login with Google successful',
-              userId: userId,
-            );
-          }
-          
-          // User doesn't exist, create a new one
-          log('Creating new user profile for Google user');
-          final result = await supabase.from('users').insert({
-            // Don't specify 'id' field - let the database auto-generate it
-            'username': googleUser.displayName ?? 'User',
-            'email': googleUser.email,
-            'password': 'google_oauth_' + DateTime.now().millisecondsSinceEpoch.toString(), // Required by schema
-            'credits': 0, // Required per schema
-            // created_at has a default value in the schema
-          }).select();
-          
-          if (result.isNotEmpty) {
-            final userId = result[0]['id'];
-            log('Created new user with ID: $userId');
-            
-            // Store the ID for future use
-            await UserIdStorage.saveLoggedInUserId(userId);
-            
-            // Update auth metadata for future logins
-            await supabase.auth.updateUser(UserAttributes(
-              data: {
-                'db_user_id': userId,
-              }
-            ));
-            
-            return LoginResponse(
-              success: true,
-              message: 'Login with Google successful',
-              userId: userId,
-            );
-          } else {
-            log('No result returned from user insertion');
-            return LoginResponse(
-              success: false,
-              message: 'User creation failed - no ID returned',
-            );
-          }
-        } catch (e) {
-          log('Error handling Google sign-in user: $e');
-          return LoginResponse(
-            success: false,
-            message: 'Error during Google sign-in: $e',
-          );
-        }
-      } else {
-        log('Google sign-in auth response had no user');
-        return LoginResponse(
-          success: false,
-          message: 'Failed to login with Google',
-        );
-      }
-    } catch (e) {
-      log('Google sign-in error: $e');
-      return LoginResponse(
-        success: false,
-        message: 'Error signing in with Google: $e',
-      );
-    }
   }
 
   // Sign in with Apple

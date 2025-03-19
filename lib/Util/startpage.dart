@@ -17,44 +17,6 @@ class StartPage extends StatefulWidget {
 class _StartPageState extends State<StartPage> {
   bool _isLoading = false;
 
-  Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final response = await SupabaseService.signInWithGoogle();
-      
-      if (response.success) {
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
-            (route) => false,
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(response.message)),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error signing in with Google: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
   Future<void> _signInWithApple() async {
     setState(() {
       _isLoading = true;
@@ -181,37 +143,6 @@ class _StartPageState extends State<StartPage> {
                             color: Colors.black,
                             fontSize:
                                 screenWidth * 0.04, // 4% of screen width
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  SizedBox(height: screenHeight * 0.02), // 2% of screen height
-                  
-                  // Google Sign-In Button
-                  SizedBox(
-                    width: screenWidth * 0.7, // 70% of screen width
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      icon: Icon(Icons.g_mobiledata, color: Colors.red, size: 30),
-                      onPressed: _isLoading ? null : _signInWithGoogle,
-                      style: ButtonStyle(
-                        backgroundColor: WidgetStateProperty.all(Colors.white),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: Colors.blueGrey),
-                          ),
-                        ),
-                      ),
-                      label: Text(
-                        'Continue with Google',
-                        style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
-                            color: Colors.black,
-                            fontSize: screenWidth * 0.04,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

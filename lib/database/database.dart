@@ -133,23 +133,6 @@ class DatabaseHelper {
     }
   }
 
-  // Google Sign-In
-  static Future<LoginResponse> googleSignIn() async {
-    try {
-      final result = await SupabaseService.signInWithGoogle();
-      return LoginResponse(
-        success: result.success,
-        message: result.message,
-        userId: result.userId is String ? int.tryParse(result.userId) ?? -1 : result.userId,
-      );
-    } catch (e) {
-      return LoginResponse(
-        success: false,
-        message: e.toString(),
-      );
-    }
-  }
-
   // Apple Sign-In
   static Future<LoginResponse> appleSignIn() async {
     try {
