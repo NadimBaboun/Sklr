@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@types/react": "^19.0.10",
+    "bcrypt": "^5.1.1"
+  }
+}
