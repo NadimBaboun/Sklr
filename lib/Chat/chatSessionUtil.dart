@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sklr/database/database.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sklr/database/userIdStorage.dart';
 
 // Session State = Idle -> Pending
 class RequestService {
@@ -297,7 +298,33 @@ class CompleteService {
                             return;
                           }
                           final result = await DatabaseHelper.finalizeTransaction(transaction.data['id']);
-                          Navigator.pop(context, result);
+                          if (result) {
+                            // Pop the completion dialog
+                            Navigator.pop(context, true);
+                            
+                            // Get logged-in user ID
+                            final loggedInUserId = await UserIdStorage.getLoggedInUserId();
+                            if (loggedInUserId == null) return;
+                            
+                            // Determine who to review based on who is completing the session
+                            int revieweeId;
+                            if (loggedInUserId == session['requester_id']) {
+                              // If requester is completing, review the provider
+                              revieweeId = session['provider_id'];
+                            } else {
+                              // If provider is completing, review the requester
+                              revieweeId = session['requester_id'];
+                            }
+                            
+                            // Show review dialog
+                            await ReviewService(
+                              sessionId: session['id'],
+                              reviewerId: loggedInUserId,
+                              revieweeId: revieweeId,
+                            ).showReviewDialog(context);
+                          } else {
+                            Navigator.pop(context, false);
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
@@ -445,6 +472,183 @@ class CancelService {
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+}
+
+// Add a review for a completed session
+class ReviewService {
+  final int sessionId;
+  final int reviewerId;
+  final int revieweeId;
+
+  ReviewService({
+    required this.sessionId,
+    required this.reviewerId,
+    required this.revieweeId,
+  });
+  
+  Future<bool?> showReviewDialog(BuildContext context) async {
+    int rating = 5;
+    final TextEditingController reviewController = TextEditingController();
+    
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // User must take an action
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6296FF).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.star_rounded,
+                          color: Color(0xFF6296FF),
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        "Rate Your Experience",
+                        style: GoogleFonts.poppins(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Please rate your experience with this service.",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.mulish(
+                          fontSize: 16,
+                          color: Colors.grey[700],
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (index) {
+                          return IconButton(
+                            icon: Icon(
+                              index < rating ? Icons.star : Icons.star_border,
+                              color: index < rating ? const Color(0xFFFFD700) : Colors.grey[400],
+                              size: 36,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                rating = index + 1;
+                              });
+                            },
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: reviewController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          hintText: "Write your review (optional)",
+                          hintStyle: GoogleFonts.mulish(color: Colors.grey[500]),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.all(16),
+                        ),
+                        style: GoogleFonts.mulish(
+                          fontSize: 16,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                side: BorderSide(color: Colors.grey.shade300),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                "Skip",
+                                style: GoogleFonts.mulish(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                final success = await DatabaseHelper.addReview(
+                                  sessionId,
+                                  reviewerId,
+                                  revieweeId,
+                                  rating,
+                                  reviewController.text.isNotEmpty ? reviewController.text : null,
+                                );
+                                Navigator.pop(context, success);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF6296FF),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                "Submit",
+                                style: GoogleFonts.mulish(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
         );
       },
     );

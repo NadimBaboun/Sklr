@@ -77,23 +77,67 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation(Color(0xFF6296FF)),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6296FF).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation(Color(0xFF6296FF)),
+                      strokeWidth: 4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'This may take a few moments. Please wait...',
+                  style: GoogleFonts.mulish(
+                    fontSize: 16,
+                    color: Colors.black54,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ] else if (_isVerified) ...[
                 Text(
                   'Email Verified!',
                   style: GoogleFonts.poppins(
-                    fontSize: 24,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.green,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.green,
+                    size: 80,
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Text(
-                  'Your email has been successfully verified. You can now log in to your account.',
+                  'Your email has been successfully verified! 🎉',
+                  style: GoogleFonts.mulish(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'You can now log in to your account and start using all the features.',
                   style: GoogleFonts.mulish(
                     fontSize: 16,
                     color: Colors.black87,
@@ -101,30 +145,35 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginPage()),
-                      (route) => false,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6296FF),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const LoginPage()),
+                        (route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6296FF),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Go to Login',
-                    style: GoogleFonts.mulish(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                    child: Text(
+                      'Go to Login',
+                      style: GoogleFonts.mulish(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -132,13 +181,36 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                 Text(
                   'Verification Failed',
                   style: GoogleFonts.poppins(
-                    fontSize: 24,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.red,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 80,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'There was a problem verifying your email',
+                  style: GoogleFonts.mulish(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
                 Text(
                   _errorMessage,
                   style: GoogleFonts.mulish(
@@ -148,26 +220,59 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () => _verifyEmail(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6296FF),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => _verifyEmail(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[200],
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Try Again',
+                        style: GoogleFonts.mulish(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                    const SizedBox(width: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const LoginPage()),
+                          (route) => false,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6296FF),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Go to Login',
+                        style: GoogleFonts.mulish(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    'Try Again',
-                    style: GoogleFonts.mulish(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  ],
                 ),
               ],
             ],

@@ -459,7 +459,7 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
                                 'bio': _bioController.text,
                                 'location': _locationController.text,
                                 'website': _websiteController.text,
-                                'phone': formattedPhone,
+                                'phone_number': formattedPhone,
                               };
                               
                               final result = await DatabaseHelper.patchUser(userId!, update);

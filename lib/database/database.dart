@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'userIdStorage.dart';
 import 'supabase_service.dart';
+import 'supabase.dart' as supabase_lib; // Import with a prefix to avoid conflicts
 import 'models.dart'; // Import shared models
 
 // This class is now a wrapper around SupabaseService to maintain compatibility with existing code
@@ -58,11 +59,6 @@ class DatabaseHelper {
         data: {'error': err.toString()},
       );
     }
-  }
-
-  // Search users by username or email
-  static Future<List<Map<String, dynamic>>> searchUsers(String query) async {
-    return await SupabaseService.searchUsers(query);
   }
 
   // auth: Register
@@ -171,8 +167,30 @@ class DatabaseHelper {
     }
   }
 
-  static Future<DatabaseResponse> fetchUserFromId(int userId) async {
-    return await SupabaseService.getUser(userId.toString());
+  static Future<DatabaseResponse> fetchUserFromId(dynamic userId) async {
+    try {
+      // Convert to String if it's an int
+      String userIdStr = userId.toString();
+      
+      // Since the method is in supabase.dart but not in SupabaseService,
+      // either call it using the proper class if in supabase.dart or another place
+      final user = await SupabaseService.getUserById(userIdStr);
+      if (user != null && user.isNotEmpty) {
+        return DatabaseResponse(success: true, data: user);
+      } else {
+        log('User data not found for ID: $userIdStr');
+        return DatabaseResponse(
+          success: false,
+          data: {'username': 'User not found', 'error': 'User not found'},
+        );
+      }
+    } catch (e) {
+      log('Error fetching user from id: $e');
+      return DatabaseResponse(
+        success: false,
+        data: {'username': 'Unknown User', 'error': 'Failed to fetch user details'},
+      );
+    }
   }
 
   // update data for user
@@ -265,45 +283,78 @@ class DatabaseHelper {
     return await SupabaseService.getSkill(id);
   }
 
-  // Advanced search with filters
+  // Search for skills with optional filters
   static Future<List<Map<String, dynamic>>> searchResults(
     String search, {
     String? category,
-    double? minPrice,
-    double? maxPrice,
+    int? minPrice,
+    int? maxPrice,
     String? sortBy,
+    bool includeUsers = true,
   }) async {
+    List<Map<String, dynamic>> results = [];
+    
     try {
-      // Start with a basic search
-      List<Map<String, dynamic>> results = await SupabaseService.searchSkills(search);
+      // First search for skills - SupabaseService.searchSkills only accepts query parameter
+      final skills = await SupabaseService.searchSkills(search);
       
-      // Apply filters
-      if (category != null) {
-        results = results.where((skill) => 
+      // Filter results manually since SupabaseService doesn't support these filters
+      var filteredSkills = skills;
+      
+      // Apply category filter if provided
+      if (category != null && category.isNotEmpty) {
+        filteredSkills = filteredSkills.where((skill) => 
           skill['category'] == category
         ).toList();
       }
       
+      // Apply price filters if provided
       if (minPrice != null) {
-        results = results.where((skill) => 
+        filteredSkills = filteredSkills.where((skill) => 
           (skill['cost'] ?? 0) >= minPrice
         ).toList();
       }
       
       if (maxPrice != null) {
-        results = results.where((skill) => 
+        filteredSkills = filteredSkills.where((skill) => 
           (skill['cost'] ?? 0) <= maxPrice
         ).toList();
       }
       
-      // Sort results
+      // Apply sorting
       if (sortBy != null) {
         if (sortBy == 'price_asc') {
-          results.sort((a, b) => (a['cost'] ?? 0).compareTo(b['cost'] ?? 0));
+          filteredSkills.sort((a, b) => (a['cost'] ?? 0).compareTo(b['cost'] ?? 0));
         } else if (sortBy == 'price_desc') {
-          results.sort((a, b) => (b['cost'] ?? 0).compareTo(a['cost'] ?? 0));
+          filteredSkills.sort((a, b) => (b['cost'] ?? 0).compareTo(a['cost'] ?? 0));
         } else if (sortBy == 'date') {
-          results.sort((a, b) => (b['created_at'] ?? '').compareTo(a['created_at'] ?? ''));
+          filteredSkills.sort((a, b) => (b['created_at'] ?? '').compareTo(a['created_at'] ?? ''));
+        }
+      }
+      
+      // Add result_type to each skill for differentiation
+      results = filteredSkills.map((skill) {
+        return {
+          ...skill,
+          'result_type': 'skill'
+        };
+      }).toList();
+      
+      // If includeUsers is true and search is not empty, include user search results
+      if (includeUsers && search.isNotEmpty) {
+        try {
+          final users = await SupabaseService.searchUsers(search);
+          // Mark each user result to distinguish from skills
+          final userResults = users.map((user) {
+            return {
+              ...user,
+              'result_type': 'user'
+            };
+          }).toList();
+          results.addAll(userResults);
+        } catch (e) {
+          log('Error in user search: $e');
+          // Continue with just the skills results if user search fails
         }
       }
       
@@ -602,21 +653,12 @@ class DatabaseHelper {
   }
 
   // fetch transaction from session
-  static Future<DatabaseResponse> fetchTransactionFromSession(
-      int sessionId) async {
+  static Future<DatabaseResponse> fetchTransactionFromSession(int sessionId) async {
     try {
-      final transactions = await SupabaseService.getSessionTransactions(sessionId);
-      if (transactions.isEmpty) {
-        return DatabaseResponse(
-          success: false,
-          data: {'error': 'No transaction found for this session'},
-        );
-      }
-      return DatabaseResponse(
-        success: true,
-        data: transactions[0],
-      );
+      final result = await SupabaseService.getTransactionFromSession(sessionId);
+      return result;
     } catch (e) {
+      log('Error fetching transaction from session: $e');
       return DatabaseResponse(
         success: false,
         data: {'error': e.toString()},
@@ -644,6 +686,7 @@ class DatabaseHelper {
       final result = await SupabaseService.finalizeTransaction(transactionId, 'Completed');
       return result.success;
     } catch (e) {
+      log('Error finalizing transaction: $e');
       return false;
     }
   }
@@ -784,9 +827,17 @@ class DatabaseHelper {
     }
   }
 
-  // For backward compatibility
-  static Future<List<Map<String, dynamic>>> fetchSkills(int userId) async {
-    return await fetchUserSkills(userId);
+  // Fetch skills by user ID
+  static Future<List<Map<String, dynamic>>> fetchSkills(dynamic userId) async {
+    try {
+      // Convert userId to string if it's not already
+      String userIdString = userId.toString();
+      
+      return await SupabaseService.getUserSkills(userId: userIdString);
+    } catch (e) {
+      log('Error fetching skills: $e');
+      return [];
+    }
   }
 
   // Get provider details
@@ -876,6 +927,51 @@ class DatabaseHelper {
     } catch (e) {
       log('Error getting user by ID: $e');
       return null;
+    }
+  }
+
+  // Add a review for a completed session
+  static Future<bool> addReview(int sessionId, int reviewerId, int revieweeId, int rating, String? reviewText) async {
+    try {
+      final result = await SupabaseService.addReview({
+        'session_id': sessionId,
+        'reviewer_id': reviewerId,
+        'reviewee_id': revieweeId,
+        'rating': rating,
+        'review_text': reviewText,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      
+      return result.success;
+    } catch (e) {
+      log('Error adding review: $e');
+      return false;
+    }
+  }
+  
+  // Get reviews for a user
+  static Future<List<Map<String, dynamic>>> getUserReviews(int userId) async {
+    try {
+      return await SupabaseService.getUserReviews(userId);
+    } catch (e) {
+      log('Error getting user reviews: $e');
+      return [];
+    }
+  }
+
+  // Search for users by username
+  static Future<List<Map<String, dynamic>>> searchUsers(String search) async {
+    try {
+      final users = await SupabaseService.searchUsers(search);
+      return users.map((user) {
+        return {
+          ...user,
+          'result_type': 'user'
+        };
+      }).toList();
+    } catch (e) {
+      log('Error searching users: $e');
+      return [];
     }
   }
 }

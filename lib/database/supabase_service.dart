@@ -1570,25 +1570,62 @@ class SupabaseService {
     }
   }
   
-  // Finalize transaction
-  static Future<DatabaseResponse> finalizeTransaction(int transactionId, String status) async {
+  // Get transaction for a session
+  static Future<DatabaseResponse> getTransactionFromSession(int sessionId) async {
     try {
-      await supabase
-          .from('transactions')
-          .update({'status': status})
-          .eq('id', transactionId);
-          
+      _logOperation('Transactions', 'Getting transaction for session: $sessionId');
+      
       final data = await supabase
           .from('transactions')
           .select()
-          .eq('id', transactionId)
-          .single();
-          
+          .eq('session_id', sessionId)
+          .limit(1);
+      
+      if (data.isEmpty) {
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'No transaction found for this session'},
+        );
+      }
+      
+      _logOperation('Transactions', 'Successfully retrieved transaction for session: $sessionId');
+      
       return DatabaseResponse(
         success: true,
-        data: data,
+        data: data[0],
       );
     } catch (e) {
+      _logOperation('Transactions', 'Error getting transaction for session: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Finalize a transaction
+  static Future<DatabaseResponse> finalizeTransaction(int transactionId, String status) async {
+    try {
+      _logOperation('Transactions', 'Finalizing transaction $transactionId with status: $status');
+      
+      final result = await supabase
+          .from('transactions')
+          .update({
+            'status': status,
+            'completed_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', transactionId)
+          .select()
+          .single();
+      
+      _logOperation('Transactions', 'Transaction $transactionId finalized successfully');
+      
+      return DatabaseResponse(
+        success: true,
+        data: result,
+      );
+    } catch (e) {
+      _logOperation('Transactions', 'Error finalizing transaction: $e', isError: true);
       return DatabaseResponse(
         success: false,
         data: {'error': e.toString()},
@@ -2091,6 +2128,160 @@ class SupabaseService {
     } catch (e) {
       _logOperation('Auth', 'Error verifying email: $e', isError: true);
       throw Exception('Failed to verify email: $e');
+    }
+  }
+
+  // REVIEW OPERATIONS
+  
+  // Add a review
+  static Future<DatabaseResponse> addReview(Map<String, dynamic> reviewData) async {
+    try {
+      _logOperation('Reviews', 'Adding review with data: $reviewData');
+      
+      // Validate required fields
+      if (!reviewData.containsKey('session_id') || 
+          !reviewData.containsKey('reviewer_id') || 
+          !reviewData.containsKey('reviewee_id') ||
+          !reviewData.containsKey('rating')) {
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Required fields missing (session_id, reviewer_id, reviewee_id, rating)'},
+        );
+      }
+      
+      // Ensure IDs are integers
+      if (reviewData['reviewer_id'] is String) {
+        try {
+          reviewData['reviewer_id'] = int.parse(reviewData['reviewer_id']);
+        } catch (e) {
+          _logOperation('Reviews', 'Failed to convert reviewer_id to integer: ${reviewData['reviewer_id']}', isError: true);
+        }
+      }
+      
+      if (reviewData['reviewee_id'] is String) {
+        try {
+          reviewData['reviewee_id'] = int.parse(reviewData['reviewee_id']);
+        } catch (e) {
+          _logOperation('Reviews', 'Failed to convert reviewee_id to integer: ${reviewData['reviewee_id']}', isError: true);
+        }
+      }
+      
+      if (reviewData['session_id'] is String) {
+        try {
+          reviewData['session_id'] = int.parse(reviewData['session_id']);
+        } catch (e) {
+          _logOperation('Reviews', 'Failed to convert session_id to integer: ${reviewData['session_id']}', isError: true);
+        }
+      }
+      
+      // Validate rating is between 1 and 5
+      if (reviewData['rating'] < 1 || reviewData['rating'] > 5) {
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Rating must be between 1 and 5'},
+        );
+      }
+      
+      final result = await supabase
+          .from('reviews')
+          .insert(reviewData)
+          .select()
+          .single();
+      
+      _logOperation('Reviews', 'Review added successfully with ID: ${result['id']}');
+      
+      return DatabaseResponse(
+        success: true,
+        data: result,
+      );
+    } catch (e) {
+      _logOperation('Reviews', 'Error adding review: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Get reviews for a user (as reviewee)
+  static Future<List<Map<String, dynamic>>> getUserReviews(dynamic userId) async {
+    try {
+      _logOperation('Reviews', 'Getting reviews for user: $userId');
+      
+      // Ensure userId is an integer
+      int parsedUserId;
+      if (userId is String) {
+        try {
+          parsedUserId = int.parse(userId);
+        } catch (e) {
+          _logOperation('Reviews', 'Failed to convert userId to integer: $userId', isError: true);
+          return [];
+        }
+      } else {
+        parsedUserId = userId;
+      }
+      
+      final data = await supabase
+          .from('reviews')
+          .select('''
+            id, 
+            rating, 
+            review_text, 
+            created_at,
+            reviewer:reviewer_id (id, username),
+            session:session_id (id)
+          ''')
+          .eq('reviewee_id', parsedUserId)
+          .order('created_at', ascending: false);
+      
+      _logOperation('Reviews', 'Successfully retrieved ${data.length} reviews for user: $parsedUserId');
+      
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      _logOperation('Reviews', 'Error getting user reviews: $e', isError: true);
+      return [];
+    }
+  }
+  
+  // Get average rating for a user
+  static Future<double> getUserAverageRating(dynamic userId) async {
+    try {
+      _logOperation('Reviews', 'Getting average rating for user: $userId');
+      
+      // Ensure userId is an integer
+      int parsedUserId;
+      if (userId is String) {
+        try {
+          parsedUserId = int.parse(userId);
+        } catch (e) {
+          _logOperation('Reviews', 'Failed to convert userId to integer: $userId', isError: true);
+          return 0.0;
+        }
+      } else {
+        parsedUserId = userId;
+      }
+      
+      final data = await supabase
+          .from('reviews')
+          .select('rating')
+          .eq('reviewee_id', parsedUserId);
+      
+      if (data.isEmpty) {
+        return 0.0;
+      }
+      
+      double sum = 0;
+      for (var review in data) {
+        sum += (review['rating'] as int).toDouble();
+      }
+      
+      final average = sum / data.length;
+      _logOperation('Reviews', 'User $parsedUserId has average rating: $average from ${data.length} reviews');
+      
+      return average;
+    } catch (e) {
+      _logOperation('Reviews', 'Error getting user average rating: $e', isError: true);
+      return 0.0;
     }
   }
 } 

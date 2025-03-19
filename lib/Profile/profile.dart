@@ -26,6 +26,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   bool isLoading = true;
   bool isModerator = false;
   String? _avatarUrl;
+  String? _coverUrl;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -57,19 +58,37 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         setState(() {
           userData = response.data;
           _avatarUrl = userData?['avatar_url'];
+          _coverUrl = userData?['cover_url'];
           isLoading = false;
-          isModerator = userData!['moderator'];
+          isModerator = userData?['moderator'] ?? false;
         });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to load user data. Please try again.'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            )
+          );
+        }
       }
+    } else {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
-  Future<void> _pickAndUploadImage() async {
+  Future<void> _pickAndUploadImage({bool isCover = false}) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
+        maxWidth: isCover ? 1200 : 800,
+        maxHeight: isCover ? 600 : 800,
         imageQuality: 85,
       );
 
@@ -83,7 +102,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       final bytes = await pickedFile.readAsBytes();
       final fileExt = pickedFile.path.split('.').last;
       final fileName = '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-      final filePath = 'profiles/$userId/$fileName';
+      final folderPath = isCover ? 'covers' : 'profiles';
+      final filePath = '$folderPath/$userId/$fileName';
 
       await supabase.storage.from('profile-pictures').uploadBinary(
         filePath,
@@ -96,21 +116,28 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
 
       final imageUrl = supabase.storage.from('profile-pictures').getPublicUrl(filePath);
 
+      final fieldToUpdate = isCover ? 'cover_url' : 'avatar_url';
+      
       await supabase.from('users').update({
-        'avatar_url': imageUrl
-      }).eq('id', userId as Object);
+        fieldToUpdate: imageUrl
+      }).eq('id', userId);
 
       setState(() {
-        _avatarUrl = imageUrl;
-        userData?['avatar_url'] = imageUrl;
+        if (isCover) {
+          _coverUrl = imageUrl;
+          userData?['cover_url'] = imageUrl;
+        } else {
+          _avatarUrl = imageUrl;
+          userData?['avatar_url'] = imageUrl;
+        }
         isLoading = false;
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
-            backgroundColor: Color(0xFF6296FF),
+          SnackBar(
+            content: Text(isCover ? 'Cover photo updated successfully!' : 'Profile picture updated successfully!'),
+            backgroundColor: const Color(0xFF6296FF),
             behavior: SnackBarBehavior.floating,
           )
         );
@@ -146,14 +173,52 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         : SafeArea(
             child: Stack(
               children: [
+                // Cover image
                 Container(
                   height: size.height * 0.3,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF6296FF), Color(0xFF4A7BFF)],
-                    ),
+                  decoration: BoxDecoration(
+                    gradient: _coverUrl == null 
+                      ? const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF6296FF), Color(0xFF4A7BFF)],
+                        )
+                      : null,
+                    image: _coverUrl != null
+                      ? DecorationImage(
+                          image: NetworkImage(_coverUrl!),
+                          fit: BoxFit.cover,
+                          onError: (_, __) {
+                            setState(() {
+                              _coverUrl = null;
+                            });
+                          },
+                        )
+                      : null,
+                  ),
+                  child: Stack(
+                    children: [
+                      // Cover photo change button
+                      Positioned(
+                        top: 15,
+                        right: 15,
+                        child: GestureDetector(
+                          onTap: () => _pickAndUploadImage(isCover: true),
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.photo_camera,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 SingleChildScrollView(
@@ -280,16 +345,28 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             ),
             padding: const EdgeInsets.all(3),
             child: ClipOval(
-              child: _avatarUrl != null
-                ? Image.network(
-                    _avatarUrl!,
+              child: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                ? FadeInImage.assetNetwork(
+                    placeholder: 'assets/images/avatar.png',
+                    image: _avatarUrl!,
                     fit: BoxFit.cover,
                     width: 134,
                     height: 134,
-                    errorBuilder: (context, error, stackTrace) =>
-                      Image.asset('assets/images/avatar.png'),
+                    imageErrorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        'assets/images/avatar.png',
+                        fit: BoxFit.cover,
+                        width: 134,
+                        height: 134,
+                      );
+                    },
                   )
-                : Image.asset('assets/images/avatar.png'),
+                : Image.asset(
+                    'assets/images/avatar.png',
+                    fit: BoxFit.cover,
+                    width: 134,
+                    height: 134,
+                  ),
             ),
           ),
         ),
@@ -297,27 +374,23 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           bottom: 0,
           right: 0,
           child: GestureDetector(
-            onTap: _pickAndUploadImage,
+            onTap: () => _pickAndUploadImage(),
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF6296FF), Color(0xFF4A7BFF)],
-                ),
+                color: Colors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6296FF).withOpacity(0.3),
+                    color: Colors.black.withOpacity(0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
                 ],
               ),
               child: const Icon(
-                Icons.camera_alt,
-                color: Colors.white,
+                Icons.camera_alt_outlined,
+                color: Color(0xFF6296FF),
                 size: 22,
               ),
             ),

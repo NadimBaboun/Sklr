@@ -40,7 +40,12 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    
+    # Ignore Swift warnings in dependencies
     target.build_configurations.each do |config|
+      config.build_settings['SWIFT_SUPPRESS_WARNINGS'] = 'YES'
+      
+      # Fix build errors related to deployment target for iOS
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
       # For xcode 15 builds
       config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'

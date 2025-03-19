@@ -15,6 +15,40 @@ import 'Auth/emailVerification.dart';
 // Create a global Supabase client that can be accessed from anywhere in the app
 final supabase = Supabase.instance.client;
 
+// Initialize storage buckets needed for the app
+Future<void> initializeStorage() async {
+  try {
+    // Check if the profile-pictures bucket exists
+    final buckets = await supabase.storage.listBuckets();
+    
+    if (!buckets.any((bucket) => bucket.name == 'profile-pictures')) {
+      // Create the bucket for profile pictures
+      await supabase.storage.createBucket(
+        'profile-pictures',
+        const BucketOptions(
+          public: true,
+          fileSizeLimit: '5242880', // 5MB - converted to String
+        ),
+      );
+      log('Created profile-pictures bucket');
+    }
+    
+    if (!buckets.any((bucket) => bucket.name == 'listing-images')) {
+      // Create the bucket for listing images
+      await supabase.storage.createBucket(
+        'listing-images',
+        const BucketOptions(
+          public: true,
+          fileSizeLimit: '10485760', // 10MB - converted to String
+        ),
+      );
+      log('Created listing-images bucket');
+    }
+  } catch (e) {
+    log('Error initializing storage: $e');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -33,6 +67,9 @@ void main() async {
     );
     
     log('Supabase initialized successfully');
+    
+    // Initialize storage buckets
+    await initializeStorage();
   } catch (e) {
     log('Error initializing Supabase: $e');
     // Continue anyway, we'll handle the error gracefully
