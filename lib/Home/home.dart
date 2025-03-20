@@ -64,7 +64,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(size.height * 0.22), // Responsive height
+        preferredSize: Size.fromHeight(size.height * 0.24), // Increased height to fix overflow
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -90,10 +90,11 @@ class _HomePageState extends State<HomePage> {
           child: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
+            toolbarHeight: size.height * 0.24, // Match preferredSize height
             flexibleSpace: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0, vertical: 16.0),
+                    horizontal: 24.0, vertical: 10.0), // Reduced vertical padding
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -170,14 +171,22 @@ class _HomePageState extends State<HomePage> {
         key: _scrollKey,
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0), // Further reduced padding
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSectionHeader('Service Categories', null),
-              const SizedBox(height: 20),
+              Text(
+                'Service Categories',
+                style: GoogleFonts.poppins(
+                  color: Colors.black87,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 8), // Further reduced space
               const ServiceCategoryCards(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16), // Further reduced space
               _buildSectionHeader('Recent Listings', () {
                 Navigator.push(
                   context,
@@ -186,7 +195,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 );
               }),
-              const SizedBox(height: 20),
+              const SizedBox(height: 8), // Further reduced space
               Container(
                 height: 320,
                 decoration: BoxDecoration(
@@ -202,7 +211,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 child: const RecentListings(),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16), // Further reduced space
               _buildSectionHeader('Popular Services', () {
                 Navigator.push(
                   context,
@@ -211,7 +220,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 );
               }),
-              const SizedBox(height: 20),
+              const SizedBox(height: 8), // Further reduced space
               Container(
                 height: 320,
                 decoration: BoxDecoration(
@@ -244,7 +253,7 @@ class _HomePageState extends State<HomePage> {
           title,
           style: GoogleFonts.poppins(
             color: Colors.black87,
-            fontSize: 24,
+            fontSize: 20,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.5,
           ),
@@ -254,7 +263,7 @@ class _HomePageState extends State<HomePage> {
             onTap: onViewAll,
             borderRadius: BorderRadius.circular(15),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: const Color(0xFF2196F3).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(15),
@@ -266,7 +275,7 @@ class _HomePageState extends State<HomePage> {
                     'View All',
                     style: GoogleFonts.poppins(
                       color: const Color(0xFF2196F3),
-                      fontSize: 14,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -274,7 +283,7 @@ class _HomePageState extends State<HomePage> {
                   const Icon(
                     Icons.arrow_forward_ios_rounded,
                     color: Color(0xFF2196F3),
-                    size: 12,
+                    size: 10,
                   ),
                 ],
               ),
@@ -293,103 +302,219 @@ class ServiceCategoryCards extends StatefulWidget {
 }
 
 class _serviceCategoryState extends State<ServiceCategoryCards> {
-  List<Widget> _buildAsyncServiceCategoryCards(
-      BoxConstraints constraints, List<Map<String, dynamic>> categories) {
-    return categories
-        .map(
-          (category) => InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      CategoryListingsPage(categoryName: category['name']),
-                ),
-              );
-            },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.15),
-                        spreadRadius: 2,
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  width: 100,
-                  height: 100,
-                  child: Padding(
-                    padding: const EdgeInsets.all(25),
-                    child: Image.asset(
-                      'assets/images/${category['asset']}.png',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  category['name'],
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    color: Colors.black87,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        )
-        .toList();
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _categories = [];
+  int _pageCount = 0;
+  String? _error;
+  
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final categories = await DatabaseHelper.fetchCategories();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _categories = categories;
+          _pageCount = (categories.length / 6).ceil();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Failed to load categories';
+        });
+      }
+    }
+  }
+  
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: DatabaseHelper.fetchCategories(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
-              strokeWidth: 3,
-            ),
-          );
-        } else if (snapshot.hasError ||
-            !snapshot.hasData ||
-            snapshot.data!.isEmpty) {
-          return Center(
-            child: Text(
-              'Failed to load categories',
-              style: GoogleFonts.poppins(
-                color: Colors.grey[600],
-                fontSize: 16,
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+          strokeWidth: 3,
+        ),
+      );
+    }
+    
+    if (_error != null) {
+      return Center(
+        child: Text(
+          _error!,
+          style: GoogleFonts.poppins(
+            color: Colors.grey[600],
+            fontSize: 16,
+          ),
+        ),
+      );
+    }
+    
+    if (_categories.isEmpty) {
+      return Center(
+        child: Text(
+          'No categories available',
+          style: GoogleFonts.poppins(
+            color: Colors.grey[600],
+            fontSize: 16,
+          ),
+        ),
+      );
+    }
+    
+    return Column(
+      children: [
+        SizedBox(
+          height: 260,
+          child: PageView.builder(
+            key: PageStorageKey('categoryPageView'),
+            controller: _pageController,
+            itemCount: _pageCount,
+            physics: const BouncingScrollPhysics(),
+            onPageChanged: (int page) {
+              setState(() {
+                _currentPage = page;
+              });
+            },
+            itemBuilder: (context, pageIndex) {
+              final startIndex = pageIndex * 6;
+              final endIndex = (startIndex + 6 <= _categories.length) 
+                  ? startIndex + 6 
+                  : _categories.length;
+              
+              final pageItems = _categories.sublist(startIndex, endIndex);
+              
+              return GridView.builder(
+                key: ValueKey('grid_page_$pageIndex'),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 0.75,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                ),
+                itemCount: pageItems.length,
+                itemBuilder: (context, index) => _buildCategoryCard(pageItems[index], pageIndex * 6 + index),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            _pageCount,
+            (index) => GestureDetector(
+              onTap: () {
+                _pageController.animateToPage(
+                  index,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
+              child: Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _currentPage == index
+                      ? const Color(0xFF2196F3)
+                      : Colors.grey.withOpacity(0.3),
+                ),
               ),
             ),
-          );
-        }
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            return GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              mainAxisSpacing: 24,
-              crossAxisSpacing: 16,
-              children:
-                  _buildAsyncServiceCategoryCards(constraints, snapshot.data!),
-            );
-          },
+          ),
+        ),
+        if (_pageCount > 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 4.0),
+            child: Text(
+              'Tap dots or swipe to view more categories',
+              style: GoogleFonts.poppins(
+                color: Colors.grey[500],
+                fontSize: 11,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+  
+  Widget _buildCategoryCard(Map<String, dynamic> category, int index) {
+    return InkWell(
+      key: ValueKey('category_${category['name']}_$index'),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                CategoryListingsPage(categoryName: category['name']),
+          ),
         );
       },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.15),
+                  spreadRadius: 2,
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            width: 85,
+            height: 85,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Image.asset(
+                'assets/images/${category['asset']}.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 45,
+            width: 100,
+            alignment: Alignment.center,
+            child: Text(
+              category['name'],
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.poppins(
+                color: Colors.black87,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
