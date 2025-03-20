@@ -4,6 +4,10 @@ import '../database/database.dart';
 import 'chat.dart';
 import '../Util/navigationbar-bar.dart';
 import '../database/userIdStorage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:developer';
+
+final supabase = Supabase.instance.client;
 
 class ChatsHomePage extends StatefulWidget {
   const ChatsHomePage({super.key});
@@ -21,6 +25,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
   late TabController _tabController;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  List<Map<String, dynamic>> chats = [];
 
   @override
   void initState() {
@@ -33,19 +38,17 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    _loadUserIdAndChats();
+    _loadChats();
     _loadActiveServices();
-    _setupPeriodicRefresh();
+    _startPeriodicRefresh();
     _animationController.forward();
   }
 
-  void _setupPeriodicRefresh() {
-    // Refresh both chats and active services every 10 seconds
+  void _startPeriodicRefresh() {
     Future.delayed(const Duration(seconds: 10), () {
       if (mounted) {
-        _loadUserIdAndChats();
-        _loadActiveServices();
-        _setupPeriodicRefresh();
+        _loadChats();
+        _startPeriodicRefresh();
       }
     });
   }
@@ -84,70 +87,123 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
     super.dispose();
   }
 
-  Future<void> _loadUserIdAndChats() async {
-    setState(() => isLoading = true);
+  Future<void> _loadChats() async {
+    if (!mounted) return;
+    
+    setState(() {
+      isLoading = true;
+    });
+
     try {
       final userId = await UserIdStorage.getLoggedInUserId();
       if (userId != null) {
-        setState(() => loggedInUserId = userId);
+        log('Loading chats for user: $userId');
         
-        // Call fetchChats instead of getUserChats to ensure consistency
-        final chats = await DatabaseHelper.fetchChats(userId);
+        // Directly query chats from Supabase to ensure fresh data
+        final response = await supabase
+          .from('chats')
+          .select('''
+            *,
+            last_message:messages(
+              *
+            )
+          ''')
+          .or('user1_id.eq.$userId,user2_id.eq.$userId')
+          .order('updated_at', ascending: false);
+            
+        log('Chats response: $response');
         
-        // Process chats to include required information
-        final processedChats = await Future.wait(chats.map((chat) async {
-          // Determine the other user ID in the chat
-          final otherUserId = 
-              (chat['user1_id']?.toString() == userId.toString())
-                  ? chat['user2_id']
-                  : chat['user1_id'];
-          
-          if (otherUserId == null) {
-            debugPrint('Warning: Chat ${chat['id']} has no valid other user ID');
-            return null;
+        if (!mounted) return;
+        
+        List<Map<String, dynamic>> processedChats = [];
+        
+        for (var chat in response) {
+          try {
+            // Extract the other user's ID (not the current user)
+            final otherUserId = chat['user1_id'] == userId.toString() 
+                ? chat['user2_id'] 
+                : chat['user1_id'];
+            
+            // Fetch the other user's details
+            final userData = await supabase
+                .from('users')
+                .select()
+                .eq('id', otherUserId)
+                .single();
+            
+            // Extract the last message if available
+            String lastMessageText = 'No messages yet';
+            String lastMessageTime = '';
+            bool unread = false;
+            
+            if (chat['last_message'] != null && chat['last_message'].isNotEmpty) {
+              var lastMessage = chat['last_message'][0];
+              lastMessageText = lastMessage['message'] ?? 'No messages';
+              
+              // Format the timestamp
+              if (lastMessage['timestamp'] != null) {
+                DateTime timestamp = DateTime.parse(lastMessage['timestamp']);
+                lastMessageTime = _formatMessageTime(timestamp);
+              }
+              
+              // Check if message is unread
+              unread = !lastMessage['read'] && lastMessage['sender_id'] != userId.toString();
+            }
+            
+            processedChats.add({
+              'id': chat['id'],
+              'user_id': otherUserId,
+              'username': userData['username'] ?? 'Unknown User',
+              'last_message': lastMessageText,
+              'timestamp': lastMessageTime,
+              'unread': unread,
+              'avatar_url': userData['avatar_url'],
+              'skill_id': chat['skill_id'],
+            });
+          } catch (e) {
+            log('Error processing chat: $e');
           }
-          
-          // Get unread messages count
-          final messages = await DatabaseHelper.getChatMessages(chat['id']);
-          final unreadCount = messages.where((msg) => 
-            msg['sender_id']?.toString() != userId.toString() && 
-            !(msg['read'] ?? false)
-          ).length;
-          
-          // Get the last message
-          final lastMessage = messages.isNotEmpty ? messages.first['message'] : 'No messages yet';
-          
-          return {
-            'chat_id': chat['id'],
-            'other_user_id': otherUserId,
-            'last_message': lastMessage,
-            'last_updated': chat['last_updated'],
-            'unread_count': unreadCount,
-            'sender_id': messages.isNotEmpty ? messages.first['sender_id'] : null,
-          };
-        }));
+        }
         
-        // Filter out any null values that might have occurred due to errors
-        final validChats = processedChats.whereType<Map<String, dynamic>>().toList();
-        
-        await _cacheUsernames(validChats);
-        setState(() => chatsFuture = Future.value(validChats));
+        setState(() {
+          chats = processedChats;
+          isLoading = false;
+        });
       }
     } catch (e) {
-      debugPrint('Error loading chats: $e');
-      setState(() => chatsFuture = Future.value([]));
-    } finally {
-      setState(() => isLoading = false);
+      log('Error loading chats: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  String _formatMessageTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+    
+    if (difference.inDays > 7) {
+      // Format as date if older than a week
+      return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
+    } else if (difference.inDays > 0) {
+      // Format as day of week if in the last week
+      return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][timestamp.weekday - 1];
+    } else {
+      // Format as time if today
+      return '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
     }
   }
 
   Future<void> _cacheUsernames(List<Map<String, dynamic>> chats) async {
     for (var chat in chats) {
-      final otherUserId = chat['other_user_id'];
+      final otherUserId = chat['user_id'];
       if (!usernameCache.containsKey(otherUserId)) {
-        final response = await DatabaseHelper.fetchUserFromId(otherUserId);
-        usernameCache[otherUserId] =
-            response.success ? response.data['username'] : 'Unknown';
+        final response = await supabase
+          .from('users')
+          .select()
+          .eq('id', otherUserId)
+          .single();
+        usernameCache[otherUserId] = response['username'] ?? 'Unknown';
       }
     }
   }
@@ -213,8 +269,11 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
     );
 
     if (confirmed == true) {
-      await DatabaseHelper.deleteChat(chatId);
-      _loadUserIdAndChats();
+      await supabase
+        .from('chats')
+        .delete()
+        .eq('id', chatId);
+      _loadChats();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -280,7 +339,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                         child: IconButton(
                           icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 24),
                           onPressed: () {
-                            _loadUserIdAndChats();
+                            _loadChats();
                             _animationController.reset();
                             _animationController.forward();
                           },
@@ -545,7 +604,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
     return FadeTransition(
       opacity: _fadeAnimation,
       child: FutureBuilder<List<Map<String, dynamic>>>(
-        future: chatsFuture,
+        future: Future.value(chats),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return _buildLoadingState();
           if (snapshot.data!.isEmpty) return _buildEmptyState();
@@ -575,21 +634,21 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
   }
 
   Widget _buildChatTile(Map<String, dynamic> chat) {
-    final otherUserId = chat['other_user_id'];
+    final otherUserId = chat['user_id'];
     final username = usernameCache[otherUserId] ?? 'Loading...';
     final lastMessage = chat['last_message'] ?? 'No messages yet.';
-    final lastUpdated = chat['last_updated']?.toString().substring(0, 10) ?? '';
-    final unreadCount = chat['unread_count'] ?? 0;
+    final lastUpdated = chat['timestamp'] ?? '';
+    final unreadCount = chat['unread'] ? 1 : 0;
     final bool hasUnread = unreadCount > 0;
     final bool isRecent = DateTime.now().difference(
-      DateTime.parse(chat['last_updated'] ?? DateTime.now().toString())
+      DateTime.parse(chat['timestamp'] ?? DateTime.now().toString())
     ).inMinutes < 1;
     
     // Determine if this message is a new message received by the user
-    final bool isNewMessage = hasUnread && chat['sender_id'] != loggedInUserId;
+    final bool isNewMessage = hasUnread && chat['user_id'] != loggedInUserId;
 
     return Dismissible(
-      key: Key('chat_${chat['chat_id']}'),
+      key: Key('chat_${chat['id']}'),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -604,7 +663,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
           size: 28,
         ),
       ),
-      onDismissed: (direction) => _deleteChat(chat['chat_id']),
+      onDismissed: (direction) => _deleteChat(chat['id']),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 500),
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -649,7 +708,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
               context,
               MaterialPageRoute(
                 builder: (context) => ChatPage(
-                  chatId: chat['chat_id'],
+                  chatId: chat['id'],
                   loggedInUserId: loggedInUserId!,
                   otherUsername: username,
                 ),
@@ -660,7 +719,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
               child: Row(
                 children: [
                   Hero(
-                    tag: 'avatar_${chat['chat_id']}',
+                    tag: 'avatar_${chat['id']}',
                     child: Stack(
                       children: [
                         Container(

@@ -9,6 +9,8 @@ import '../Home/home.dart';
 import '../Skills/myOrders.dart';
 import '../Profile/profile.dart';
 import '../Support/supportMain.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:developer';
 
 class ChatPage extends StatefulWidget {
   final int chatId;
@@ -44,8 +46,15 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<List<Map<String, dynamic>>> _initializeMessages() async {
     try {
-      final messages = await DatabaseHelper.getChatMessages(widget.chatId);
-      return messages;
+      // Directly query messages from Supabase to ensure fresh data
+      final messagesResponse = await supabase
+          .from('messages')
+          .select()
+          .eq('chat_id', widget.chatId)
+          .order('timestamp', ascending: false);
+          
+      log('Fetched ${messagesResponse.length} messages for chat ${widget.chatId}');
+      return List<Map<String, dynamic>>.from(messagesResponse);
     } catch (e) {
       debugPrint('Error initializing messages: $e');
       return [];
@@ -73,7 +82,9 @@ class _ChatPageState extends State<ChatPage> {
     
     setState(() => isLoading = true);
     try {
-      final messagesList = await DatabaseHelper.getChatMessages(widget.chatId);
+      final messagesList = await _initializeMessages();
+      await _markMessagesAsRead();
+      
       if (mounted) {
         setState(() {
           messages = Future.value(messagesList);
@@ -105,39 +116,71 @@ class _ChatPageState extends State<ChatPage> {
     if (messageText.isEmpty) return;
 
     setState(() => isLoading = true);
+    _messageController.clear();
+    
     try {
-      // Get the recipient ID from the session
-      final sessionData = await DatabaseHelper.fetchSessionFromChat(widget.chatId);
-      if (!sessionData.success) {
-        throw Exception('Failed to fetch session data: ${sessionData.data['error']}');
+      // Get the session and determine recipient
+      final sessionData = await supabase
+          .from('sessions')
+          .select()
+          .eq('chat_id', widget.chatId)
+          .maybeSingle();
+          
+      if (sessionData == null) {
+        throw Exception('No session found for chat');
       }
       
-      if (!sessionData.data.containsKey('provider_id') || !sessionData.data.containsKey('requester_id')) {
-        throw Exception('Session data is incomplete: missing user IDs');
-      }
+      final recipientId = sessionData['provider_id'].toString() == widget.loggedInUserId.toString()
+          ? sessionData['requester_id']
+          : sessionData['provider_id'];
       
-      final recipientId = sessionData.data['provider_id'] == widget.loggedInUserId
-          ? sessionData.data['requester_id']
-          : sessionData.data['provider_id'];
+      // Insert the message
+      final newMessage = {
+        'chat_id': widget.chatId,
+        'sender_id': widget.loggedInUserId.toString(),
+        'message': messageText,
+        'timestamp': DateTime.now().toIso8601String(),
+        'read': false,
+      };
       
-      // Get the sender's name
-      final senderData = await DatabaseHelper.getUserById(widget.loggedInUserId);
-      if (senderData == null) {
-        throw Exception('Failed to get sender data');
-      }
+      final inserted = await supabase
+          .from('messages')
+          .insert(newMessage)
+          .select()
+          .single();
+          
+      log('Message sent: ${inserted['id']}');
       
-      final senderName = senderData['username'] ?? 'Unknown User';
-      final senderImage = senderData['profile_image'];
-
-      await DatabaseHelper.sendMessageWithNotification(
-        chatId: widget.chatId,
-        senderId: widget.loggedInUserId,
-        message: messageText,
-        senderName: senderName,
-        recipientId: recipientId,
-        senderImage: senderImage,
-      );
-      _messageController.clear();
+      // Update the chat's updated_at timestamp
+      await supabase
+          .from('chats')
+          .update({'updated_at': DateTime.now().toIso8601String()})
+          .eq('id', widget.chatId);
+      
+      // Send notification to recipient
+      final userData = await supabase
+          .from('users')
+          .select()
+          .eq('id', widget.loggedInUserId)
+          .single();
+          
+      final senderName = userData['username'] ?? 'Unknown User';
+      final senderImage = userData['avatar_url'];
+      
+      final notificationData = {
+        'user_id': recipientId,
+        'message': '$senderName: $messageText',
+        'sender_id': widget.loggedInUserId.toString(),
+        'sender_image': senderImage,
+        'chat_id': widget.chatId,
+        'read': false,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      
+      await supabase
+          .from('notifications')
+          .insert(notificationData);
+      
       await _loadMessages();
     } catch (e) {
       if (mounted) {
@@ -149,15 +192,23 @@ class _ChatPageState extends State<ChatPage> {
           )
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+      setState(() => isLoading = false);
     }
   }
 
   Future<void> _markMessagesAsRead() async {
-    await DatabaseHelper.markChatAsRead(widget.chatId);
+    try {
+      // Mark all messages not sent by current user as read
+      await supabase
+          .from('messages')
+          .update({'read': true})
+          .eq('chat_id', widget.chatId)
+          .neq('sender_id', widget.loggedInUserId.toString());
+          
+      log('Marked messages as read for chat ${widget.chatId}');
+    } catch (e) {
+      debugPrint('Error marking messages as read: $e');
+    }
   }
 
   @override

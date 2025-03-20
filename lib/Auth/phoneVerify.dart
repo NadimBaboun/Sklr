@@ -11,17 +11,23 @@ import 'package:sklr/Auth/phoneNumber.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../database/models.dart';
 
-class PhoneVerify extends StatefulWidget {
-  final String code;
-  final String number;
+class PhoneVerifyPage extends StatefulWidget {
+  final String phoneNumber;
+  final int? userId;
+  final bool isRegistration;
 
-  const PhoneVerify({required this.code, required this.number, super.key});
+  const PhoneVerifyPage({
+    super.key, 
+    required this.phoneNumber,
+    this.userId,
+    this.isRegistration = false,
+  });
 
   @override
-  State<StatefulWidget> createState() => VerifyState();
+  State<StatefulWidget> createState() => PhoneVerifyPageState();
 }
 //phone verify page done  
-class VerifyState extends State<PhoneVerify> {
+class PhoneVerifyPageState extends State<PhoneVerifyPage> {
   String? otp;
   bool otpFilled = false;
   final TextEditingController otpController = TextEditingController();
@@ -82,7 +88,7 @@ class VerifyState extends State<PhoneVerify> {
 
         // make patch request to backend
         DatabaseResponse result = await DatabaseHelper.patchUser(userId, {
-          'phone_number': '+${widget.code} ${widget.number}'
+          'phone_number': '+${widget.phoneNumber}'
         } as Map<String, dynamic>);
 
         if (result.success) {
@@ -159,7 +165,7 @@ class VerifyState extends State<PhoneVerify> {
                         ),
                       ),
                       TextSpan(
-                        text: '+${widget.code} ${widget.number}',
+                        text: '+${widget.phoneNumber}',
                         style: GoogleFonts.mulish(
                           textStyle: TextStyle(
                             color: Color(0xff3204FF),

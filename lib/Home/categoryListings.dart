@@ -4,13 +4,47 @@ import '../database/database.dart';
 import '../Skills/skillInfo.dart';
 import '../Util/navigationbar-bar.dart';
 import '../database/models.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class CategoryListingsPage extends StatelessWidget {
+final supabase = Supabase.instance.client;
+
+class CategoryListingsPage extends StatefulWidget {
   final String categoryName;
   const CategoryListingsPage({super.key, required this.categoryName});
 
-  Future<List<Map<String, dynamic>>> fetchCategoryListings() async {
-    return await DatabaseHelper.fetchListingsByCategory(categoryName);
+  @override
+  State<CategoryListingsPage> createState() => _CategoryListingsPageState();
+}
+
+class _CategoryListingsPageState extends State<CategoryListingsPage> {
+  late Future<List<Map<String, dynamic>>> _futureListings;
+
+  @override
+  void initState() {
+    super.initState();
+    _futureListings = _fetchListings();
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchListings() async {
+    try {
+      // Use direct Supabase query to ensure we get the right data
+      final listings = await supabase
+          .from('skills')
+          .select('''
+            *,
+            users:user_id (
+              username,
+              avatar_url
+            )
+          ''')
+          .eq('category', widget.categoryName)
+          .order('created_at', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(listings);
+    } catch (e) {
+      debugPrint('Error fetching category listings: $e');
+      return [];
+    }
   }
 
   @override
@@ -23,7 +57,7 @@ class CategoryListingsPage extends StatelessWidget {
         backgroundColor: Colors.transparent,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          categoryName,
+          widget.categoryName,
           style: GoogleFonts.poppins(
             textStyle: const TextStyle(
               fontSize: 24,
@@ -65,7 +99,7 @@ class CategoryListingsPage extends StatelessWidget {
         ),
       ),
       body: FutureBuilder<List<Map<String,dynamic>>>(
-        future: fetchCategoryListings(),
+        future: _futureListings,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(

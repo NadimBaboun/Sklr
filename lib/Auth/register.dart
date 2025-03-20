@@ -74,7 +74,10 @@ class RegisterState extends State<Register> {
           
           // Navigate directly to home page to ensure the app works even if phone verification fails
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const PhoneNumber()),
+            MaterialPageRoute(builder: (context) => PhoneNumberPage(
+              userId: result.userId,
+              isRegistration: true,
+            )),
             (route) => false, // Remove all previous routes
           );
         }

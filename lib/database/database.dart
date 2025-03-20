@@ -65,22 +65,50 @@ class DatabaseHelper {
   static Future<LoginResponse> registerUser(
       String username, String email, String password) async {
     try {
-      final result = await SupabaseService.registerUser(username, email, password);
+      // Try direct SQL registration first
+      final directResult = await SupabaseService.registerViaDirectSQL(username, email, password);
       
-      // Even if registration is successful but needs verification,
-      // we return success with a special message
-      if (result.message.contains('verification')) {
+      if (directResult.success) {
         return LoginResponse(
           success: true,
-          message: 'verification_pending',
+          message: directResult.message,
+          userId: directResult.userId is String ? int.tryParse(directResult.userId) ?? -1 : directResult.userId,
+        );
+      }
+      
+      // If there's a specific error (like username already exists), return it
+      if (!directResult.success && directResult.message != null) {
+        return LoginResponse(
+          success: false,
+          message: directResult.message,
+        );
+      }
+      
+      // Try direct database registration next
+      final result = await SupabaseService.registerUserDirect(username, email, password);
+      
+      if (result.success) {
+        return LoginResponse(
+          success: true,
+          message: result.message,
           userId: result.userId is String ? int.tryParse(result.userId) ?? -1 : result.userId,
         );
       }
       
+      // If direct registration fails for application reasons, return that error
+      if (!result.success && result.message != null) {
+        return LoginResponse(
+          success: false,
+          message: result.message,
+        );
+      }
+      
+      // If direct registration fails for technical reasons, try Supabase Auth
+      final authResult = await SupabaseService.registerUser(username, email, password);
       return LoginResponse(
-        success: result.success,
-        message: result.message,
-        userId: result.userId is String ? int.tryParse(result.userId) ?? -1 : result.userId,
+        success: authResult.success,
+        message: authResult.message,
+        userId: authResult.userId is String ? int.tryParse(authResult.userId) ?? -1 : authResult.userId,
       );
     } catch (e) {
       return LoginResponse(
@@ -103,11 +131,44 @@ class DatabaseHelper {
   // auth: Login
   static Future<LoginResponse> loginUser(String email, String password) async {
     try {
-      final result = await SupabaseService.signInWithEmail(email, password);
+      // First try direct SQL authentication
+      final directResult = await SupabaseService.authenticateViaDirectSQL(email, password);
+      
+      // If successful, return the result
+      if (directResult.success) {
+        return LoginResponse(
+          success: directResult.success,
+          message: directResult.message,
+          userId: directResult.userId is String ? int.tryParse(directResult.userId) ?? -1 : directResult.userId,
+        );
+      }
+      
+      // If not successful but has specific error, return it
+      if (!directResult.success && directResult.message != null) {
+        return LoginResponse(
+          success: false,
+          message: directResult.message,
+        );
+      }
+      
+      // Then try to authenticate directly from users table via RPC
+      final result = await SupabaseService.authenticateFromUsersTable(email, password);
+      
+      // If successful, return the result
+      if (result.success) {
+        return LoginResponse(
+          success: result.success,
+          message: result.message,
+          userId: result.userId is String ? int.tryParse(result.userId) ?? -1 : result.userId,
+        );
+      }
+      
+      // If not successful, try Supabase Auth as fallback
+      final authResult = await SupabaseService.signInWithEmail(email, password);
       return LoginResponse(
-        success: result.success,
-        message: result.message,
-        userId: result.userId is String ? int.tryParse(result.userId) ?? -1 : result.userId,
+        success: authResult.success,
+        message: authResult.message,
+        userId: authResult.userId is String ? int.tryParse(authResult.userId) ?? -1 : authResult.userId,
       );
     } catch (e) {
       return LoginResponse(
@@ -199,6 +260,11 @@ class DatabaseHelper {
   // fetch categories
   static Future<List<Map<String, dynamic>>> fetchCategories() async {
     return await SupabaseService.getCategories();
+  }
+
+  // create new category
+  static Future<DatabaseResponse> createCategory(String name, String asset) async {
+    return await SupabaseService.createCategory(name, asset);
   }
 
   // fetch recent listings

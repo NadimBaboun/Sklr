@@ -4,6 +4,7 @@ import 'package:sklr/Skills/skillInfo.dart';
 import 'package:sklr/database/database.dart';
 import '../database/models.dart';
 import 'package:sklr/Profile/OtherProfile.dart';
+import 'package:sklr/Profile/user.dart';
 
 class SearchResultsPage extends StatefulWidget {
   final String initialSearch;
@@ -81,7 +82,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> with SingleTicker
         includeUsers: true,
       );
 
-      setState(() {
+    setState(() {
         if (_tabController.index == ALL_TAB) {
           _searchResults = results;
         } else if (_tabController.index == SKILLS_TAB) {
@@ -93,7 +94,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> with SingleTicker
       });
     } catch (e) {
       print('Error fetching search results: $e');
-      setState(() {
+                            setState(() {
         _searchResults = [];
         _isLoading = false;
       });
@@ -102,250 +103,223 @@ class _SearchResultsPageState extends State<SearchResultsPage> with SingleTicker
 
   Widget _buildSkillCard(Map<String, dynamic> skill) {
     return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Skillinfo(id: skill['id']),
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF6296FF).withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Skillinfo(id: skill['id']),
+                      ),
+                    );
+                  },
+                  child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6296FF).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      _getCategoryIcon(skill['category']),
-                      color: const Color(0xFF6296FF),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          skill['name'] ?? 'Unnamed Skill',
-                          style: GoogleFonts.mulish(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          skill['category'] ?? 'Uncategorized',
-                          style: GoogleFonts.mulish(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6296FF).withOpacity(0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF6296FF).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '£${(skill['cost'] ?? 0).toStringAsFixed(2)}',
-                      style: GoogleFonts.mulish(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF6296FF),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                skill['description'] ?? 'No description available',
-                style: GoogleFonts.mulish(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                  height: 1.5,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 16),
-              FutureBuilder<DatabaseResponse>(
-                future: DatabaseHelper.fetchUserFromId(skill['user_id']),
-                builder: (context, userSnapshot) {
-                  if (!userSnapshot.hasData) {
-                    return const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFF6296FF),
-                        ),
-                      ),
-                    );
-                  }
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF6296FF).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  _getCategoryIcon(skill['category']),
+                                  color: const Color(0xFF6296FF),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      skill['name'] ?? 'Unnamed Skill',
+                                      style: GoogleFonts.mulish(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                          Text(
+                                      skill['category'] ?? 'Uncategorized',
+                                      style: GoogleFonts.mulish(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF6296FF).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '£${(skill['cost'] ?? 0).toStringAsFixed(2)}',
+                            style: GoogleFonts.mulish(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF6296FF),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            skill['description'] ?? 'No description available',
+                            style: GoogleFonts.mulish(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                              height: 1.5,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 16),
+                          FutureBuilder<DatabaseResponse>(
+                            future: DatabaseHelper.fetchUserFromId(skill['user_id']),
+                            builder: (context, userSnapshot) {
+                              if (!userSnapshot.hasData) {
+                                return const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color(0xFF6296FF),
+                                    ),
+                                  ),
+                                );
+                              }
 
-                  final user = userSnapshot.data!.data;
-                  return Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: const Color(0xFF6296FF).withOpacity(0.1),
+                              final user = userSnapshot.data!.data;
+                              return Row(
+                                  children: [
+                                  CircleAvatar(
+                                    backgroundColor: const Color(0xFF6296FF).withOpacity(0.1),
                         backgroundImage: user['avatar_url'] != null && user['avatar_url'].toString().isNotEmpty
                           ? NetworkImage(user['avatar_url'])
                           : null,
                         child: user['avatar_url'] == null || user['avatar_url'].toString().isEmpty
                           ? Text(
-                              (user['username'] ?? 'U')[0].toUpperCase(),
-                              style: GoogleFonts.mulish(
-                                color: const Color(0xFF6296FF),
-                                fontWeight: FontWeight.w600,
-                              ),
+                                      (user['username'] ?? 'U')[0].toUpperCase(),
+                                      style: GoogleFonts.mulish(
+                                        color: const Color(0xFF6296FF),
+                                        fontWeight: FontWeight.w600,
+                                      ),
                             )
                           : null,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    user['username'] ?? 'Unknown User',
+                                    style: GoogleFonts.mulish(
+                                      fontSize: 14,
+                                      color: Colors.grey[700],
+                                      fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        user['username'] ?? 'Unknown User',
-                        style: GoogleFonts.mulish(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
+                    ),
+                  ),
     );
   }
 
-  Widget _buildUserCard(Map<String, dynamic> user) {
+  Widget _buildUserListItem(Map<String, dynamic> user) {
+    final username = user['username'] ?? 'Unknown User';
+    final avatar = user['avatar_url'];
+    
     return InkWell(
       onTap: () {
+        // Navigate to the user profile
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => OtherProfile(userId: user['id']),
+            builder: (context) => UserPage(userId: int.parse(user['id'].toString())),
           ),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF6296FF).withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
+      child: Card(
+        elevation: 2,
+        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
+              // Avatar
               CircleAvatar(
                 radius: 30,
-                backgroundColor: const Color(0xFF6296FF).withOpacity(0.1),
-                backgroundImage: user['avatar_url'] != null && user['avatar_url'].toString().isNotEmpty
-                  ? NetworkImage(user['avatar_url'])
-                  : null,
-                child: user['avatar_url'] == null || user['avatar_url'].toString().isEmpty
-                  ? Text(
-                      (user['username'] ?? 'U')[0].toUpperCase(),
-                      style: GoogleFonts.mulish(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF6296FF),
-                      ),
-                    )
-                  : null,
+                backgroundImage: avatar != null ? NetworkImage(avatar) : null,
+                child: avatar == null 
+                    ? Text(
+                        username.isNotEmpty ? username[0].toUpperCase() : '?',
+                        style: GoogleFonts.poppins(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ) 
+                    : null,
               ),
               const SizedBox(width: 16),
+              
+              // User info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      user['username'] ?? 'Unnamed User',
-                      style: GoogleFonts.mulish(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                      username,
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
-                    if (user['email'] != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          user['email'],
-                          style: GoogleFonts.mulish(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ),
-                    if (user['bio'] != null && user['bio'].toString().isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          user['bio'],
-                          style: GoogleFonts.mulish(
-                            fontSize: 14,
-                            color: Colors.grey[700],
-                            height: 1.5,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                    if (user['bio'] != null)
+                      Text(
+                        user['bio'],
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey[700],
+                          fontSize: 14,
                         ),
                       ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6296FF).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Color(0xFF6296FF),
-                  size: 16,
-                ),
-              ),
+              
+              // Arrow icon
+              const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
             ],
           ),
         ),
@@ -405,10 +379,10 @@ class _SearchResultsPageState extends State<SearchResultsPage> with SingleTicker
           padding: const EdgeInsets.only(bottom: 16),
           child: result['result_type'] == 'skill' 
               ? _buildSkillCard(result) 
-              : _buildUserCard(result),
-        );
-      },
-    );
+              : _buildUserListItem(result),
+              );
+            },
+          );
   }
 
   @override

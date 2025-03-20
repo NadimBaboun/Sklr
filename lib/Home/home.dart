@@ -7,6 +7,7 @@ import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/database/database.dart';
 import 'package:sklr/Skills/skillInfo.dart';
 import '../database/models.dart';
+import '../Profile/user.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -61,10 +62,14 @@ class _HomePageState extends State<HomePage> {
         )),
       );
     }
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        return false;
+      },
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(size.height * 0.24), // Increased height to fix overflow
+          preferredSize: Size.fromHeight(size.height * 0.24), // Increased height to fix overflow
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -75,31 +80,31 @@ class _HomePageState extends State<HomePage> {
                 const Color(0xFF2196F3).withOpacity(0.8),
               ],
             ),
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(25),
-              bottomRight: Radius.circular(25),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(25),
+                bottomRight: Radius.circular(25),
               ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
           ),
           child: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            toolbarHeight: size.height * 0.24, // Match preferredSize height
+              toolbarHeight: size.height * 0.24, // Match preferredSize height
             flexibleSpace: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0, vertical: 10.0), // Reduced vertical padding
+                      horizontal: 24.0, vertical: 10.0), // Reduced vertical padding
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hello, ${username ?? "Unknown User"} 👋',
+                        'Hello, ${username ?? "Unknown User"} 👋',
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontSize: 20,
@@ -137,7 +142,7 @@ class _HomePageState extends State<HomePage> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
-                                    SearchResultsPage(initialSearch: value),
+                                      SearchResultsPage(initialSearch: value),
                               ),
                             );
                           }
@@ -171,7 +176,7 @@ class _HomePageState extends State<HomePage> {
         key: _scrollKey,
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0), // Further reduced padding
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0), // Further reduced padding
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -179,85 +184,86 @@ class _HomePageState extends State<HomePage> {
                 'Service Categories',
                 style: GoogleFonts.poppins(
                   color: Colors.black87,
-                  fontSize: 20,
+                    fontSize: 20,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 8), // Further reduced space
+                const SizedBox(height: 8), // Further reduced space
               const ServiceCategoryCards(),
-              const SizedBox(height: 16), // Further reduced space
-              _buildSectionHeader('Recent Listings', () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AllListingsPage(title: 'Recent Listings'),
-                  ),
-                );
-              }),
-              const SizedBox(height: 8), // Further reduced space
-              Container(
-                height: 320,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.05),
-                      spreadRadius: 1,
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
+                const SizedBox(height: 16), // Further reduced space
+                _buildSectionHeader('Recent Listings', () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllListingsPage(title: 'Recent Listings'),
                     ),
-                  ],
-                ),
-                child: const RecentListings(),
-              ),
-              const SizedBox(height: 16), // Further reduced space
-              _buildSectionHeader('Popular Services', () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AllServicesPage(title: 'Popular Services'),
+                  );
+                }),
+                const SizedBox(height: 8), // Further reduced space
+                Container(
+                  height: 320,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.05),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
-                );
-              }),
-              const SizedBox(height: 8), // Further reduced space
-              Container(
-                height: 320,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.05),
-                      spreadRadius: 1,
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  child: const RecentListings(),
                 ),
-                child: const PopularServices(),
+                const SizedBox(height: 16), // Further reduced space
+                _buildSectionHeader('Popular Services', () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllServicesPage(title: 'Popular Services'),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8), // Further reduced space
+                Container(
+                  height: 320,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.05),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const PopularServices(),
               ),
               const SizedBox(height: 20),
-            ],
+              ],
+            ),
           ),
         ),
+        bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 0),
       ),
-      bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 0),
     );
   }
   
   Widget _buildSectionHeader(String title, Function()? onViewAll) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
           title,
-          style: GoogleFonts.poppins(
-            color: Colors.black87,
+                    style: GoogleFonts.poppins(
+                      color: Colors.black87,
             fontSize: 20,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
-          ),
-        ),
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
         if (onViewAll != null)
           InkWell(
             onTap: onViewAll,
@@ -272,13 +278,13 @@ class _HomePageState extends State<HomePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'View All',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFF2196F3),
+                      'View All',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF2196F3),
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
                   const SizedBox(width: 4),
                   const Icon(
                     Icons.arrow_forward_ios_rounded,
@@ -289,6 +295,41 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildProviderActions(Map<String, dynamic> skill) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // View profile button
+        TextButton(
+          onPressed: () {
+            if (skill['user_id'] != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UserPage(userId: int.parse(skill['user_id'].toString())),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('User information not available')),
+              );
+            }
+          },
+          child: Text(
+            'View Profile',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Colors.blue,
+            ),
+          ),
+        ),
+        
+        // ... existing code ...
       ],
     );
   }
@@ -460,61 +501,61 @@ class _serviceCategoryState extends State<ServiceCategoryCards> {
   Widget _buildCategoryCard(Map<String, dynamic> category, int index) {
     return InkWell(
       key: ValueKey('category_${category['name']}_$index'),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                CategoryListingsPage(categoryName: category['name']),
-          ),
-        );
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.15),
-                  spreadRadius: 2,
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      CategoryListingsPage(categoryName: category['name']),
                 ),
-              ],
-            ),
+              );
+            },
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.15),
+                        spreadRadius: 2,
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
             width: 85,
             height: 85,
-            child: Padding(
+                  child: Padding(
               padding: const EdgeInsets.all(20),
-              child: Image.asset(
-                'assets/images/${category['asset']}.png',
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
+                    child: Image.asset(
+                      'assets/images/${category['asset']}.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
           const SizedBox(height: 10),
           Container(
             height: 45,
             width: 100,
             alignment: Alignment.center,
             child: Text(
-              category['name'],
-              textAlign: TextAlign.center,
+                  category['name'],
+                  textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.poppins(
-                color: Colors.black87,
+                  style: GoogleFonts.poppins(
+                    color: Colors.black87,
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w600,
               ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -558,18 +599,18 @@ class _recentListingsState extends State<RecentListings> {
                 Hero(
                   tag: 'listing-image-${listing['id']}',
                   child: Container(
-                    decoration: BoxDecoration(
+                  decoration: BoxDecoration(
                       color: const Color(0xFF2196F3).withOpacity(0.08),
                       borderRadius: BorderRadius.circular(12),
-                    ),
-                    width: 70,
-                    height: 70,
-                    padding: const EdgeInsets.all(16),
-                    child: Image.asset(
-                      'assets/images/${categoryMap[listing['category']]}.png',
-                      fit: BoxFit.contain,
-                    ),
                   ),
+                  width: 70,
+                  height: 70,
+                  padding: const EdgeInsets.all(16),
+                  child: Image.asset(
+                    'assets/images/${categoryMap[listing['category']]}.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -607,39 +648,39 @@ class _recentListingsState extends State<RecentListings> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                FutureBuilder<DatabaseResponse>(
-                  future: DatabaseHelper.fetchUserFromId(listing['user_id']),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
-                        ),
-                      );
-                    } else if (snapshot.hasData) {
+            FutureBuilder<DatabaseResponse>(
+              future: DatabaseHelper.fetchUserFromId(listing['user_id']),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+                    ),
+                  );
+                } else if (snapshot.hasData) {
                       return Row(
                         children: [
                           Container(
                             width: 24,
                             height: 24,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2196F3).withOpacity(0.1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2196F3).withOpacity(0.1),
                               shape: BoxShape.circle,
-                            ),
+                    ),
                             child: Center(
-                              child: Text(
+                    child: Text(
                                 snapshot.data!.data['username']
                                     .toString()
                                     .substring(0, 1)
                                     .toUpperCase(),
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFF2196F3),
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF2196F3),
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -654,16 +695,16 @@ class _recentListingsState extends State<RecentListings> {
                             ),
                           ),
                         ],
-                      );
-                    }
-                    return Text(
-                      'Unknown Provider',
-                      style: GoogleFonts.poppins(
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
-                    );
-                  },
+                  );
+                }
+                return Text(
+                  'Unknown Provider',
+                  style: GoogleFonts.poppins(
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                );
+              },
                 ),
                 
                 // Cost display
@@ -886,7 +927,7 @@ class PopularServices extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         minimumSize: const Size(double.infinity, 0),
                       ),
-                      child: Text(
+                            child: Text(
                         'View Profile',
                         style: GoogleFonts.poppins(
                           color: Colors.white,
@@ -1195,31 +1236,31 @@ class AllServicesPage extends StatelessWidget {
                                 user['username'] != null && user['username'].toString().isNotEmpty
                                     ? user['username'].toString()[0].toUpperCase()
                                     : '?',
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFF2196F3),
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF2196F3),
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
+                        ),
                           const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
                                   user['username'] ?? 'Unknown user',
-                                  style: GoogleFonts.poppins(
+                                style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 18,
-                                  ),
                                 ),
+                              ),
                                 const SizedBox(height: 4),
                                 if (user['bio'] != null && user['bio'].toString().isNotEmpty)
-                                  Text(
+                              Text(
                                     user['bio'],
-                                    style: GoogleFonts.poppins(
+                                style: GoogleFonts.poppins(
                                       color: Colors.grey[700],
                                       fontSize: 14,
                                     ),
@@ -1242,22 +1283,22 @@ class AllServicesPage extends StatelessWidget {
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
                                         ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                );
-              },
+                ),
+              ),
+            );
+          },
             ),
-          );
-        },
+        );
+      },
       ),
     );
   }

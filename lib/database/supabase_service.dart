@@ -288,9 +288,112 @@ class SupabaseService {
     }
   }
 
+  // Direct authentication from users table
+  static Future<LoginResponse> authenticateFromUsersTable(String email, String password) async {
+    try {
+      _logOperation('DirectLogin', 'Attempting direct login from users table for email: $email');
+      
+      // Call the PostgreSQL function we created
+      final response = await supabase.rpc('authenticate_user', params: {
+        'user_email': email,
+        'user_password': password
+      });
+      
+      _logOperation('DirectLogin', 'Authentication response: $response');
+      
+      // Check if authentication was successful
+      if (response != null && response['success'] == true) {
+        final userId = response['user_id'];
+        _logOperation('DirectLogin', 'Authentication successful for user ID: $userId');
+        
+        // Store the userId for future use
+        await UserIdStorage.saveLoggedInUserId(userId);
+        
+        return LoginResponse(
+          success: true,
+          message: 'Login successful',
+          userId: userId,
+        );
+      } else {
+        final errorMessage = response?['message'] ?? 'Invalid email or password';
+        _logOperation('DirectLogin', 'Authentication failed: $errorMessage', isError: true);
+        
+        return LoginResponse(
+          success: false,
+          message: errorMessage,
+        );
+      }
+    } catch (e) {
+      _logOperation('DirectLogin', 'Error during direct authentication: $e', isError: true);
+      return LoginResponse(
+        success: false,
+        message: 'Authentication error: ${e.toString()}',
+      );
+    }
+  }
+
+  // Direct SQL authentication 
+  static Future<LoginResponse> authenticateViaDirectSQL(String email, String password) async {
+    try {
+      _logOperation('DirectSQL', 'Attempting direct SQL authentication for: $email');
+      
+      // Direct SQL query instead of RPC function call
+      final response = await supabase
+          .from('users')
+          .select('id, username, email')
+          .eq('email', email)
+          .eq('password', password)
+          .maybeSingle();
+      
+      _logOperation('DirectSQL', 'Authentication response: $response');
+      
+      if (response != null) {
+        final userId = response['id'];
+        _logOperation('DirectSQL', 'Authentication successful for user ID: $userId');
+        
+        // Store this ID for future use
+        await UserIdStorage.saveLoggedInUserId(userId);
+        
+        return LoginResponse(
+          success: true,
+          message: 'Login successful',
+          userId: userId,
+        );
+      } else {
+        _logOperation('DirectSQL', 'Authentication failed: Invalid credentials', isError: true);
+        
+        return LoginResponse(
+          success: false,
+          message: 'Invalid email or password',
+        );
+      }
+    } catch (e) {
+      _logOperation('DirectSQL', 'Error during direct SQL authentication: $e', isError: true);
+      return LoginResponse(
+        success: false,
+        message: 'Authentication error: ${e.toString()}',
+      );
+    }
+  }
+
   // For backward compatibility with original DatabaseHelper
   static Future<LoginResponse> fetchUserId(String email, String password) async {
-    return await signInWithEmail(email, password);
+    // Try direct SQL authentication first
+    try {
+      return await authenticateViaDirectSQL(email, password);
+    } catch (directAuthError) {
+      _logOperation('Login', 'Direct SQL authentication failed, trying RPC: $directAuthError', isError: true);
+      
+      // Try RPC function as second option
+      try {
+        return await authenticateFromUsersTable(email, password);
+      } catch (rpcError) {
+        _logOperation('Login', 'RPC authentication failed, falling back to Supabase Auth: $rpcError', isError: true);
+        
+        // Fall back to Supabase Auth if direct authentication fails
+        return await signInWithEmail(email, password);
+      }
+    }
   }
 
   // Sign in with Apple
@@ -805,6 +908,49 @@ class SupabaseService {
     } catch (e) {
       log('Error getting categories: $e');
       return [];
+    }
+  }
+  
+  // Create a new category
+  static Future<DatabaseResponse> createCategory(String name, String asset) async {
+    try {
+      _logOperation('Categories', 'Creating new category: $name with asset: $asset');
+      
+      // Check if the category already exists
+      final existingCategories = await supabase
+          .from('categories')
+          .select()
+          .eq('name', name);
+          
+      if (existingCategories.isNotEmpty) {
+        _logOperation('Categories', 'Category already exists: $name', isError: true);
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Category already exists', 'name': name}
+        );
+      }
+      
+      // Create the new category
+      final result = await supabase
+          .from('categories')
+          .insert({
+            'name': name,
+            'asset': asset,
+          })
+          .select();
+          
+      _logOperation('Categories', 'Category created successfully: $result');
+      
+      return DatabaseResponse(
+        success: true,
+        data: result.isNotEmpty ? result[0] : {'name': name, 'asset': asset}
+      );
+    } catch (e) {
+      _logOperation('Categories', 'Error creating category: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
     }
   }
 
@@ -2148,6 +2294,174 @@ class SupabaseService {
     } catch (e) {
       _logOperation('Reviews', 'Error getting user average rating: $e', isError: true);
       return 0.0;
+    }
+  }
+
+  // Direct user registration to users table
+  static Future<LoginResponse> registerUserDirect(String username, String email, String password) async {
+    try {
+      _logOperation('DirectRegistration', 'Starting direct user registration for: $email');
+      
+      // Check if username or email already exists
+      final userExistsByUsername = await supabase
+          .from('users')
+          .select()
+          .eq('username', username)
+          .maybeSingle();
+          
+      if (userExistsByUsername != null) {
+        _logOperation('DirectRegistration', 'Username already exists: $username', isError: true);
+        return LoginResponse(
+          success: false,
+          message: 'Username already exists',
+        );
+      }
+      
+      final userExistsByEmail = await supabase
+          .from('users')
+          .select()
+          .eq('email', email)
+          .maybeSingle();
+          
+      if (userExistsByEmail != null) {
+        _logOperation('DirectRegistration', 'Email already exists: $email', isError: true);
+        return LoginResponse(
+          success: false,
+          message: 'Email already exists',
+        );
+      }
+      
+      // Create user directly in the users table
+      _logOperation('DirectRegistration', 'Creating user in database');
+      final result = await supabase.from('users').insert({
+        'username': username,
+        'email': email,
+        'password': password,
+        'credits': 0, // Required per schema default
+        'created_at': DateTime.now().toIso8601String(),
+      }).select();
+      
+      _logOperation('DirectRegistration', 'User created successfully: $result');
+      
+      // Get the ID that was assigned
+      if (result.isNotEmpty) {
+        final userId = result[0]['id'];
+        _logOperation('DirectRegistration', 'Database assigned user ID: $userId');
+        
+        // Store the user ID
+        await UserIdStorage.saveLoggedInUserId(userId);
+        
+        return LoginResponse(
+          success: true,
+          message: 'User registered successfully',
+          userId: userId,
+        );
+      } else {
+        _logOperation('DirectRegistration', 'No result returned from user insertion', isError: true);
+        return LoginResponse(
+          success: false,
+          message: 'User creation failed - no ID returned',
+        );
+      }
+    } catch (e) {
+      _logOperation('DirectRegistration', 'Error creating user: $e', isError: true);
+      return LoginResponse(
+        success: false,
+        message: 'Registration error: ${e.toString()}',
+      );
+    }
+  }
+
+  // Direct SQL registration
+  static Future<LoginResponse> registerViaDirectSQL(String username, String email, String password) async {
+    try {
+      _logOperation('DirectSQL', 'Attempting direct SQL registration for: $email');
+      
+      // Check if username exists
+      final usernameExists = await supabase
+          .from('users')
+          .select('id')
+          .eq('username', username)
+          .maybeSingle();
+          
+      if (usernameExists != null) {
+        _logOperation('DirectSQL', 'Username already exists: $username', isError: true);
+        return LoginResponse(
+          success: false,
+          message: 'Username already exists',
+        );
+      }
+      
+      // Check if email exists
+      final emailExists = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+          
+      if (emailExists != null) {
+        _logOperation('DirectSQL', 'Email already exists: $email', isError: true);
+        return LoginResponse(
+          success: false,
+          message: 'Email already exists',
+        );
+      }
+      
+      // Insert new user
+      final result = await supabase
+          .from('users')
+          .insert({
+            'username': username,
+            'email': email,
+            'password': password,
+            'credits': 0,
+            'created_at': DateTime.now().toIso8601String(),
+          })
+          .select();
+      
+      _logOperation('DirectSQL', 'Registration result: $result');
+      
+      if (result.isNotEmpty) {
+        final userId = result[0]['id'];
+        
+        // Store user ID
+        await UserIdStorage.saveLoggedInUserId(userId);
+        
+        return LoginResponse(
+          success: true,
+          message: 'Registration successful',
+          userId: userId,
+        );
+      } else {
+        return LoginResponse(
+          success: false,
+          message: 'Failed to register user',
+        );
+      }
+    } catch (e) {
+      _logOperation('DirectSQL', 'Error during direct SQL registration: $e', isError: true);
+      return LoginResponse(
+        success: false,
+        message: 'Registration error: ${e.toString()}',
+      );
+    }
+  }
+
+  // AUTH OPERATIONS
+  
+  // Reset password
+  static Future<void> resetPassword(String email) async {
+    _logOperation('Password Reset', 'Sending password reset email to: $email');
+    
+    try {
+      await supabase.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'io.supabase.sklr://reset-callback/',
+      );
+      _logOperation('Password Reset', 'Password reset email sent successfully');
+    } catch (e) {
+      _logOperation('Password Reset', 'Error sending password reset email: $e', isError: true);
+      throw Exception('Failed to send password reset email: $e');
     }
   }
 } 
