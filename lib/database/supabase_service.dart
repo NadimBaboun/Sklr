@@ -2298,7 +2298,7 @@ class SupabaseService {
         'username': username,
         'email': email,
         'password': password,
-        'credits': 50, // Required per schema default
+        'credits': 0, // Required per schema default
         'created_at': DateTime.now().toIso8601String(),
       }).select();
       
