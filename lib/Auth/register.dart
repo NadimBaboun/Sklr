@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
@@ -35,7 +37,7 @@ class RegisterState extends State<Register> {
         termsAccepted;
   }
 
-  void registerUser(BuildContext context) async {
+    void registerUser(BuildContext context) async {
     try {
       // Show loading indicator
       showDialog(
@@ -49,10 +51,10 @@ class RegisterState extends State<Register> {
           );
         },
       );
-      
+
       // Register the user
       LoginResponse result = await DatabaseHelper.registerUser(username, email, password);
-      
+
       // Close the loading dialog
       Navigator.pop(context);
 
@@ -60,6 +62,7 @@ class RegisterState extends State<Register> {
         if (result.message == 'verification_pending') {
           // Navigate to pending verification page
           Navigator.pushReplacement(
+            // ignore: use_build_context_synchronously
             context,
             MaterialPageRoute(
               builder: (context) => PendingVerificationPage(
@@ -71,18 +74,19 @@ class RegisterState extends State<Register> {
           // Regular success case
           await UserIdStorage.saveLoggedInUserId(result.userId);
           await UserIdStorage.saveRememberMe(true);
-          
+
           // Navigate directly to home page to ensure the app works even if phone verification fails
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => PhoneNumberPage(
-              userId: result.userId,
-              isRegistration: true,
-            )),
+            MaterialPageRoute(
+              builder: (context) => PhoneNumberPage(
+                userId: result.userId,
+                isRegistration: true,
+              ),
+            ),
             (route) => false, // Remove all previous routes
           );
         }
-      }
-      else {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result.message)),
         );
@@ -90,7 +94,7 @@ class RegisterState extends State<Register> {
     } catch (e) {
       // Close loading dialog if it's still showing
       Navigator.of(context).popUntil((route) => route.isFirst);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Registration error: ${e.toString()}')),
       );

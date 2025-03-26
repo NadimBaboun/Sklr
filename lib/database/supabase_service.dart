@@ -1,13 +1,11 @@
 import 'dart:developer';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'userIdStorage.dart';
 import 'models.dart'; // Import shared models
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:http/http.dart' as http;
 
 // Access the Supabase client from main.dart
 final supabase = Supabase.instance.client;
@@ -232,34 +230,26 @@ class SupabaseService {
               .eq('email', email)
               .single();
           
-          if (userData != null) {
-            final userId = userData['id'];
-            _logOperation('Login', 'Found database user ID: $userId');
-            
-            // Store the ID for future use
-            await UserIdStorage.saveLoggedInUserId(userId);
-            
-            // Update auth metadata for future logins
-            await supabase.auth.updateUser(UserAttributes(
-              data: {
-                'db_user_id': userId,
-              }
-            ));
-            _logOperation('Login', 'Updated auth metadata with db_user_id: $userId');
-            
-            return LoginResponse(
-              success: true,
-              message: 'Login successful',
-              userId: userId,
-            );
-          } else {
-            _logOperation('Login', 'Could not find user record in database', isError: true);
-            return LoginResponse(
-              success: false,
-              message: 'User authenticated but no database record found',
-            );
-          }
-        } catch (e) {
+          final userId = userData['id'];
+          _logOperation('Login', 'Found database user ID: $userId');
+          
+          // Store the ID for future use
+          await UserIdStorage.saveLoggedInUserId(userId);
+          
+          // Update auth metadata for future logins
+          await supabase.auth.updateUser(UserAttributes(
+            data: {
+              'db_user_id': userId,
+            }
+          ));
+          _logOperation('Login', 'Updated auth metadata with db_user_id: $userId');
+          
+          return LoginResponse(
+            success: true,
+            message: 'Login successful',
+            userId: userId,
+          );
+                } catch (e) {
           _logOperation('Login', 'Error retrieving user record: $e', isError: true);
           return LoginResponse(
             success: false,
@@ -429,7 +419,6 @@ class SupabaseService {
       
       if (res.user != null) {
         log('Successfully signed in with Apple, auth user ID: ${res.user!.id}');
-        final authId = res.user!.id;
         
         // First check if we have db_user_id in auth metadata
         final dbUserId = res.user!.userMetadata?['db_user_id'];
@@ -506,7 +495,7 @@ class SupabaseService {
             // Don't specify 'id' field - let the database auto-generate it
             'username': username,
             'email': email,
-            'password': 'apple_oauth_' + DateTime.now().millisecondsSinceEpoch.toString(), // Required by schema
+            'password': 'apple_oauth_${DateTime.now().millisecondsSinceEpoch}', // Required by schema
             'credits': 0, // Required per schema
             // created_at has a default value in the schema
           }).select();
@@ -759,14 +748,9 @@ class SupabaseService {
           .select('*, categories(name)')
           .eq('user_id', currentUserId);
       
-      if (response != null && response is List) {
-        _logOperation('Skills', 'Found ${response.length} skills for user $currentUserId');
-        return List<Map<String, dynamic>>.from(response);
-      } else {
-        _logOperation('Skills', 'User skills query returned invalid data: $response', isError: true);
-        return [];
-      }
-    } catch (e) {
+      _logOperation('Skills', 'Found ${response.length} skills for user $currentUserId');
+      return List<Map<String, dynamic>>.from(response);
+        } catch (e) {
       _logOperation('Skills', 'Error fetching user skills: $e', isError: true);
       return [];
     }
@@ -1105,7 +1089,7 @@ class SupabaseService {
         final existingChat = existingChats[0];
         
         // If the chat exists but doesn't have a session_id, update it
-        if (existingChat['session_id'] == null && sessionId != null) {
+        if (existingChat['session_id'] == null) {
           _logOperation('Chats', 'Updating existing chat with session ID: $sessionId');
           
           final updatedChat = await supabase
@@ -1175,7 +1159,7 @@ class SupabaseService {
       final chats = await supabase
           .from('chats')
           .select('id')
-          .or('user1_id.eq.${userId},user2_id.eq.${userId}');
+          .or('user1_id.eq.$userId,user2_id.eq.$userId');
       
       if (chats.isEmpty) return 0;
       
@@ -1321,7 +1305,7 @@ class SupabaseService {
           .eq('id', chatId)
           .single();
           
-      if (chatData == null || !chatData.containsKey('session_id') || chatData['session_id'] == null) {
+      if (!chatData.containsKey('session_id') || chatData['session_id'] == null) {
         return DatabaseResponse(
           success: false,
           data: {'error': 'No session found for this chat'},
@@ -1865,14 +1849,6 @@ class SupabaseService {
           .eq('id', parsedUserId)
           .single();
       
-      if (userData == null) {
-        _logOperation('Users', 'User not found: $parsedUserId', isError: true);
-        return DatabaseResponse(
-          success: false,
-          data: {'error': 'User not found'},
-        );
-      }
-      
       int currentCredits = userData['credits'] ?? 0;
       int newCredits = currentCredits + amount;
       
@@ -1927,14 +1903,6 @@ class SupabaseService {
           .select('credits')
           .eq('id', parsedUserId)
           .single();
-      
-      if (userData == null) {
-        _logOperation('Users', 'User not found: $parsedUserId', isError: true);
-        return DatabaseResponse(
-          success: false,
-          data: {'error': 'User not found'},
-        );
-      }
       
       int currentCredits = userData['credits'] ?? 0;
       
@@ -2053,13 +2021,6 @@ class SupabaseService {
           .select()
           .eq('email', email)
           .single();
-      
-      if (dbUser == null) {
-        return LoginResponse(
-          success: false,
-          message: 'User not found in database',
-        );
-      }
       
       // Create auth user
       final authResponse = await supabase.auth.signUp(
@@ -2337,7 +2298,7 @@ class SupabaseService {
         'username': username,
         'email': email,
         'password': password,
-        'credits': 0, // Required per schema default
+        'credits': 50, // Required per schema default
         'created_at': DateTime.now().toIso8601String(),
       }).select();
       
@@ -2414,7 +2375,7 @@ class SupabaseService {
             'username': username,
             'email': email,
             'password': password,
-            'credits': 0,
+            'credits': 50,
             'created_at': DateTime.now().toIso8601String(),
           })
           .select();
@@ -2464,4 +2425,31 @@ class SupabaseService {
       throw Exception('Failed to send password reset email: $e');
     }
   }
-} 
+
+  // Update user credits
+  static Future<bool> updateUserCredits(int userId, int credits) async {
+    try {
+      final response = await supabase
+          .from('users') // Replace 'users' with the actual table name
+          .update({'credits': credits})
+          .eq('id', userId)
+          .select();
+
+      if (response.isEmpty) {
+        if (kDebugMode) {
+          print('Error updating user credits: No data returned.');
+        }
+        return false;
+      }
+      if (kDebugMode) {
+        print('User credits updated successfully for user ID: $userId');
+      }
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Exception updating user credits: $e');
+      }
+      return false;
+    }
+  }
+}

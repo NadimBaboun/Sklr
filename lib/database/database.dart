@@ -3,10 +3,9 @@ import 'dart:developer';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'userIdStorage.dart';
 import 'supabase_service.dart';
-import 'supabase.dart' as supabase_lib; // Import with a prefix to avoid conflicts
+// Import with a prefix to avoid conflicts
 import 'models.dart'; // Import shared models
 
 // This class is now a wrapper around SupabaseService to maintain compatibility with existing code
@@ -27,14 +26,6 @@ class DatabaseHelper {
     } else {
       return 'http://localhost:3000';
     }
-  }
-
-  // Helper method to convert between String and int user IDs
-  static String _convertUserId(dynamic userId) {
-    if (userId is int) {
-      return userId.toString();
-    }
-    return userId.toString();
   }
 
   // test backend server connection
@@ -77,7 +68,7 @@ class DatabaseHelper {
       }
       
       // If there's a specific error (like username already exists), return it
-      if (!directResult.success && directResult.message != null) {
+      if (!directResult.success) {
         return LoginResponse(
           success: false,
           message: directResult.message,
@@ -96,7 +87,7 @@ class DatabaseHelper {
       }
       
       // If direct registration fails for application reasons, return that error
-      if (!result.success && result.message != null) {
+      if (!result.success) {
         return LoginResponse(
           success: false,
           message: result.message,
@@ -144,7 +135,7 @@ class DatabaseHelper {
       }
       
       // If not successful but has specific error, return it
-      if (!directResult.success && directResult.message != null) {
+      if (!directResult.success) {
         return LoginResponse(
           success: false,
           message: directResult.message,
@@ -1023,5 +1014,23 @@ class DatabaseHelper {
       return [];
     }
   }
-}
 
+  static Future<bool> addCreditsToUser(int userId, int credits) async {
+    try {
+      // Call the SupabaseService to update the user's credits
+      final result = await SupabaseService.updateUserCredits(userId, credits);
+      
+      // Check if the operation was successful
+      if (result) {
+        log('Successfully added $credits credits to user with ID $userId');
+        return true;
+      } else {
+        log('Failed to add credits to user with ID $userId');
+        return false;
+      }
+    } catch (e) {
+      log('Error adding credits to user: $e');
+      return false;
+    }
+  }
+}
