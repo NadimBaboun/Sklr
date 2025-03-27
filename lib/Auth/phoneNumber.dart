@@ -70,7 +70,7 @@ class _PhoneNumberPageState extends State<PhoneNumberPage> {
                 width: double.infinity,
                 alignment: Alignment.center,
                 child: Image.asset(
-                  'assets/images/otp.png',
+                  'assets/images/skillerlogo.png',
                   height: isLargeScreen ? 240 : 180,
                 ),
               ),

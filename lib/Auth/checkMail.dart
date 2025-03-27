@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CheckMailPage extends StatefulWidget {
-  const CheckMailPage({Key? key}) : super(key: key);
+  const CheckMailPage({Key? key, required String message, required String title, required String routeTo, required String buttonText}) : super(key: key);
 
   @override
   _CheckMailPageState createState() => _CheckMailPageState();
