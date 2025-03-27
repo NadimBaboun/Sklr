@@ -46,3 +46,7 @@ app.*.map.json
 
 # Custom
 /backend/node_modules/
+
+# SQL files
+*.sql
+Database_schema.sql

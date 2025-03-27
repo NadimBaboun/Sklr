@@ -192,7 +192,7 @@ class AddSkillPageState extends State<AddSkillPage> {
                       ),
                       const SizedBox(height: 8),
                       TextField(
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: TextInputType.number,
                         onChanged: (value) {
                           setState(() {
                             if (value.isNotEmpty) {
@@ -204,7 +204,7 @@ class AddSkillPageState extends State<AddSkillPage> {
                         },
                         style: GoogleFonts.poppins(),
                         decoration: InputDecoration(
-                          hintText: "Enter cost in pounds (£)",
+                          hintText: "Enter cost in pounds (£) - whole numbers only",
                           fillColor: const Color(0xFFF5F7FF),
                           filled: true,
                           border: OutlineInputBorder(
@@ -289,12 +289,36 @@ class AddSkillPageState extends State<AddSkillPage> {
                       errorMessage = null;
                     });
                     
-                    if (skillname.isEmpty || 
-                        skilldescription.isEmpty || 
-                        skillcost == null ||
-                        chosenCategory == null) {
+                    // Form validation
+                    final skillname = this.skillname.trim();
+                    final skilldescription = this.skilldescription.trim();
+                    final skillcost = this.skillcost;
+                    
+                    // Check for empty fields
+                    if (skillname.isEmpty) {
                       setState(() {
-                        errorMessage = 'Please fill in all fields';
+                        errorMessage = 'Please enter a skill name';
+                      });
+                      return;
+                    }
+                    
+                    if (skilldescription.isEmpty) {
+                      setState(() {
+                        errorMessage = 'Please enter a description';
+                      });
+                      return;
+                    }
+                    
+                    if (chosenCategory == null) {
+                      setState(() {
+                        errorMessage = 'Please select a category';
+                      });
+                      return;
+                    }
+                    
+                    if (skillcost == null || skillcost <= 0) {
+                      setState(() {
+                        errorMessage = 'Please enter a valid cost (greater than 0)';
                       });
                       return;
                     }

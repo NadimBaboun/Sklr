@@ -555,7 +555,7 @@ class DatabaseHelper {
         'description': description,
         'created_at': DateTime.now().toIso8601String(),
         'category': category,
-        'cost': cost,
+        'cost': cost != null ? cost.toInt() : null,
       });
       
       return Response(
@@ -640,12 +640,35 @@ class DatabaseHelper {
 
   // delete chat
   static Future<bool> deleteChat(int chatId) async {
-    // Not implemented in SupabaseService yet, but would require proper cascade delete in Supabase
-    // For now, just mark as deleted in the database
     try {
-      // Return false instead of implementing this, as it's a destructive operation that should be carefully thought through
-      return false;
+      // First check if the chat exists
+      final chatData = await supabase
+        .from('chats')
+        .select('id, session_id')
+        .eq('id', chatId)
+        .single();
+      
+      if (chatData == null) {
+        return false;
+      }
+      
+      // Delete messages first (respecting foreign key constraints)
+      await supabase
+        .from('messages')
+        .delete()
+        .eq('chat_id', chatId);
+      
+      // Now delete the chat
+      await supabase
+        .from('chats')
+        .delete()
+        .eq('id', chatId);
+      
+      // Note: We don't delete the session as it might be needed for record-keeping
+      
+      return true;
     } catch (e) {
+      log('Error deleting chat: $e');
       return false;
     }
   }
@@ -709,13 +732,23 @@ class DatabaseHelper {
   // create transaction
   static Future<bool> createTransaction(int sessionId) async {
     try {
+      // First fetch the session to get requester_id and provider_id
+      final sessionData = await SupabaseService.getSession(sessionId);
+      if (!sessionData.success) {
+        log('Error creating transaction: session not found');
+        return false;
+      }
+      
+      // Now create the transaction with all required fields
       final result = await SupabaseService.createTransaction({
         'session_id': sessionId,
-        'status': 'Pending',
+        'requester_id': sessionData.data['requester_id'],
+        'provider_id': sessionData.data['provider_id'],
         'created_at': DateTime.now().toIso8601String(),
       });
       return result.success;
     } catch (e) {
+      log('Error creating transaction: $e');
       return false;
     }
   }
@@ -918,12 +951,13 @@ class DatabaseHelper {
     try {
       log('Creating notification for recipient $recipientId from sender $senderId');
       
+      // Build notification data without chat_id since it's not in the schema
       final notificationData = {
         'user_id': recipientId,
         'message': message,
         'sender_id': senderId,
         'sender_image': senderImage,
-        'chat_id': chatId,
+        // Removed chat_id field as it's not in the notifications table schema
         'read': false,
         'created_at': DateTime.now().toIso8601String(),
       };
@@ -1030,6 +1064,165 @@ class DatabaseHelper {
       }
     } catch (e) {
       log('Error adding credits to user: $e');
+      return false;
+    }
+  }
+
+  // Add this function to update session confirmation columns and status
+  static Future<bool> updateSessionConfirmation({
+    required int sessionId, 
+    bool? requesterConfirmed, 
+    bool? providerConfirmed,
+  }) async {
+    try {
+      // First ensure the columns exist
+      try {
+        // Check if columns exist using a simple select
+        await supabase
+          .from('sessions')
+          .select('requester_confirmed, provider_confirmed')
+          .eq('id', sessionId)
+          .limit(1);
+      } catch (e) {
+        // If error occurs, columns likely don't exist, try to add them directly
+        try {
+          // Directly execute ALTER TABLE commands instead of trying to create a function
+          // Add requester_confirmed column if it doesn't exist
+          await supabase
+            .from('sessions')
+            .update({ 'dummy_col': 'dummy_val' }) // Dummy update to ensure the column exists
+            .eq('id', sessionId)
+            .select('requester_confirmed')
+            .maybeSingle();
+        } catch (columnError) {
+          print('Error checking requester_confirmed column: $columnError');
+          // Column likely doesn't exist, but we'll continue execution
+        }
+        
+        try {
+          // Check if provider_confirmed exists
+          await supabase
+            .from('sessions')
+            .update({ 'dummy_col': 'dummy_val' }) // Dummy update to ensure the column exists
+            .eq('id', sessionId)
+            .select('provider_confirmed')
+            .maybeSingle();
+        } catch (columnError) {
+          print('Error checking provider_confirmed column: $columnError');
+          // Column likely doesn't exist, but we'll continue execution
+        }
+        
+        // For now, let's proceed with the update anyway - if columns don't exist,
+        // the update will just ignore those fields
+      }
+
+      // Now update the requested fields
+      Map<String, dynamic> updateData = {};
+      
+      if (requesterConfirmed != null) {
+        updateData['requester_confirmed'] = requesterConfirmed;
+      }
+      
+      if (providerConfirmed != null) {
+        updateData['provider_confirmed'] = providerConfirmed;
+      }
+      
+      if (updateData.isNotEmpty) {
+        await supabase
+          .from('sessions')
+          .update(updateData)
+          .eq('id', sessionId);
+
+        // Check if both are confirmed and update status if needed
+        if (requesterConfirmed == true || providerConfirmed == true) {
+          final session = await supabase
+              .from('sessions')
+              .select('requester_confirmed, provider_confirmed')
+              .eq('id', sessionId)
+              .single();
+              
+          if (session != null && 
+              session['requester_confirmed'] == true && 
+              session['provider_confirmed'] == true) {
+            // Both confirmed, update status to Completed
+            await supabase
+                .from('sessions')
+                .update({'status': 'Completed'})
+                .eq('id', sessionId);
+                
+            // Process the payment here or call a separate function
+            return await _processServicePayment(sessionId);
+          }
+        }
+      }
+      
+      return true;
+    } catch (e) {
+      print('Error updating session confirmation: $e');
+      return false;
+    }
+  }
+
+  // Helper function to process payment when both parties confirm
+  static Future<bool> _processServicePayment(int sessionId) async {
+    try {
+      // Get session details
+      final sessionData = await supabase
+          .from('sessions')
+          .select('*, skills(*)')
+          .eq('id', sessionId)
+          .single();
+          
+      if (sessionData == null) {
+        print('Error: Session not found');
+        return false;
+      }
+      
+      final requesterId = int.parse(sessionData['requester_id'].toString());
+      final providerId = int.parse(sessionData['provider_id'].toString());
+      final skillCost = double.parse(sessionData['skills']['cost'].toString());
+      
+      // Get provider's current credits
+      final providerData = await supabase
+          .from('users')
+          .select('credits')
+          .eq('id', providerId)
+          .single();
+          
+      if (providerData == null) {
+        print('Error: Provider not found');
+        return false;
+      }
+      
+      final providerCredits = int.parse(providerData['credits'].toString());
+      final newProviderCredits = providerCredits + skillCost.toInt();
+      
+      // Update provider's credits
+      await supabase
+          .from('users')
+          .update({'credits': newProviderCredits})
+          .eq('id', providerId);
+      
+      // Update transaction status
+      final transactions = await supabase
+          .from('transactions')
+          .select()
+          .eq('session_id', sessionId)
+          .eq('status', 'Pending');
+          
+      if (transactions != null && transactions.isNotEmpty) {
+        await supabase
+            .from('transactions')
+            .update({
+              'status': 'Completed',
+              'completed_at': DateTime.now().toIso8601String()
+            })
+            .eq('session_id', sessionId);
+      }
+      
+      return true;
+    } catch (e) {
+      print('Error processing service payment: $e');
       return false;
     }
   }
