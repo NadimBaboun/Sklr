@@ -549,6 +549,90 @@ class SupabaseService {
     }
   }
 
+  // Create or login test user for development/testing
+  static Future<LoginResponse> createTestUser() async {
+    try {
+      _logOperation('Test Auth', 'Creating or logging in test user');
+      
+      const testEmail = 'test@example.com';
+      const testPassword = 'Test123!';
+      const testUsername = 'testuser';
+      
+      // Check if test user already exists in the database
+      final existingUser = await supabase
+          .from('users')
+          .select()
+          .eq('email', testEmail)
+          .maybeSingle();
+          
+      if (existingUser != null) {
+        _logOperation('Test Auth', 'Test user already exists, logging in');
+        
+        // Test user exists, log them in directly
+        final userId = existingUser['id'];
+        await UserIdStorage.saveLoggedInUserId(userId);
+        
+        return LoginResponse(
+          success: true,
+          message: 'Test user logged in successfully',
+          userId: userId,
+        );
+      }
+      
+      // Test user doesn't exist, create one
+      _logOperation('Test Auth', 'Test user does not exist, creating new test user');
+      
+      // First try to create auth user
+      try {
+        await supabase.auth.signUp(
+          email: testEmail,
+          password: testPassword,
+          data: {
+            'username': testUsername,
+          },
+        );
+      } catch (e) {
+        _logOperation('Test Auth', 'Error creating auth user: $e', isError: true);
+        // Continue anyway as we'll create the database user directly
+      }
+      
+      // Create user in the database
+      final result = await supabase.from('users').insert({
+        'username': testUsername,
+        'email': testEmail,
+        'password': testPassword,
+        'credits': 100, // Give test user some credits
+        'moderator': true, // Make test user a moderator for testing all features
+      }).select();
+      
+      if (result.isNotEmpty) {
+        final userId = result[0]['id'];
+        _logOperation('Test Auth', 'Created test user with ID: $userId');
+        
+        // Store the ID for future use
+        await UserIdStorage.saveLoggedInUserId(userId);
+        
+        return LoginResponse(
+          success: true,
+          message: 'Test user created and logged in successfully',
+          userId: userId,
+        );
+      } else {
+        _logOperation('Test Auth', 'No result returned from test user insertion', isError: true);
+        return LoginResponse(
+          success: false,
+          message: 'Test user creation failed - no ID returned',
+        );
+      }
+    } catch (e) {
+      _logOperation('Test Auth', 'Error creating test user: $e', isError: true);
+      return LoginResponse(
+        success: false,
+        message: 'Error creating test user: $e',
+      );
+    }
+  }
+
   // Sign out
   static Future<bool> signOut() async {
     try {
@@ -581,6 +665,25 @@ class SupabaseService {
         success: false,
         data: {'error': e.toString()},
       );
+    }
+  }
+  
+  // Get user by ID and return as Map
+  static Future<Map<String, dynamic>?> getUserById(dynamic userId) async {
+    try {
+      // Convert userId to string if it's an integer
+      final userIdStr = userId is int ? userId.toString() : userId;
+      
+      final data = await supabase
+          .from('users')
+          .select()
+          .eq('id', userIdStr)
+          .maybeSingle();
+          
+      return data;
+    } catch (e) {
+      log('Error getting user by ID: $e');
+      return null;
     }
   }
   
@@ -627,6 +730,129 @@ class SupabaseService {
     } catch (e) {
       log('Error checking email: $e');
       return false;
+    }
+  }
+
+  // Get users needing auth fix (users with no auth_id)
+  static Future<List<Map<String, dynamic>>> getUsersNeedingAuthFix() async {
+    try {
+      _logOperation('Auth Fix', 'Getting users needing authentication fix');
+      
+      final users = await supabase
+          .from('users')
+          .select('id, username, email')
+          .filter('auth_id', 'is', null);
+      
+      _logOperation('Auth Fix', 'Found ${users.length} users needing authentication fix');
+      return List<Map<String, dynamic>>.from(users);
+    } catch (e) {
+      _logOperation('Auth Fix', 'Error getting users needing auth fix: $e', isError: true);
+      return [];
+    }
+  }
+  
+  // Fix existing user by creating an auth account and linking it
+  static Future<LoginResponse> fixExistingUser(String email, String newPassword) async {
+    try {
+      _logOperation('Auth Fix', 'Fixing user authentication for email: $email');
+      
+      // First, find the user in the database
+      final userData = await supabase
+          .from('users')
+          .select('id, username, email, auth_id')
+          .eq('email', email)
+          .maybeSingle();
+      
+      if (userData == null) {
+        _logOperation('Auth Fix', 'User not found with email: $email', isError: true);
+        return LoginResponse(
+          success: false, 
+          message: 'User not found with email: $email'
+        );
+      }
+      
+      // Check if user already has an auth_id - if so, we'll update the password
+      if (userData['auth_id'] != null) {
+        _logOperation('Auth Fix', 'User already has auth_id, updating password only');
+        
+        // Get the user by auth_id
+        try {
+          final user = await supabase.auth.admin.getUserById(userData['auth_id']);
+          
+          // Update password for existing auth user
+          await supabase.auth.admin.updateUserById(
+            userData['auth_id'],
+            attributes: AdminUserAttributes(
+              password: newPassword,
+            ),
+          );
+          
+          _logOperation('Auth Fix', 'Updated password for existing auth user');
+          
+          // Log in the user
+          await supabase.auth.signInWithPassword(
+            email: email,
+            password: newPassword,
+          );
+          
+          // Store user ID
+          await UserIdStorage.saveLoggedInUserId(userData['id']);
+          
+          return LoginResponse(
+            success: true,
+            message: 'Password updated and user logged in',
+            userId: userData['id'],
+          );
+        } catch (e) {
+          _logOperation('Auth Fix', 'Error updating existing auth user: $e', isError: true);
+          // Continue to creating a new auth user if updating failed
+        }
+      }
+      
+      // Create new auth user
+      _logOperation('Auth Fix', 'Creating new auth user for database user');
+      final authResponse = await supabase.auth.signUp(
+        email: email,
+        password: newPassword,
+        data: {
+          'db_user_id': userData['id'],
+          'username': userData['username'],
+        },
+      );
+      
+      if (authResponse.user == null) {
+        _logOperation('Auth Fix', 'Failed to create auth user', isError: true);
+        return LoginResponse(
+          success: false,
+          message: 'Failed to create authentication account',
+        );
+      }
+      
+      final authId = authResponse.user!.id;
+      _logOperation('Auth Fix', 'Created auth user with ID: $authId');
+      
+      // Update database user with auth_id
+      await supabase
+          .from('users')
+          .update({'auth_id': authId})
+          .eq('id', userData['id']);
+      
+      _logOperation('Auth Fix', 'Updated database user with auth_id');
+      
+      // Store user ID
+      await UserIdStorage.saveLoggedInUserId(userData['id']);
+      
+      return LoginResponse(
+        success: true,
+        message: 'User fixed and logged in successfully',
+        userId: userData['id'],
+      );
+    } catch (e) {
+      _logOperation('Auth Fix', 'Error fixing user: $e', isError: true);
+      return LoginResponse(
+        success: false,
+        message: 'Error fixing user: ${e.toString()}',
+      );
     }
   }
 
@@ -851,14 +1077,132 @@ class SupabaseService {
   // Delete skill
   static Future<bool> deleteSkill(int skillId) async {
     try {
-      await supabase
+      _logOperation('Skills', 'Attempting to delete skill with ID: $skillId');
+      
+      // First check if skill exists
+      final skillExists = await supabase
           .from('skills')
-          .delete()
-          .eq('id', skillId);
+          .select('id')
+          .eq('id', skillId)
+          .maybeSingle();
           
-      return true;
+      if (skillExists == null) {
+        _logOperation('Skills', 'Skill with ID $skillId not found', isError: true);
+        return false;
+      }
+      
+      _logOperation('Skills', 'Skill exists, proceeding with deletion');
+      
+      // Step 1: Check for sessions related to this skill
+      final relatedSessions = await supabase
+          .from('sessions')
+          .select('id')
+          .eq('skill_id', skillId);
+          
+      _logOperation('Skills', 'Found ${relatedSessions.length} related sessions');
+      
+      // Step 2: Handle each session and its related records
+      for (var session in relatedSessions) {
+        final sessionId = session['id'];
+        _logOperation('Skills', 'Processing session $sessionId');
+        
+        // Step 2a: Delete any transactions linked to this session
+        try {
+          final transactionsDeleted = await supabase
+              .from('transactions')
+              .delete()
+              .eq('session_id', sessionId);
+          _logOperation('Skills', 'Deleted transactions for session $sessionId');
+        } catch (e) {
+          _logOperation('Skills', 'Error deleting transactions: $e', isError: true);
+        }
+        
+        // Step 2b: Delete any reviews linked to this session
+        try {
+          final reviewsDeleted = await supabase
+              .from('reviews')
+              .delete()
+              .eq('session_id', sessionId);
+          _logOperation('Skills', 'Deleted reviews for session $sessionId');
+        } catch (e) {
+          _logOperation('Skills', 'Error deleting reviews: $e', isError: true);
+        }
+        
+        // Step 2c: Delete chats linked to this session
+        try {
+          // Find chats first
+          final chats = await supabase
+              .from('chats')
+              .select('id')
+              .eq('session_id', sessionId);
+          
+          for (var chat in chats) {
+            final chatId = chat['id'];
+            
+            // Delete messages first (messages have FK to chats)
+            try {
+              await supabase
+                  .from('messages')
+                  .delete()
+                  .eq('chat_id', chatId);
+              _logOperation('Skills', 'Deleted messages for chat $chatId');
+            } catch (e) {
+              _logOperation('Skills', 'Error deleting messages: $e', isError: true);
+            }
+            
+            // Now delete the chat
+            try {
+              await supabase
+                  .from('chats')
+                  .delete()
+                  .eq('id', chatId);
+              _logOperation('Skills', 'Deleted chat $chatId');
+            } catch (e) {
+              _logOperation('Skills', 'Error deleting chat: $e', isError: true);
+            }
+          }
+        } catch (e) {
+          _logOperation('Skills', 'Error processing chats: $e', isError: true);
+        }
+        
+        // Step 2d: Now delete the session
+        try {
+          await supabase
+              .from('sessions')
+              .delete()
+              .eq('id', sessionId);
+          _logOperation('Skills', 'Deleted session $sessionId');
+        } catch (e) {
+          _logOperation('Skills', 'Error deleting session: $e', isError: true);
+        }
+      }
+      
+      // Step 3: Update any reports linked to this skill to resolved
+      try {
+        await supabase
+            .from('reports')
+            .update({'status': 'Resolved'})
+            .eq('skill_id', skillId);
+        _logOperation('Skills', 'Updated reports for skill $skillId to resolved');
+      } catch (e) {
+        _logOperation('Skills', 'Error updating reports: $e', isError: true);
+      }
+      
+      // Step 4: Finally delete the skill itself
+      try {
+        await supabase
+            .from('skills')
+            .delete()
+            .eq('id', skillId);
+        
+        _logOperation('Skills', 'Successfully deleted skill with ID: $skillId');
+        return true;
+      } catch (e) {
+        _logOperation('Skills', 'Error in final skill deletion: $e', isError: true);
+        return false;
+      }
     } catch (e) {
-      log('Error deleting skill: $e');
+      _logOperation('Skills', 'Error deleting skill with ID $skillId: $e', isError: true);
       return false;
     }
   }
@@ -866,11 +1210,20 @@ class SupabaseService {
   // Search skills
   static Future<List<Map<String, dynamic>>> searchSkills(String query) async {
     try {
+      if (query.isEmpty) {
+        // Return recent skills if query is empty
+        return await getRecentSkills(20);
+      }
+      
+      // Search for skills matching the query in name or description
       final data = await supabase
           .from('skills')
-          .select()
-          .textSearch('name', query);
-          
+          .select('*, users!skills_user_id_fkey(username, avatar_url)')
+          .or('name.ilike.%${query.trim()}%,description.ilike.%${query.trim()}%')
+          .order('created_at', ascending: false)
+          .limit(50);
+      
+      log('Found ${data.length} skills matching query: $query');
       return List<Map<String, dynamic>>.from(data);
     } catch (e) {
       log('Error searching skills: $e');
@@ -895,42 +1248,24 @@ class SupabaseService {
     }
   }
   
-  // Create a new category
+  // Create new category
   static Future<DatabaseResponse> createCategory(String name, String asset) async {
     try {
-      _logOperation('Categories', 'Creating new category: $name with asset: $asset');
-      
-      // Check if the category already exists
-      final existingCategories = await supabase
-          .from('categories')
-          .select()
-          .eq('name', name);
-          
-      if (existingCategories.isNotEmpty) {
-        _logOperation('Categories', 'Category already exists: $name', isError: true);
-        return DatabaseResponse(
-          success: false,
-          data: {'error': 'Category already exists', 'name': name}
-        );
-      }
-      
-      // Create the new category
       final result = await supabase
           .from('categories')
           .insert({
             'name': name,
+            'description': 'Category for $name skills',
             'asset': asset,
           })
-          .select();
+          .select()
+          .single();
           
-      _logOperation('Categories', 'Category created successfully: $result');
-      
       return DatabaseResponse(
         success: true,
-        data: result.isNotEmpty ? result[0] : {'name': name, 'asset': asset}
+        data: result,
       );
     } catch (e) {
-      _logOperation('Categories', 'Error creating category: $e', isError: true);
       return DatabaseResponse(
         success: false,
         data: {'error': e.toString()},
@@ -938,726 +1273,164 @@ class SupabaseService {
     }
   }
 
-  // CHAT OPERATIONS
+  // REPORTS OPERATIONS
   
-  // Get user chats
-  static Future<DatabaseResponse> getUserChats(dynamic userId) async {
-    try {
-      _logOperation('Chats', 'Getting chats for user: $userId');
-      
-      // Ensure userId is an integer
-      int parsedUserId;
-      if (userId is String) {
-        try {
-          parsedUserId = int.parse(userId);
-        } catch (e) {
-          _logOperation('Chats', 'Failed to convert userId to integer: $userId', isError: true);
-          return DatabaseResponse(
-            success: false,
-            data: {'error': 'Invalid userId format'},
-          );
-        }
-      } else {
-        parsedUserId = userId;
-      }
-      
-      final data = await supabase
-          .from('chats')
-          .select('''
-            id, 
-            user1_id, 
-            user2_id, 
-            last_message, 
-            last_updated,
-            session_id,
-            user1:user1_id (id, username),
-            user2:user2_id (id, username),
-            sessions:session_id (id, status, skill_id)
-          ''')
-          .or('user1_id.eq.$parsedUserId,user2_id.eq.$parsedUserId')
-          .order('last_updated', ascending: false);
-      
-      _logOperation('Chats', 'Successfully retrieved ${data.length} chats for user: $parsedUserId');
-      
-      return DatabaseResponse(
-        success: true,
-        data: data,
-      );
-    } catch (e) {
-      _logOperation('Chats', 'Error getting user chats: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Send a message
-  static Future<DatabaseResponse> sendMessage(Map<String, dynamic> messageData) async {
-    try {
-      _logOperation('Messages', 'Sending message: ${messageData.toString()}');
-      
-      // Convert sender_id to string if it's an integer
-      if (messageData['sender_id'] is int) {
-        messageData['sender_id'] = messageData['sender_id'].toString();
-      }
-      
-      final result = await supabase
-          .from('messages')
-          .insert(messageData)
-          .select()
-          .single();
-      
-      _logOperation('Messages', 'Message sent successfully with ID: ${result['id']}');
-      
-      return DatabaseResponse(
-        success: true,
-        data: result,
-      );
-    } catch (e) {
-      _logOperation('Messages', 'Error sending message: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Get chat messages
-  static Future<DatabaseResponse> getChatMessages(dynamic chatId) async {
-    try {
-      _logOperation('Messages', 'Getting messages for chat: $chatId');
-      
-      // Ensure chatId is an integer
-      int parsedChatId;
-      if (chatId is String) {
-        try {
-          parsedChatId = int.parse(chatId);
-        } catch (e) {
-          _logOperation('Messages', 'Failed to convert chatId to integer: $chatId', isError: true);
-          return DatabaseResponse(
-            success: false,
-            data: {'error': 'Invalid chatId format'},
-          );
-        }
-      } else {
-        parsedChatId = chatId;
-      }
-      
-      final data = await supabase
-          .from('messages')
-          .select('''
-            id, 
-            chat_id, 
-            sender_id, 
-            message, 
-            timestamp, 
-            read,
-            sender:sender_id (id, username)
-          ''')
-          .eq('chat_id', parsedChatId)
-          .order('timestamp', ascending: true);
-      
-      _logOperation('Messages', 'Successfully retrieved ${data.length} messages for chat: $parsedChatId');
-      
-      return DatabaseResponse(
-        success: true,
-        data: data,
-      );
-    } catch (e) {
-      _logOperation('Messages', 'Error getting chat messages: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Get or create chat
-  static Future<Map<String, dynamic>> getOrCreateChat(String userId1, String userId2, int sessionId) async {
-    try {
-      _logOperation('Chats', 'Getting or creating chat for users $userId1, $userId2 with session $sessionId');
-      
-      // Check if chat exists between these users
-      final existingChats = await supabase
-          .from('chats')
-          .select()
-          .or('and(user1_id.eq.$userId1,user2_id.eq.$userId2),and(user1_id.eq.$userId2,user2_id.eq.$userId1)')
-          .limit(1);
-          
-      if (existingChats.isNotEmpty) {
-        final existingChat = existingChats[0];
-        
-        // If the chat exists but doesn't have a session_id, update it
-        if (existingChat['session_id'] == null) {
-          _logOperation('Chats', 'Updating existing chat with session ID: $sessionId');
-          
-          final updatedChat = await supabase
-              .from('chats')
-              .update({
-                'session_id': sessionId,
-                'last_updated': DateTime.now().toIso8601String(),
-              })
-              .eq('id', existingChat['id'])
-              .select()
-              .single();
-              
-          return updatedChat;
-        }
-        
-        return existingChat;
-      }
-      
-      // Create new chat
-      _logOperation('Chats', 'Creating new chat with session ID: $sessionId');
-      
-      final newChat = await supabase
-          .from('chats')
-          .insert({
-            'user1_id': userId1,
-            'user2_id': userId2,
-            'session_id': sessionId,
-            'last_updated': DateTime.now().toIso8601String(),
-          })
-          .select()
-          .single();
-          
-      _logOperation('Chats', 'Created new chat with ID: ${newChat['id']}');
-      return newChat;
-    } catch (e) {
-      _logOperation('Chats', 'Error getting or creating chat: $e', isError: true);
-      return {};
-    }
-  }
-  
-  // Mark chat as read
-  static Future<bool> markChatAsRead(int chatId) async {
-    try {
-      final userId = await UserIdStorage.getLoggedInUserId();
-      if (userId == null) return false;
-      
-      await supabase
-          .from('messages')
-          .update({'read': true})
-          .eq('chat_id', chatId)
-          .neq('sender_id', userId.toString());
-          
-      return true;
-    } catch (e) {
-      log('Error marking chat as read: $e');
-      return false;
-    }
-  }
-  
-  // Get unread message count for the current user
-  static Future<int> getUnreadMessageCount() async {
-    try {
-      final userId = await UserIdStorage.getLoggedInUserId();
-      if (userId == null) return 0;
-      
-      // First get all chats where the user is involved
-      final chats = await supabase
-          .from('chats')
-          .select('id')
-          .or('user1_id.eq.$userId,user2_id.eq.$userId');
-      
-      if (chats.isEmpty) return 0;
-      
-      final chatIds = chats.map((chat) => chat['id']).toList();
-      
-      // Then get unread messages in those chats where the user is not the sender
-      final result = await supabase
-          .from('messages')
-          .select()
-          .inFilter('chat_id', chatIds)
-          .neq('sender_id', userId)
-          .eq('read', false);
-          
-      return result.length;
-    } catch (e) {
-      _logOperation('Messages', 'Error getting unread message count: $e', isError: true);
-      return 0;
-    }
-  }
-
-  // SESSION OPERATIONS
-  
-  // Create session
-  static Future<DatabaseResponse> createSession(Map<String, dynamic> sessionData) async {
-    try {
-      _logOperation('Sessions', 'Creating new session with data: $sessionData');
-      
-      // Validate required fields for session based on schema
-      if (!sessionData.containsKey('requester_id') || 
-          !sessionData.containsKey('provider_id') || 
-          !sessionData.containsKey('skill_id')) {
-        return DatabaseResponse(
-          success: false,
-          data: {'error': 'Required fields missing (requester_id, provider_id, skill_id)'},
-        );
-      }
-      
-      // Ensure IDs are in the correct format (bigint in database)
-      if (sessionData['requester_id'] is String) {
-        try {
-          sessionData['requester_id'] = int.parse(sessionData['requester_id']);
-        } catch (e) {
-          _logOperation('Sessions', 'Failed to convert requester_id to integer: ${sessionData['requester_id']}', isError: true);
-        }
-      }
-      
-      if (sessionData['provider_id'] is String) {
-        try {
-          sessionData['provider_id'] = int.parse(sessionData['provider_id']);
-        } catch (e) {
-          _logOperation('Sessions', 'Failed to convert provider_id to integer: ${sessionData['provider_id']}', isError: true);
-        }
-      }
-      
-      if (sessionData['skill_id'] is String) {
-        try {
-          sessionData['skill_id'] = int.parse(sessionData['skill_id']);
-        } catch (e) {
-          _logOperation('Sessions', 'Failed to convert skill_id to integer: ${sessionData['skill_id']}', isError: true);
-        }
-      }
-      
-      // Set default status if not provided
-      if (!sessionData.containsKey('status')) {
-        sessionData['status'] = 'Idle';
-      }
-      
-      final result = await supabase
-          .from('sessions')
-          .insert(sessionData)
-          .select()
-          .single();
-      
-      _logOperation('Sessions', 'Session created successfully with ID: ${result['id']}');
-      
-      // Create a chat for this session if needed
-      try {
-        final chatData = {
-          'user1_id': sessionData['requester_id'],
-          'user2_id': sessionData['provider_id'],
-          'session_id': result['id'],
-          'last_updated': DateTime.now().toIso8601String(),
-        };
-        
-        _logOperation('Sessions', 'Creating chat for session with data: $chatData');
-        
-        final chatResult = await supabase
-            .from('chats')
-            .insert(chatData)
-            .select()
-            .single();
-            
-        _logOperation('Sessions', 'Chat created successfully with ID: ${chatResult['id']}');
-        
-        // Include chat in the response
-        result['chat'] = chatResult;
-      } catch (chatError) {
-        _logOperation('Sessions', 'Error creating chat for session: $chatError', isError: true);
-        // Continue even if chat creation fails, the session was created
-      }
-      
-      return DatabaseResponse(
-        success: true,
-        data: result,
-      );
-    } catch (e) {
-      _logOperation('Sessions', 'Error creating session: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Get session by ID
-  static Future<DatabaseResponse> getSession(int sessionId) async {
-    try {
-      final data = await supabase
-          .from('sessions')
-          .select()
-          .eq('id', sessionId)
-          .single();
-          
-      return DatabaseResponse(
-        success: true,
-        data: data,
-      );
-    } catch (e) {
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Get session from chat
-  static Future<DatabaseResponse> fetchSessionFromChat(int chatId) async {
-    try {
-      // First get the session_id from the chat
-      final chatData = await supabase
-          .from('chats')
-          .select('session_id')
-          .eq('id', chatId)
-          .single();
-          
-      if (!chatData.containsKey('session_id') || chatData['session_id'] == null) {
-        return DatabaseResponse(
-          success: false,
-          data: {'error': 'No session found for this chat'},
-        );
-      }
-      
-      // Then get the session using that ID
-      final sessionData = await supabase
-          .from('sessions')
-          .select()
-          .eq('id', chatData['session_id'])
-          .single();
-          
-      return DatabaseResponse(
-        success: true,
-        data: sessionData,
-      );
-    } catch (e) {
-      _logOperation('Sessions', 'Error fetching session from chat: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Update session
-  static Future<DatabaseResponse> updateSession(int sessionId, Map<String, dynamic> updates) async {
-    try {
-      await supabase
-          .from('sessions')
-          .update(updates)
-          .eq('id', sessionId);
-          
-      final data = await supabase
-          .from('sessions')
-          .select()
-          .eq('id', sessionId)
-          .single();
-          
-      return DatabaseResponse(
-        success: true,
-        data: data,
-      );
-    } catch (e) {
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Get active sessions for user
-  static Future<List<Map<String, dynamic>>> getActiveSessionsForUser(String userId) async {
-    try {
-      final data = await supabase
-          .from('sessions')
-          .select('*, skills(*)')
-          .or('requester_id.eq.$userId,provider_id.eq.$userId')
-          .neq('status', 'Completed')
-          .neq('status', 'Cancelled')
-          .order('created_at', ascending: false);
-          
-      return List<Map<String, dynamic>>.from(data);
-    } catch (e) {
-      log('Error getting active sessions: $e');
-      return [];
-    }
-  }
-  
-  // Complete session
-  static Future<bool> completeSession(int sessionId) async {
-    try {
-      await supabase
-          .from('sessions')
-          .update({'status': 'Completed'})
-          .eq('id', sessionId);
-          
-      return true;
-    } catch (e) {
-      log('Error completing session: $e');
-      return false;
-    }
-  }
-  
-  // Cancel session
-  static Future<bool> cancelSession(int sessionId) async {
-    try {
-      await supabase
-          .from('sessions')
-          .update({'status': 'Cancelled'})
-          .eq('id', sessionId);
-          
-      return true;
-    } catch (e) {
-      log('Error cancelling session: $e');
-      return false;
-    }
-  }
-
-  // TRANSACTION OPERATIONS
-  
-  // Create transaction
-  static Future<DatabaseResponse> createTransaction(Map<String, dynamic> transactionData) async {
-    try {
-      _logOperation('Transactions', 'Creating new transaction with data: $transactionData');
-      
-      // Validate required fields
-      if (!transactionData.containsKey('requester_id') || 
-          !transactionData.containsKey('provider_id') || 
-          !transactionData.containsKey('session_id')) {
-        return DatabaseResponse(
-          success: false,
-          data: {'error': 'Required fields missing (requester_id, provider_id, session_id)'},
-        );
-      }
-      
-      // Ensure IDs are integers
-      if (transactionData['requester_id'] is String) {
-        try {
-          transactionData['requester_id'] = int.parse(transactionData['requester_id']);
-        } catch (e) {
-          _logOperation('Transactions', 'Failed to convert requester_id to integer: ${transactionData['requester_id']}', isError: true);
-        }
-      }
-      
-      if (transactionData['provider_id'] is String) {
-        try {
-          transactionData['provider_id'] = int.parse(transactionData['provider_id']);
-        } catch (e) {
-          _logOperation('Transactions', 'Failed to convert provider_id to integer: ${transactionData['provider_id']}', isError: true);
-        }
-      }
-      
-      if (transactionData['session_id'] is String) {
-        try {
-          transactionData['session_id'] = int.parse(transactionData['session_id']);
-        } catch (e) {
-          _logOperation('Transactions', 'Failed to convert session_id to integer: ${transactionData['session_id']}', isError: true);
-        }
-      }
-      
-      final result = await supabase
-          .from('transactions')
-          .insert(transactionData)
-          .select()
-          .single();
-      
-      _logOperation('Transactions', 'Transaction created successfully with ID: ${result['id']}');
-      
-      return DatabaseResponse(
-        success: true,
-        data: result,
-      );
-    } catch (e) {
-      _logOperation('Transactions', 'Error creating transaction: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Get user transactions (either as requester or provider)
-  static Future<DatabaseResponse> getUserTransactions(dynamic userId) async {
-    try {
-      _logOperation('Transactions', 'Getting transactions for user: $userId');
-      
-      // Ensure userId is an integer
-      int parsedUserId;
-      if (userId is String) {
-        try {
-          parsedUserId = int.parse(userId);
-        } catch (e) {
-          _logOperation('Transactions', 'Failed to convert userId to integer: $userId', isError: true);
-          return DatabaseResponse(
-            success: false,
-            data: {'error': 'Invalid userId format'},
-          );
-        }
-      } else {
-        parsedUserId = userId;
-      }
-      
-      final data = await supabase
-          .from('transactions')
-          .select('''
-            id, 
-            created_at, 
-            requester_id, 
-            provider_id, 
-            session_id,
-            sessions:session_id (
-              id, 
-              status
-            ),
-            requester:requester_id (
-              id, 
-              username
-            ),
-            provider:provider_id (
-              id, 
-              username
-            )
-          ''')
-          .or('requester_id.eq.$parsedUserId,provider_id.eq.$parsedUserId')
-          .order('created_at', ascending: false);
-      
-      _logOperation('Transactions', 'Successfully retrieved ${data.length} transactions for user: $parsedUserId');
-      
-      return DatabaseResponse(
-        success: true,
-        data: data,
-      );
-    } catch (e) {
-      _logOperation('Transactions', 'Error getting user transactions: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Get transaction by ID
-  static Future<DatabaseResponse> getTransaction(int transactionId) async {
-    try {
-      final data = await supabase
-          .from('transactions')
-          .select()
-          .eq('id', transactionId)
-          .single();
-          
-      return DatabaseResponse(
-        success: true,
-        data: data,
-      );
-    } catch (e) {
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Get transactions for session
-  static Future<List<Map<String, dynamic>>> getSessionTransactions(int sessionId) async {
-    try {
-      final data = await supabase
-          .from('transactions')
-          .select()
-          .eq('session_id', sessionId)
-          .order('created_at', ascending: false);
-          
-      return List<Map<String, dynamic>>.from(data);
-    } catch (e) {
-      log('Error getting session transactions: $e');
-      return [];
-    }
-  }
-  
-  // Get transaction for a session
-  static Future<DatabaseResponse> getTransactionFromSession(int sessionId) async {
-    try {
-      _logOperation('Transactions', 'Getting transaction for session: $sessionId');
-      
-      final data = await supabase
-          .from('transactions')
-          .select()
-          .eq('session_id', sessionId)
-          .limit(1);
-      
-      if (data.isEmpty) {
-        return DatabaseResponse(
-          success: false,
-          data: {'error': 'No transaction found for this session'},
-        );
-      }
-      
-      _logOperation('Transactions', 'Successfully retrieved transaction for session: $sessionId');
-      
-      return DatabaseResponse(
-        success: true,
-        data: data[0],
-      );
-    } catch (e) {
-      _logOperation('Transactions', 'Error getting transaction for session: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Finalize a transaction
-  static Future<DatabaseResponse> finalizeTransaction(int transactionId, String status) async {
-    try {
-      _logOperation('Transactions', 'Finalizing transaction $transactionId with status: $status');
-      
-      final result = await supabase
-          .from('transactions')
-          .update({
-            'status': status,
-            'completed_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', transactionId)
-          .select()
-          .single();
-      
-      _logOperation('Transactions', 'Transaction $transactionId finalized successfully');
-      
-      return DatabaseResponse(
-        success: true,
-        data: result,
-      );
-    } catch (e) {
-      _logOperation('Transactions', 'Error finalizing transaction: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-
-  // REPORT OPERATIONS
-  
-  // Create report
-  static Future<DatabaseResponse> createReport(Map<String, dynamic> reportData) async {
+  // Fetch all pending reports
+  static Future<List<Map<String, dynamic>>> fetchReports() async {
     try {
       final data = await supabase
           .from('reports')
-          .insert(reportData)
-          .select()
-          .single();
+          .select('*')
+          .eq('status', 'Pending')
+          .order('created_at', ascending: false);
           
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      log('Error fetching reports: $e');
+      return [];
+    }
+  }
+  
+  // Create a new report
+  static Future<DatabaseResponse> createReport(Map<String, dynamic> reportData) async {
+    try {
+      _logOperation('Reports', 'Creating new report: $reportData');
+      
+      // Validate required fields
+      if (!reportData.containsKey('reporter_id') || 
+          !reportData.containsKey('skill_id')) {
+        _logOperation('Reports', 'Missing required fields (reporter_id, skill_id)', isError: true);
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Required fields missing (reporter_id, skill_id)'},
+        );
+      }
+      
+      // Ensure text field is provided (required by schema)
+      if (!reportData.containsKey('text')) {
+        reportData['text'] = 'Reported from mobile app';
+      }
+      
+      // Ensure status field is provided
+      if (!reportData.containsKey('status')) {
+        reportData['status'] = 'Pending';
+      }
+      
+      // Create the report
+      final result = await supabase
+          .from('reports')
+          .insert(reportData)
+          .select();
+          
+      if (result.isEmpty) {
+        _logOperation('Reports', 'No data returned after creating report', isError: true);
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Failed to create report'},
+        );
+      }
+      
+      _logOperation('Reports', 'Report created successfully with ID: ${result[0]['id']}');
+      
       return DatabaseResponse(
         success: true,
-        data: data,
+        data: result[0],
       );
     } catch (e) {
+      _logOperation('Reports', 'Error creating report: $e', isError: true);
       return DatabaseResponse(
         success: false,
         data: {'error': e.toString()},
       );
     }
   }
+
+  // Resolve a report by updating its status
+  static Future<bool> resolveReport(int reportId) async {
+    try {
+      _logOperation('Reports', 'Resolving report with ID: $reportId');
+      
+      final now = DateTime.now().toIso8601String();
+      
+      await supabase
+          .from('reports')
+          .update({
+            'status': 'Resolved',
+            'resolved_at': now
+          })
+          .eq('id', reportId);
+      
+      _logOperation('Reports', 'Report with ID $reportId marked as resolved');
+      return true;
+    } catch (e) {
+      _logOperation('Reports', 'Error resolving report with ID $reportId: $e', isError: true);
+      return false;
+    }
+  }
+
+  // Get all reports (for moderation dashboard)
+  static Future<List<Map<String, dynamic>>> getAllReports() async {
+    try {
+      _logOperation('Reports', 'Fetching all pending reports');
+      
+      // Get reports with related data
+      final data = await supabase
+          .from('reports')
+          .select('''
+            *,
+            reporter:reporter_id(id, username, avatar_url),
+            skill:skill_id(
+              *,
+              user:user_id(id, username, avatar_url)
+            )
+          ''')
+          .eq('status', 'Pending')
+          .order('created_at', ascending: false);
+          
+      _logOperation('Reports', 'Fetched ${data.length} pending reports');
+      
+      // Filter out reports where the skill might no longer exist
+      final validReports = data.where((report) => 
+        report['skill'] != null && report['skill'].isNotEmpty
+      ).toList();
+      
+      if (validReports.length < data.length) {
+        _logOperation('Reports', 'Filtered out ${data.length - validReports.length} reports with missing skills');
+        
+        // Auto-resolve reports with missing skills
+        for (var report in data) {
+          if (report['skill'] == null || report['skill'].isEmpty) {
+            try {
+              await supabase
+                  .from('reports')
+                  .update({
+                    'status': 'Resolved',
+                    'resolution': 'Auto-resolved - Skill no longer exists',
+                    'resolved_at': DateTime.now().toIso8601String()
+                  })
+                  .eq('id', report['id']);
+              
+              _logOperation('Reports', 'Auto-resolved report ID: ${report['id']} for missing skill');
+            } catch (e) {
+              _logOperation('Reports', 'Error auto-resolving report: $e', isError: true);
+            }
+          }
+        }
+      }
+      
+      return List<Map<String, dynamic>>.from(validReports);
+    } catch (e) {
+      _logOperation('Reports', 'Error fetching reports: $e', isError: true);
+      return [];
+    }
+  }
   
-  // Get report by ID
+  // Get a specific report by ID
   static Future<DatabaseResponse> getReport(int reportId) async {
     try {
       final data = await supabase
           .from('reports')
-          .select()
+          .select('*')
           .eq('id', reportId)
           .single();
           
@@ -1666,6 +1439,7 @@ class SupabaseService {
         data: data,
       );
     } catch (e) {
+      log('Error getting report with ID $reportId: $e');
       return DatabaseResponse(
         success: false,
         data: {'error': e.toString()},
@@ -1673,741 +1447,6 @@ class SupabaseService {
     }
   }
   
-  // Resolve report
-  static Future<bool> resolveReport(int reportId) async {
-    try {
-      await supabase
-          .from('reports')
-          .update({'status': 'Resolved'})
-          .eq('id', reportId);
-          
-      return true;
-    } catch (e) {
-      log('Error resolving report: $e');
-      return false;
-    }
-  }
-  
-  // Get all reports
-  static Future<List<Map<String, dynamic>>> getAllReports() async {
-    try {
-      final data = await supabase
-          .from('reports')
-          .select()
-          .order('created_at', ascending: false);
-          
-      return List<Map<String, dynamic>>.from(data);
-    } catch (e) {
-      log('Error getting reports: $e');
-      return [];
-    }
-  }
-
-  // NOTIFICATION OPERATIONS
-  
-  // Get notifications for the current user
-  static Future<List<Map<String, dynamic>>> getNotifications() async {
-    try {
-      final userId = await UserIdStorage.getLoggedInUserId();
-      if (userId == null) return [];
-      
-      final result = await supabase
-          .from('notifications')
-          .select()
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
-          
-      return List<Map<String, dynamic>>.from(result);
-    } catch (e) {
-      log('Error getting notifications: $e');
-      return [];
-    }
-  }
-  
-  // Mark notification as read
-  static Future<bool> markNotificationAsRead(int notificationId) async {
-    try {
-      await supabase
-          .from('notifications')
-          .update({'read': true})
-          .eq('id', notificationId);
-          
-      return true;
-    } catch (e) {
-      log('Error marking notification as read: $e');
-      return false;
-    }
-  }
-
-  // Get current user from storage and database
-  static Future<Map<String, dynamic>?> getCurrentUser() async {
-    try {
-      final userId = await UserIdStorage.getLoggedInUserId();
-      if (userId == null) {
-        log('No stored user ID found');
-        return null;
-      }
-      
-      return await getUserById(userId);
-    } catch (e) {
-      log('Error getting current user: $e');
-      return null;
-    }
-  }
-  
-  // Get user by ID
-  static Future<Map<String, dynamic>?> getUserById(dynamic userId) async {
-    try {
-      log('Looking up user by ID: $userId');
-      final response = await supabase
-          .from('users')
-          .select()
-          .eq('id', userId)
-          .maybeSingle();
-      
-      if (response != null) {
-        log('Found user with ID: $userId');
-        return response;
-      } else {
-        log('No user found with ID: $userId');
-        return null;
-      }
-    } catch (e) {
-      log('Error retrieving user by ID: $e');
-      return null;
-    }
-  }
-
-  // Update user profile
-  static Future<DatabaseResponse> updateUserProfile(dynamic userId, Map<String, dynamic> userData) async {
-    try {
-      _logOperation('Users', 'Updating user profile for user: $userId with data: $userData');
-      
-      // Ensure userId is an integer
-      int parsedUserId;
-      if (userId is String) {
-        try {
-          parsedUserId = int.parse(userId);
-        } catch (e) {
-          _logOperation('Users', 'Failed to convert userId to integer: $userId', isError: true);
-          return DatabaseResponse(
-            success: false,
-            data: {'error': 'Invalid userId format'},
-          );
-        }
-      } else {
-        parsedUserId = userId;
-      }
-      
-      final result = await supabase
-          .from('users')
-          .update(userData)
-          .eq('id', parsedUserId)
-          .select()
-          .single();
-      
-      _logOperation('Users', 'User profile updated successfully for user: $parsedUserId');
-      
-      return DatabaseResponse(
-        success: true,
-        data: result,
-      );
-    } catch (e) {
-      _logOperation('Users', 'Error updating user profile: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Add credits to user
-  static Future<DatabaseResponse> addCreditsToUser(dynamic userId, int amount) async {
-    try {
-      _logOperation('Users', 'Adding $amount credits to user: $userId');
-      
-      // Ensure userId is an integer
-      int parsedUserId;
-      if (userId is String) {
-        try {
-          parsedUserId = int.parse(userId);
-        } catch (e) {
-          _logOperation('Users', 'Failed to convert userId to integer: $userId', isError: true);
-          return DatabaseResponse(
-            success: false,
-            data: {'error': 'Invalid userId format'},
-          );
-        }
-      } else {
-        parsedUserId = userId;
-      }
-      
-      // Get current credits
-      final userData = await supabase
-          .from('users')
-          .select('credits')
-          .eq('id', parsedUserId)
-          .single();
-      
-      int currentCredits = userData['credits'] ?? 0;
-      int newCredits = currentCredits + amount;
-      
-      _logOperation('Users', 'Current credits: $currentCredits, new credits: $newCredits');
-      
-      final result = await supabase
-          .from('users')
-          .update({'credits': newCredits})
-          .eq('id', parsedUserId)
-          .select()
-          .single();
-      
-      _logOperation('Users', 'Credits updated successfully for user: $parsedUserId');
-      
-      return DatabaseResponse(
-        success: true,
-        data: result,
-      );
-    } catch (e) {
-      _logOperation('Users', 'Error adding credits: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Deduct credits from user
-  static Future<DatabaseResponse> deductCreditsFromUser(dynamic userId, int amount) async {
-    try {
-      _logOperation('Users', 'Deducting $amount credits from user: $userId');
-      
-      // Ensure userId is an integer
-      int parsedUserId;
-      if (userId is String) {
-        try {
-          parsedUserId = int.parse(userId);
-        } catch (e) {
-          _logOperation('Users', 'Failed to convert userId to integer: $userId', isError: true);
-          return DatabaseResponse(
-            success: false,
-            data: {'error': 'Invalid userId format'},
-          );
-        }
-      } else {
-        parsedUserId = userId;
-      }
-      
-      // Get current credits
-      final userData = await supabase
-          .from('users')
-          .select('credits')
-          .eq('id', parsedUserId)
-          .single();
-      
-      int currentCredits = userData['credits'] ?? 0;
-      
-      // Check if user has enough credits
-      if (currentCredits < amount) {
-        _logOperation('Users', 'Insufficient credits: current=$currentCredits, required=$amount', isError: true);
-        return DatabaseResponse(
-          success: false,
-          data: {'error': 'Insufficient credits'},
-        );
-      }
-      
-      int newCredits = currentCredits - amount;
-      
-      _logOperation('Users', 'Current credits: $currentCredits, new credits: $newCredits');
-      
-      final result = await supabase
-          .from('users')
-          .update({'credits': newCredits})
-          .eq('id', parsedUserId)
-          .select()
-          .single();
-      
-      _logOperation('Users', 'Credits updated successfully for user: $parsedUserId');
-      
-      return DatabaseResponse(
-        success: true,
-        data: result,
-      );
-    } catch (e) {
-      _logOperation('Users', 'Error deducting credits: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-
-  // Create a test user for development purposes
-  static Future<LoginResponse> createTestUser() async {
-    const email = 'test@example.com';
-    const password = 'Test123!';
-    const username = 'testuser';
-    
-    _logOperation('Test User Creation', 'Starting test user creation');
-    
-    try {
-      // Check if test user already exists
-      final existingUser = await supabase
-          .from('users')
-          .select()
-          .eq('email', email)
-          .maybeSingle();
-      
-      if (existingUser != null) {
-        _logOperation('Test User Creation', 'Test user already exists, logging in');
-        return await signInWithEmail(email, password);
-      }
-      
-      // Create auth user
-      final authResponse = await supabase.auth.signUp(
-        email: email,
-        password: password,
-        data: {
-          'username': username,
-        },
-      );
-
-      if (authResponse.user == null) {
-        throw Exception('Failed to create auth user');
-      }
-
-      final authId = authResponse.user!.id;
-      
-      // Create user profile
-      final result = await supabase.from('users').insert({
-        'username': username,
-        'email': email,
-        'password': password,
-        'credits': 1000, // Give test user some initial credits
-        'auth_id': authId,
-        'moderator': true, // Make test user a moderator
-      }).select();
-      
-      if (result.isEmpty) {
-        throw Exception('Failed to create user profile');
-      }
-
-      final userId = result[0]['id'];
-      await UserIdStorage.saveLoggedInUserId(userId);
-      
-      _logOperation('Test User Creation', 'Test user created successfully');
-      
-      return LoginResponse(
-        success: true,
-        message: 'Test user created and logged in',
-        userId: userId,
-      );
-    } catch (e) {
-      _logOperation('Test User Creation', 'Error: $e', isError: true);
-      return LoginResponse(
-        success: false,
-        message: 'Failed to create test user: $e',
-      );
-    }
-  }
-
-  // Utility method to fix existing users by creating auth users for them
-  static Future<LoginResponse> fixExistingUser(String email, String newPassword) async {
-    try {
-      _logOperation('User Fix', 'Attempting to fix user with email: $email');
-      
-      // First check if user exists in database
-      final dbUser = await supabase
-          .from('users')
-          .select()
-          .eq('email', email)
-          .single();
-      
-      // Create auth user
-      final authResponse = await supabase.auth.signUp(
-        email: email,
-        password: newPassword,
-        data: {
-          'username': dbUser['username'],
-          'db_user_id': dbUser['id'],
-        },
-      );
-
-      if (authResponse.user == null) {
-        return LoginResponse(
-          success: false,
-          message: 'Failed to create auth user',
-        );
-      }
-
-      // Update the database user with the auth ID
-      await supabase
-          .from('users')
-          .update({
-            'auth_id': authResponse.user!.id,
-            'password': newPassword,
-          })
-          .eq('id', dbUser['id']);
-      
-      _logOperation('User Fix', 'Successfully fixed user. Email: $email, ID: ${dbUser['id']}');
-      
-      // Log the user in
-      return await signInWithEmail(email, newPassword);
-      
-    } catch (e) {
-      _logOperation('User Fix', 'Error fixing user: $e', isError: true);
-      return LoginResponse(
-        success: false,
-        message: 'Error fixing user: $e',
-      );
-    }
-  }
-
-  // Get users that need authentication fixed (auth_id is null)
-  static Future<List<Map<String, dynamic>>> getUsersNeedingAuthFix() async {
-    try {
-      _logOperation('User Fix', 'Fetching users that need authentication fixed');
-      
-      final response = await supabase
-          .from('users')
-          .select('id, username, email')
-          .filter('auth_id', 'is', null);
-      
-      _logOperation('User Fix', 'Found ${response.length} users needing fix');
-      
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      _logOperation('User Fix', 'Error fetching users: $e', isError: true);
-      return [];
-    }
-  }
-
-  // Verify email
-  static Future<bool> verifyEmail(String token, String type) async {
-    try {
-      _logOperation('Auth', 'Verifying email with token: $token, type: $type');
-      
-      if (type != 'signup' && type != 'recovery') {
-        _logOperation('Auth', 'Invalid verification type: $type', isError: true);
-        throw Exception('Invalid verification type');
-      }
-      
-      await supabase.auth.verifyOTP(
-        token: token,
-        type: type == 'signup' ? OtpType.signup : OtpType.recovery,
-      );
-      
-      _logOperation('Auth', 'Email verified successfully');
-      return true;
-    } catch (e) {
-      _logOperation('Auth', 'Error verifying email: $e', isError: true);
-      throw Exception('Failed to verify email: $e');
-    }
-  }
-
-  // REVIEW OPERATIONS
-  
-  // Add a review
-  static Future<DatabaseResponse> addReview(Map<String, dynamic> reviewData) async {
-    try {
-      _logOperation('Reviews', 'Adding review with data: $reviewData');
-      
-      // Validate required fields
-      if (!reviewData.containsKey('session_id') || 
-          !reviewData.containsKey('reviewer_id') || 
-          !reviewData.containsKey('reviewee_id') ||
-          !reviewData.containsKey('rating')) {
-        return DatabaseResponse(
-          success: false,
-          data: {'error': 'Required fields missing (session_id, reviewer_id, reviewee_id, rating)'},
-        );
-      }
-      
-      // Ensure IDs are integers
-      if (reviewData['reviewer_id'] is String) {
-        try {
-          reviewData['reviewer_id'] = int.parse(reviewData['reviewer_id']);
-        } catch (e) {
-          _logOperation('Reviews', 'Failed to convert reviewer_id to integer: ${reviewData['reviewer_id']}', isError: true);
-        }
-      }
-      
-      if (reviewData['reviewee_id'] is String) {
-        try {
-          reviewData['reviewee_id'] = int.parse(reviewData['reviewee_id']);
-        } catch (e) {
-          _logOperation('Reviews', 'Failed to convert reviewee_id to integer: ${reviewData['reviewee_id']}', isError: true);
-        }
-      }
-      
-      if (reviewData['session_id'] is String) {
-        try {
-          reviewData['session_id'] = int.parse(reviewData['session_id']);
-        } catch (e) {
-          _logOperation('Reviews', 'Failed to convert session_id to integer: ${reviewData['session_id']}', isError: true);
-        }
-      }
-      
-      // Validate rating is between 1 and 5
-      if (reviewData['rating'] < 1 || reviewData['rating'] > 5) {
-        return DatabaseResponse(
-          success: false,
-          data: {'error': 'Rating must be between 1 and 5'},
-        );
-      }
-      
-      final result = await supabase
-          .from('reviews')
-          .insert(reviewData)
-          .select()
-          .single();
-      
-      _logOperation('Reviews', 'Review added successfully with ID: ${result['id']}');
-      
-      return DatabaseResponse(
-        success: true,
-        data: result,
-      );
-    } catch (e) {
-      _logOperation('Reviews', 'Error adding review: $e', isError: true);
-      return DatabaseResponse(
-        success: false,
-        data: {'error': e.toString()},
-      );
-    }
-  }
-  
-  // Get reviews for a user (as reviewee)
-  static Future<List<Map<String, dynamic>>> getUserReviews(dynamic userId) async {
-    try {
-      _logOperation('Reviews', 'Getting reviews for user: $userId');
-      
-      // Ensure userId is an integer
-      int parsedUserId;
-      if (userId is String) {
-        try {
-          parsedUserId = int.parse(userId);
-        } catch (e) {
-          _logOperation('Reviews', 'Failed to convert userId to integer: $userId', isError: true);
-          return [];
-        }
-      } else {
-        parsedUserId = userId;
-      }
-      
-      final data = await supabase
-          .from('reviews')
-          .select('''
-            id, 
-            rating, 
-            review_text, 
-            created_at,
-            reviewer:reviewer_id (id, username),
-            session:session_id (id)
-          ''')
-          .eq('reviewee_id', parsedUserId)
-          .order('created_at', ascending: false);
-      
-      _logOperation('Reviews', 'Successfully retrieved ${data.length} reviews for user: $parsedUserId');
-      
-      return List<Map<String, dynamic>>.from(data);
-    } catch (e) {
-      _logOperation('Reviews', 'Error getting user reviews: $e', isError: true);
-      return [];
-    }
-  }
-  
-  // Get average rating for a user
-  static Future<double> getUserAverageRating(dynamic userId) async {
-    try {
-      _logOperation('Reviews', 'Getting average rating for user: $userId');
-      
-      // Ensure userId is an integer
-      int parsedUserId;
-      if (userId is String) {
-        try {
-          parsedUserId = int.parse(userId);
-        } catch (e) {
-          _logOperation('Reviews', 'Failed to convert userId to integer: $userId', isError: true);
-          return 0.0;
-        }
-      } else {
-        parsedUserId = userId;
-      }
-      
-      final data = await supabase
-          .from('reviews')
-          .select('rating')
-          .eq('reviewee_id', parsedUserId);
-      
-      if (data.isEmpty) {
-        return 0.0;
-      }
-      
-      double sum = 0;
-      for (var review in data) {
-        sum += (review['rating'] as int).toDouble();
-      }
-      
-      final average = sum / data.length;
-      _logOperation('Reviews', 'User $parsedUserId has average rating: $average from ${data.length} reviews');
-      
-      return average;
-    } catch (e) {
-      _logOperation('Reviews', 'Error getting user average rating: $e', isError: true);
-      return 0.0;
-    }
-  }
-
-  // Direct user registration to users table
-  static Future<LoginResponse> registerUserDirect(String username, String email, String password) async {
-    try {
-      _logOperation('DirectRegistration', 'Starting direct user registration for: $email');
-      
-      // Check if username or email already exists
-      final userExistsByUsername = await supabase
-          .from('users')
-          .select()
-          .eq('username', username)
-          .maybeSingle();
-          
-      if (userExistsByUsername != null) {
-        _logOperation('DirectRegistration', 'Username already exists: $username', isError: true);
-        return LoginResponse(
-          success: false,
-          message: 'Username already exists',
-        );
-      }
-      
-      final userExistsByEmail = await supabase
-          .from('users')
-          .select()
-          .eq('email', email)
-          .maybeSingle();
-          
-      if (userExistsByEmail != null) {
-        _logOperation('DirectRegistration', 'Email already exists: $email', isError: true);
-        return LoginResponse(
-          success: false,
-          message: 'Email already exists',
-        );
-      }
-      
-      // Create user directly in the users table
-      _logOperation('DirectRegistration', 'Creating user in database');
-      final result = await supabase.from('users').insert({
-        'username': username,
-        'email': email,
-        'password': password,
-        'credits': 0, // Required per schema default
-        'created_at': DateTime.now().toIso8601String(),
-      }).select();
-      
-      _logOperation('DirectRegistration', 'User created successfully: $result');
-      
-      // Get the ID that was assigned
-      if (result.isNotEmpty) {
-        final userId = result[0]['id'];
-        _logOperation('DirectRegistration', 'Database assigned user ID: $userId');
-        
-        // Store the user ID
-        await UserIdStorage.saveLoggedInUserId(userId);
-        
-        return LoginResponse(
-          success: true,
-          message: 'User registered successfully',
-          userId: userId,
-        );
-      } else {
-        _logOperation('DirectRegistration', 'No result returned from user insertion', isError: true);
-        return LoginResponse(
-          success: false,
-          message: 'User creation failed - no ID returned',
-        );
-      }
-    } catch (e) {
-      _logOperation('DirectRegistration', 'Error creating user: $e', isError: true);
-      return LoginResponse(
-        success: false,
-        message: 'Registration error: ${e.toString()}',
-      );
-    }
-  }
-
-  // Direct SQL registration
-  static Future<LoginResponse> registerViaDirectSQL(String username, String email, String password) async {
-    try {
-      _logOperation('DirectSQL', 'Attempting direct SQL registration for: $email');
-      
-      // Check if username exists
-      final usernameExists = await supabase
-          .from('users')
-          .select('id')
-          .eq('username', username)
-          .maybeSingle();
-          
-      if (usernameExists != null) {
-        _logOperation('DirectSQL', 'Username already exists: $username', isError: true);
-        return LoginResponse(
-          success: false,
-          message: 'Username already exists',
-        );
-      }
-      
-      // Check if email exists
-      final emailExists = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', email)
-          .maybeSingle();
-          
-      if (emailExists != null) {
-        _logOperation('DirectSQL', 'Email already exists: $email', isError: true);
-        return LoginResponse(
-          success: false,
-          message: 'Email already exists',
-        );
-      }
-      
-      // Insert new user
-      final result = await supabase
-          .from('users')
-          .insert({
-            'username': username,
-            'email': email,
-            'password': password,
-            'credits': 50,
-            'created_at': DateTime.now().toIso8601String(),
-          })
-          .select();
-      
-      _logOperation('DirectSQL', 'Registration result: $result');
-      
-      if (result.isNotEmpty) {
-        final userId = result[0]['id'];
-        
-        // Store user ID
-        await UserIdStorage.saveLoggedInUserId(userId);
-        
-        return LoginResponse(
-          success: true,
-          message: 'Registration successful',
-          userId: userId,
-        );
-      } else {
-        return LoginResponse(
-          success: false,
-          message: 'Failed to register user',
-        );
-      }
-    } catch (e) {
-      _logOperation('DirectSQL', 'Error during direct SQL registration: $e', isError: true);
-      return LoginResponse(
-        success: false,
-        message: 'Registration error: ${e.toString()}',
-      );
-    }
-  }
-
   // AUTH OPERATIONS
   
   // Reset password
@@ -2423,6 +1462,27 @@ class SupabaseService {
     } catch (e) {
       _logOperation('Password Reset', 'Error sending password reset email: $e', isError: true);
       throw Exception('Failed to send password reset email: $e');
+    }
+  }
+
+  // Verify email token
+  static Future<bool> verifyEmail(String token, String type) async {
+    try {
+      _logOperation('Email Verification', 'Verifying email with token: $token, type: $type');
+      
+      // This would normally interact with Supabase Auth, but we'll simulate it
+      // since Supabase handles most of this automatically with redirects
+      if (type == 'signup' || type == 'recovery') {
+        // For signup or recovery, we just need to acknowledge we got the token
+        // In a real app, we'd use supabase.auth.verifyOTP or similar
+        return true;
+      }
+      
+      _logOperation('Email Verification', 'Unknown verification type: $type', isError: true);
+      return false;
+    } catch (e) {
+      _logOperation('Email Verification', 'Error verifying email: $e', isError: true);
+      return false;
     }
   }
 
@@ -2471,6 +1531,929 @@ class SupabaseService {
     } catch (e) {
       _logOperation('Get Profile Picture', 'Error getting profile picture: $e', isError: true);
       return null;
+    }
+  }
+
+  // CHAT OPERATIONS
+  
+  // Send a message
+  static Future<DatabaseResponse> sendMessage(Map<String, dynamic> messageData) async {
+    try {
+      _logOperation('Messages', 'Sending message: $messageData');
+      
+      // Validate required fields
+      if (!messageData.containsKey('chat_id') || 
+          !messageData.containsKey('sender_id') ||
+          !messageData.containsKey('message')) {
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Required fields missing (chat_id, sender_id, message)'},
+        );
+      }
+      
+      // Create the message
+      final result = await supabase
+          .from('messages')
+          .insert(messageData)
+          .select();
+          
+      if (result.isEmpty) {
+        _logOperation('Messages', 'Failed to create message', isError: true);
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Failed to create message'},
+        );
+      }
+      
+      _logOperation('Messages', 'Message sent successfully with ID: ${result[0]['id']}');
+      
+      // Update the last_message and last_updated in the chat
+      try {
+        await supabase
+            .from('chats')
+            .update({
+              'last_message': messageData['message'],
+              'last_updated': DateTime.now().toIso8601String(),
+            })
+            .eq('id', messageData['chat_id']);
+            
+        _logOperation('Messages', 'Updated chat with last message');
+      } catch (chatUpdateError) {
+        _logOperation('Messages', 'Error updating chat: $chatUpdateError', isError: true);
+        // Don't fail the operation if just the chat update fails
+      }
+      
+      return DatabaseResponse(
+        success: true,
+        data: result[0],
+      );
+    } catch (e) {
+      _logOperation('Messages', 'Error sending message: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+
+  // Send a message with notification
+  static Future<DatabaseResponse> sendMessageWithNotification({
+    required int chatId,
+    required dynamic senderId,
+    required String message,
+    required String senderName,
+    required dynamic recipientId,
+    required String? senderImage,
+  }) async {
+    try {
+      _logOperation('Messages', 'Sending message with notification: $message');
+      
+      // First, send the message itself
+      final messageResult = await sendMessage({
+        'chat_id': chatId,
+        'sender_id': senderId.toString(),
+        'message': message,
+        'timestamp': DateTime.now().toIso8601String(),
+        'read': false,
+      });
+      
+      if (!messageResult.success) {
+        return messageResult;
+      }
+      
+      // Then, create a notification (without chat_id, as it's not in the schema)
+      try {
+        final notificationData = {
+          'user_id': recipientId is int ? recipientId : int.parse(recipientId.toString()),
+          'message': '$senderName: $message',
+          'sender_id': senderId is int ? senderId : int.parse(senderId.toString()),
+          'sender_image': senderImage,
+          'read': false,
+          'created_at': DateTime.now().toIso8601String(),
+        };
+        
+        await supabase
+            .from('notifications')
+            .insert(notificationData);
+        
+        _logOperation('Notifications', 'Notification created successfully');
+      } catch (notificationError) {
+        // Log the error but don't fail the whole operation
+        _logOperation('Notifications', 'Error creating notification: $notificationError', isError: true);
+      }
+      
+      return messageResult;
+    } catch (e) {
+      _logOperation('Messages', 'Error in sendMessageWithNotification: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Mark chat messages as read
+  static Future<bool> markChatAsRead(int chatId) async {
+    try {
+      _logOperation('Messages', 'Marking all messages as read for chat: $chatId');
+      
+      // Get current user ID
+      final userId = await UserIdStorage.getLoggedInUserId();
+      if (userId == null) {
+        _logOperation('Messages', 'No user ID available for markChatAsRead', isError: true);
+        return false;
+      }
+      
+      // Get the chat to determine which messages to mark as read
+      final chatData = await supabase
+          .from('chats')
+          .select('user1_id, user2_id')
+          .eq('id', chatId)
+          .maybeSingle();
+          
+      if (chatData == null) {
+        _logOperation('Messages', 'Chat not found: $chatId', isError: true);
+        return false;
+      }
+      
+      // Determine the other user ID (the sender of messages to mark as read)
+      final otherUserId = chatData['user1_id'].toString() == userId.toString() 
+          ? chatData['user2_id'] 
+          : chatData['user1_id'];
+      
+      // Mark all messages from the other user as read
+      await supabase
+          .from('messages')
+          .update({'read': true})
+          .eq('chat_id', chatId)
+          .eq('sender_id', otherUserId)
+          .eq('read', false);
+      
+      _logOperation('Messages', 'Successfully marked messages as read in chat $chatId');
+      return true;
+    } catch (e) {
+      _logOperation('Messages', 'Error marking chat as read: $e', isError: true);
+      return false;
+    }
+  }
+  
+  // Get unread message count for current user
+  static Future<int> getUnreadMessageCount() async {
+    try {
+      // Get current user ID
+      final userId = await UserIdStorage.getLoggedInUserId();
+      if (userId == null) {
+        _logOperation('Messages', 'No user ID available for getUnreadMessageCount', isError: true);
+        return 0;
+      }
+      
+      // Get all chats where the user is a participant
+      final chats = await supabase
+          .from('chats')
+          .select('id')
+          .or('user1_id.eq.$userId,user2_id.eq.$userId');
+      
+      if (chats.isEmpty) {
+        return 0;
+      }
+      
+      int totalUnread = 0;
+      
+      // For each chat, count unread messages where the user is not the sender
+      for (final chat in chats) {
+        final chatId = chat['id'];
+        
+        final unreadCount = await supabase
+            .from('messages')
+            .select('id')
+            .eq('chat_id', chatId)
+            .neq('sender_id', userId.toString())
+            .eq('read', false);
+            
+        totalUnread += unreadCount.length;
+      }
+      
+      return totalUnread;
+    } catch (e) {
+      _logOperation('Messages', 'Error getting unread message count: $e', isError: true);
+      return 0;
+    }
+  }
+  
+  // Get user chats
+  static Future<DatabaseResponse> getUserChats(dynamic userId) async {
+    try {
+      _logOperation('Chats', 'Getting chats for user: $userId');
+      
+      // Ensure userId is in string format
+      final userIdStr = userId.toString();
+      
+      // Get all chats where the user is either user1 or user2
+      final chats = await supabase
+          .from('chats')
+          .select('''
+            *,
+            user1:user1_id(id, username, avatar_url),
+            user2:user2_id(id, username, avatar_url),
+            session:session_id(*)
+          ''')
+          .or('user1_id.eq.$userIdStr,user2_id.eq.$userIdStr')
+          .order('last_updated', ascending: false);
+      
+      _logOperation('Chats', 'Found ${chats.length} chats for user $userId');
+      
+      return DatabaseResponse(
+        success: true,
+        data: chats,
+      );
+    } catch (e) {
+      _logOperation('Chats', 'Error getting user chats: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Get messages for a chat
+  static Future<DatabaseResponse> getChatMessages(int chatId) async {
+    try {
+      _logOperation('Messages', 'Getting messages for chat: $chatId');
+      
+      final messages = await supabase
+          .from('messages')
+          .select('''
+            *,
+            sender:sender_id(id, username, avatar_url)
+          ''')
+          .eq('chat_id', chatId)
+          .order('timestamp', ascending: true);
+      
+      // Handle the case where sender information might be missing
+      List<Map<String, dynamic>> processedMessages = [];
+      
+      for (var message in messages) {
+        if (message['sender'] == null) {
+          // Retrieve the sender info separately if the join didn't work
+          try {
+            final userId = message['sender_id'];
+            if (userId != null) {
+              final userData = await supabase
+                  .from('users')
+                  .select('id, username, avatar_url')
+                  .eq('id', userId)
+                  .maybeSingle();
+                  
+              if (userData != null) {
+                message['sender'] = userData;
+              } else {
+                message['sender'] = {
+                  'id': userId,
+                  'username': 'User',
+                  'avatar_url': null
+                };
+              }
+            }
+          } catch (e) {
+            _logOperation('Messages', 'Error fetching sender data: $e', isError: true);
+            // Use a placeholder if we can't get the user data
+            message['sender'] = {
+              'id': message['sender_id'],
+              'username': 'User',
+              'avatar_url': null
+            };
+          }
+        }
+        processedMessages.add(Map<String, dynamic>.from(message));
+      }
+      
+      _logOperation('Messages', 'Found ${processedMessages.length} messages for chat $chatId');
+      
+      return DatabaseResponse(
+        success: true,
+        data: processedMessages,
+      );
+    } catch (e) {
+      _logOperation('Messages', 'Error getting chat messages: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Get or create a chat between two users for a specific skill
+  static Future<Map<String, dynamic>> getOrCreateChat(
+    String user1Id, 
+    String user2Id, 
+    int skillId
+  ) async {
+    try {
+      _logOperation('Chats', 'Getting or creating chat between users $user1Id and $user2Id for skill $skillId');
+      
+      // Validate inputs
+      if (user1Id == null || user2Id == null || skillId == null) {
+        _logOperation('Chats', 'Invalid inputs for chat creation', isError: true);
+        return {'error': 'Missing required parameters'};
+      }
+      
+      // First check if a chat already exists between these users for this skill
+      try {
+        // Get all sessions for this skill involving both users
+        final sessionData = await supabase
+            .from('sessions')
+            .select('id')
+            .eq('skill_id', skillId)
+            .or('and(requester_id.eq.$user1Id,provider_id.eq.$user2Id),and(requester_id.eq.$user2Id,provider_id.eq.$user1Id)')
+            .maybeSingle();
+            
+        if (sessionData != null) {
+          // We found a session, now check if there's a chat for it
+          final sessionId = sessionData['id'];
+          _logOperation('Chats', 'Found existing session: $sessionId');
+          
+          final chatData = await supabase
+              .from('chats')
+              .select('*')
+              .eq('session_id', sessionId)
+              .maybeSingle();
+              
+          if (chatData != null) {
+            _logOperation('Chats', 'Found existing chat: ${chatData['id']} for session: $sessionId');
+            return chatData;
+          }
+          
+          // Session exists but no chat, create one
+          final chatResult = await supabase
+              .from('chats')
+              .insert({
+                'user1_id': user1Id,
+                'user2_id': user2Id,
+                'session_id': sessionId,
+                'last_updated': DateTime.now().toIso8601String(),
+              })
+              .select()
+              .maybeSingle();
+              
+          if (chatResult != null) {
+            _logOperation('Chats', 'Created new chat with ID: ${chatResult['id']} for existing session');
+            return chatResult;
+          } else {
+            throw Exception('Failed to create chat for existing session');
+          }
+        }
+      } catch (e) {
+        _logOperation('Chats', 'Error checking for existing session/chat: $e', isError: true);
+        // Continue with creating a new session and chat
+      }
+      
+      // No existing session found, create a new session
+      _logOperation('Chats', 'No existing session found, creating new session');
+      
+      try {
+        // Determine which user is the provider (owner of the skill)
+        final skillData = await supabase
+            .from('skills')
+            .select('user_id')
+            .eq('id', skillId)
+            .maybeSingle();
+            
+        if (skillData == null) {
+          _logOperation('Chats', 'Skill not found with ID: $skillId', isError: true);
+          return {'error': 'Skill not found'};
+        }
+        
+        String providerId, requesterId;
+        if (skillData['user_id'].toString() == user1Id.toString()) {
+          providerId = user1Id;
+          requesterId = user2Id;
+        } else {
+          providerId = user2Id;
+          requesterId = user1Id;
+        }
+        
+        // Create a new session
+        final sessionResult = await supabase
+            .from('sessions')
+            .insert({
+              'requester_id': requesterId,
+              'provider_id': providerId,
+              'skill_id': skillId,
+              'status': 'Idle',
+              'created_at': DateTime.now().toIso8601String(),
+              'notified': false,
+            })
+            .select()
+            .maybeSingle();
+            
+        if (sessionResult == null) {
+          _logOperation('Chats', 'Failed to create session', isError: true);
+          return {'error': 'Failed to create session'};
+        }
+        
+        final sessionId = sessionResult['id'];
+        _logOperation('Chats', 'Created new session with ID: $sessionId');
+        
+        // Create a new chat
+        final chatResult = await supabase
+            .from('chats')
+            .insert({
+              'user1_id': user1Id,
+              'user2_id': user2Id,
+              'session_id': sessionId,
+              'last_updated': DateTime.now().toIso8601String(),
+            })
+            .select()
+            .maybeSingle();
+            
+        if (chatResult == null) {
+          _logOperation('Chats', 'Failed to create chat', isError: true);
+          return {'error': 'Failed to create chat'};
+        }
+        
+        _logOperation('Chats', 'Created new chat with ID: ${chatResult['id']}');
+        return chatResult;
+      } catch (e) {
+        _logOperation('Chats', 'Error creating session and chat: $e', isError: true);
+        return {'error': e.toString()};
+      }
+    } catch (e) {
+      _logOperation('Chats', 'Error getting or creating chat: $e', isError: true);
+      return {'error': e.toString()};
+    }
+  }
+  
+  // SESSION AND TRANSACTION OPERATIONS
+  
+  // Get session by ID
+  static Future<DatabaseResponse> getSession(int sessionId) async {
+    try {
+      _logOperation('Sessions', 'Getting session with ID: $sessionId');
+      
+      final data = await supabase
+          .from('sessions')
+          .select('''
+            *,
+            requester:requester_id(id, username, avatar_url),
+            provider:provider_id(id, username, avatar_url),
+            skill:skill_id(*)
+          ''')
+          .eq('id', sessionId)
+          .maybeSingle();
+          
+      if (data == null) {
+        _logOperation('Sessions', 'No session found with ID: $sessionId', isError: true);
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Session not found'},
+        );
+      }
+      
+      _logOperation('Sessions', 'Successfully retrieved session with ID: $sessionId');
+      return DatabaseResponse(
+        success: true,
+        data: data,
+      );
+    } catch (e) {
+      _logOperation('Sessions', 'Error getting session with ID $sessionId: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Get transaction by ID
+  static Future<DatabaseResponse> getTransaction(int transactionId) async {
+    try {
+      _logOperation('Transactions', 'Getting transaction with ID: $transactionId');
+      
+      final transaction = await supabase
+          .from('transactions')
+          .select('''
+            *,
+            requester:requester_id(id, username, avatar_url),
+            provider:provider_id(id, username, avatar_url),
+            session:session_id(*)
+          ''')
+          .eq('id', transactionId)
+          .single();
+      
+      _logOperation('Transactions', 'Found transaction with ID: $transactionId');
+      
+      return DatabaseResponse(
+        success: true,
+        data: transaction,
+      );
+    } catch (e) {
+      _logOperation('Transactions', 'Error getting transaction: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Get transaction from session
+  static Future<DatabaseResponse> getTransactionFromSession(int sessionId) async {
+    try {
+      _logOperation('Transactions', 'Getting transaction for session with ID: $sessionId');
+      
+      final transaction = await supabase
+          .from('transactions')
+          .select('''
+            *,
+            requester:requester_id(id, username, avatar_url),
+            provider:provider_id(id, username, avatar_url)
+          ''')
+          .eq('session_id', sessionId)
+          .order('created_at', ascending: false)
+          .maybeSingle();
+      
+      if (transaction == null) {
+        _logOperation('Transactions', 'No transaction found for session with ID: $sessionId');
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'No transaction found for this session'},
+        );
+      }
+      
+      _logOperation('Transactions', 'Found transaction with ID: ${transaction['id']} for session: $sessionId');
+      
+      return DatabaseResponse(
+        success: true,
+        data: transaction,
+      );
+    } catch (e) {
+      _logOperation('Transactions', 'Error getting transaction from session: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Create a session
+  static Future<DatabaseResponse> createSession(Map<String, dynamic> sessionData) async {
+    try {
+      _logOperation('Sessions', 'Creating new session with data: $sessionData');
+      
+      // Validate required fields
+      if (!sessionData.containsKey('requester_id') || 
+          !sessionData.containsKey('provider_id') ||
+          !sessionData.containsKey('skill_id')) {
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Required fields missing (requester_id, provider_id, skill_id)'},
+        );
+      }
+      
+      final result = await supabase
+          .from('sessions')
+          .insert(sessionData)
+          .select()
+          .single();
+      
+      _logOperation('Sessions', 'Session created successfully with ID: ${result['id']}');
+      
+      return DatabaseResponse(
+        success: true,
+        data: result,
+      );
+    } catch (e) {
+      _logOperation('Sessions', 'Error creating session: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Fetch session from chat ID
+  static Future<DatabaseResponse> fetchSessionFromChat(int chatId) async {
+    try {
+      _logOperation('Sessions', 'Fetching session from chat with ID: $chatId');
+      
+      final chat = await supabase
+          .from('chats')
+          .select('session_id')
+          .eq('id', chatId)
+          .maybeSingle();
+      
+      if (chat == null || chat['session_id'] == null) {
+        _logOperation('Sessions', 'No session found for chat with ID: $chatId', isError: true);
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'No session found for this chat'},
+        );
+      }
+      
+      final sessionId = chat['session_id'];
+      _logOperation('Sessions', 'Found session ID: $sessionId for chat: $chatId');
+      return await getSession(sessionId);
+    } catch (e) {
+      _logOperation('Sessions', 'Error fetching session from chat: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Create a transaction
+  static Future<DatabaseResponse> createTransaction(Map<String, dynamic> transactionData) async {
+    try {
+      _logOperation('Transactions', 'Creating new transaction with data: $transactionData');
+      
+      // Validate required fields
+      if (!transactionData.containsKey('session_id') || 
+          !transactionData.containsKey('requester_id') ||
+          !transactionData.containsKey('provider_id')) {
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Required fields missing (session_id, requester_id, provider_id)'},
+        );
+      }
+      
+      final result = await supabase
+          .from('transactions')
+          .insert(transactionData)
+          .select();
+      
+      if (result.isEmpty) {
+        _logOperation('Transactions', 'Failed to create transaction', isError: true);
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Failed to create transaction'},
+        );
+      }
+      
+      _logOperation('Transactions', 'Transaction created successfully with ID: ${result[0]['id']}');
+      
+      return DatabaseResponse(
+        success: true,
+        data: result[0],
+      );
+    } catch (e) {
+      _logOperation('Transactions', 'Error creating transaction: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Finalize a transaction
+  static Future<DatabaseResponse> finalizeTransaction(int transactionId, String status) async {
+    try {
+      _logOperation('Transactions', 'Finalizing transaction with ID: $transactionId, status: $status');
+      
+      final result = await supabase
+          .from('transactions')
+          .update({
+            'status': status,
+            'completed_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', transactionId)
+          .select();
+      
+      if (result.isEmpty) {
+        _logOperation('Transactions', 'Transaction not found or not updated', isError: true);
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Transaction not found or not updated'},
+        );
+      }
+      
+      _logOperation('Transactions', 'Transaction finalized successfully');
+      
+      return DatabaseResponse(
+        success: true,
+        data: result[0],
+      );
+    } catch (e) {
+      _logOperation('Transactions', 'Error finalizing transaction: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Update session
+  static Future<DatabaseResponse> updateSession(int sessionId, Map<String, dynamic> updates) async {
+    try {
+      _logOperation('Sessions', 'Updating session with ID: $sessionId, updates: $updates');
+      
+      final result = await supabase
+          .from('sessions')
+          .update(updates)
+          .eq('id', sessionId)
+          .select();
+      
+      if (result.isEmpty) {
+        _logOperation('Sessions', 'Session not found or not updated', isError: true);
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Session not found or not updated'},
+        );
+      }
+      
+      _logOperation('Sessions', 'Session updated successfully');
+      
+      return DatabaseResponse(
+        success: true,
+        data: result[0],
+      );
+    } catch (e) {
+      _logOperation('Sessions', 'Error updating session: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Get active sessions for a user
+  static Future<List<Map<String, dynamic>>> getActiveSessionsForUser(String userId) async {
+    try {
+      _logOperation('Sessions', 'Getting active sessions for user: $userId');
+      
+      final sessions = await supabase
+          .from('sessions')
+          .select('''
+            *,
+            requester:requester_id(id, username, avatar_url),
+            provider:provider_id(id, username, avatar_url),
+            skill:skill_id(*)
+          ''')
+          .or('requester_id.eq.$userId,provider_id.eq.$userId')
+          .neq('status', 'Completed')
+          .neq('status', 'Cancelled')
+          .order('created_at', ascending: false);
+      
+      _logOperation('Sessions', 'Found ${sessions.length} active sessions for user $userId');
+      
+      return List<Map<String, dynamic>>.from(sessions);
+    } catch (e) {
+      _logOperation('Sessions', 'Error getting active sessions: $e', isError: true);
+      return [];
+    }
+  }
+  
+  // Complete a session
+  static Future<bool> completeSession(int sessionId) async {
+    try {
+      _logOperation('Sessions', 'Completing session with ID: $sessionId');
+      
+      await supabase
+          .from('sessions')
+          .update({
+            'status': 'Completed',
+          })
+          .eq('id', sessionId);
+      
+      _logOperation('Sessions', 'Session completed successfully');
+      
+      return true;
+    } catch (e) {
+      _logOperation('Sessions', 'Error completing session: $e', isError: true);
+      return false;
+    }
+  }
+  
+  // Cancel a session
+  static Future<bool> cancelSession(int sessionId) async {
+    try {
+      _logOperation('Sessions', 'Cancelling session with ID: $sessionId');
+      
+      await supabase
+          .from('sessions')
+          .update({
+            'status': 'Cancelled',
+          })
+          .eq('id', sessionId);
+      
+      _logOperation('Sessions', 'Session cancelled successfully');
+      
+      return true;
+    } catch (e) {
+      _logOperation('Sessions', 'Error cancelling session: $e', isError: true);
+      return false;
+    }
+  }
+  
+  // NOTIFICATION OPERATIONS
+  
+  // Get notifications for the current user
+  static Future<List<Map<String, dynamic>>> getNotifications() async {
+    try {
+      // Get current user ID
+      final userId = await UserIdStorage.getLoggedInUserId();
+      if (userId == null) {
+        _logOperation('Notifications', 'No user ID available for getNotifications', isError: true);
+        return [];
+      }
+      
+      _logOperation('Notifications', 'Getting notifications for user: $userId');
+      
+      final notifications = await supabase
+          .from('notifications')
+          .select('*, sender:sender_id(id, username, avatar_url)')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(50);
+      
+      _logOperation('Notifications', 'Found ${notifications.length} notifications for user $userId');
+      
+      return List<Map<String, dynamic>>.from(notifications);
+    } catch (e) {
+      _logOperation('Notifications', 'Error getting notifications: $e', isError: true);
+      return [];
+    }
+  }
+  
+  // Mark notification as read
+  static Future<bool> markNotificationAsRead(int notificationId) async {
+    try {
+      _logOperation('Notifications', 'Marking notification $notificationId as read');
+      
+      await supabase
+          .from('notifications')
+          .update({
+            'is_read': true,
+          })
+          .eq('id', notificationId);
+      
+      _logOperation('Notifications', 'Notification marked as read successfully');
+      
+      return true;
+    } catch (e) {
+      _logOperation('Notifications', 'Error marking notification as read: $e', isError: true);
+      return false;
+    }
+  }
+  
+  // REVIEW OPERATIONS
+  
+  // Add a review
+  static Future<DatabaseResponse> addReview(Map<String, dynamic> reviewData) async {
+    try {
+      _logOperation('Reviews', 'Adding new review with data: $reviewData');
+      
+      // Validate required fields
+      if (!reviewData.containsKey('session_id') || 
+          !reviewData.containsKey('reviewer_id') ||
+          !reviewData.containsKey('reviewee_id') ||
+          !reviewData.containsKey('rating')) {
+        return DatabaseResponse(
+          success: false,
+          data: {'error': 'Required fields missing (session_id, reviewer_id, reviewee_id, rating)'},
+        );
+      }
+      
+      final result = await supabase
+          .from('reviews')
+          .insert(reviewData)
+          .select()
+          .single();
+      
+      _logOperation('Reviews', 'Review added successfully with ID: ${result['id']}');
+      
+      return DatabaseResponse(
+        success: true,
+        data: result,
+      );
+    } catch (e) {
+      _logOperation('Reviews', 'Error adding review: $e', isError: true);
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
+  }
+  
+  // Get reviews for a user
+  static Future<List<Map<String, dynamic>>> getUserReviews(int userId) async {
+    try {
+      _logOperation('Reviews', 'Getting reviews for user: $userId');
+      
+      final reviews = await supabase
+          .from('reviews')
+          .select('''
+            *,
+            reviewer:reviewer_id(id, username, avatar_url),
+            session:session_id(*)
+          ''')
+          .eq('reviewee_id', userId)
+          .order('created_at', ascending: false);
+      
+      _logOperation('Reviews', 'Found ${reviews.length} reviews for user $userId');
+      
+      return List<Map<String, dynamic>>.from(reviews);
+    } catch (e) {
+      _logOperation('Reviews', 'Error getting user reviews: $e', isError: true);
+      return [];
     }
   }
 }

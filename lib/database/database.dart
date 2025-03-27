@@ -796,6 +796,28 @@ class DatabaseHelper {
     return await SupabaseService.resolveReport(reportId);
   }
 
+  // remove reported skill
+  static Future<bool> removeReportedSkill(int reportId) async {
+    try {
+      // First get report details to find the skill_id
+      final reportResponse = await SupabaseService.getReport(reportId);
+      if (!reportResponse.success) return false;
+      
+      final report = reportResponse.data;
+      final skillId = report['skill_id'];
+      
+      // Delete the skill
+      final skillDeleted = await SupabaseService.deleteSkill(skillId);
+      if (!skillDeleted) return false;
+      
+      // Mark the report as resolved
+      return await SupabaseService.resolveReport(reportId);
+    } catch (e) {
+      print('Error removing reported skill: $e');
+      return false;
+    }
+  }
+
   // create report
   static Future<bool> createReport(int skillId) async {
     final userId = await UserIdStorage.getLoggedInUserId();

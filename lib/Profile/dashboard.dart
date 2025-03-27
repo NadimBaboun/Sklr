@@ -383,7 +383,7 @@ class _ModeratorDashboardState extends State<ModeratorDashboard> with SingleTick
                                                 title: 'Remove Listing',
                                                 content: 'Are you sure you want to remove this listing? This action is irreversible.',
                                                 onConfirm: () async {
-                                                  final result = await DatabaseHelper.resolveReport(report['id']);
+                                                  final result = await DatabaseHelper.removeReportedSkill(report['id']);
                                                   if (result) {
                                                     reloadReports();
                                                   }

@@ -41,14 +41,18 @@ class _ChatPageState extends State<ChatPage> {
     super.initState();
     messages = _initializeMessages();
     _markMessagesAsRead();
-    // Fetch session data
-    _fetchSessionData();
+    // First verify that session exists, and if not, create one
+    _verifySessionExists().then((_) {
+      // Fetch session data
+      _fetchSessionData();
+    });
     // Set up periodic refresh every 10 seconds
     _startPeriodicRefresh();
   }
 
   Future<List<Map<String, dynamic>>> _initializeMessages() async {
     try {
+      log('Initializing messages for chat ${widget.chatId}');
       // Directly query messages from Supabase to ensure fresh data
       final messagesResponse = await supabase
           .from('messages')
@@ -59,7 +63,7 @@ class _ChatPageState extends State<ChatPage> {
       log('Fetched ${messagesResponse.length} messages for chat ${widget.chatId}');
       return List<Map<String, dynamic>>.from(messagesResponse);
     } catch (e) {
-      debugPrint('Error initializing messages: $e');
+      log('Error initializing messages for chat ${widget.chatId}: $e');
       return [];
     }
   }
@@ -107,9 +111,7 @@ class _ChatPageState extends State<ChatPage> {
     } catch (e) {
       if (mounted) {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading messages: $e'))
-        );
+        _showSnackBar('Error loading messages: $e');
       }
     }
   }
@@ -122,23 +124,152 @@ class _ChatPageState extends State<ChatPage> {
     _messageController.clear();
     
     try {
-      // Get the chat info with session_id
-      final chatData = await supabase
-          .from('chats')
-          .select('session_id, user1_id, user2_id')
-          .eq('id', widget.chatId)
-          .single();
+      // Get the chat info with session_id - Use try/catch to handle possible errors
+      Map<String, dynamic>? chatData;
+      try {
+        chatData = await supabase
+            .from('chats')
+            .select('session_id, user1_id, user2_id')
+            .eq('id', widget.chatId)
+            .single();
+      } catch (e) {
+        log('Error getting chat data: $e');
+        // Try again with maybeSingle instead
+        chatData = await supabase
+            .from('chats')
+            .select('session_id, user1_id, user2_id')
+            .eq('id', widget.chatId)
+            .maybeSingle();
+      }
           
-      if (chatData == null || !chatData.containsKey('session_id')) {
-        throw Exception('No session found for this chat');
+      if (chatData == null || !chatData.containsKey('session_id') || chatData['session_id'] == null) {
+        log('No session found for chat ${widget.chatId}, attempting to create one');
+        
+        // Get the users from the chat
+        int user1Id = 0;
+        int user2Id = 0;
+        
+        try {
+          if (chatData != null && chatData.containsKey('user1_id') && chatData.containsKey('user2_id')) {
+            user1Id = int.parse(chatData['user1_id'].toString());
+            user2Id = int.parse(chatData['user2_id'].toString());
+          } else {
+            // Fallback: Try to get chat users directly
+            final chatUsers = await supabase
+                .from('chats')
+                .select('user1_id, user2_id')
+                .eq('id', widget.chatId)
+                .maybeSingle();
+                
+            if (chatUsers != null) {
+              user1Id = int.parse(chatUsers['user1_id'].toString());
+              user2Id = int.parse(chatUsers['user2_id'].toString());
+            }
+          }
+          
+          if (user1Id > 0 && user2Id > 0) {
+            // Determine provider and requester based on logged in user
+            int providerId = widget.loggedInUserId;
+            int requesterId = widget.loggedInUserId == user1Id ? user2Id : user1Id;
+            
+            // First try to find any existing skill associated with these users
+            final existingSkills = await supabase
+                .from('skills')
+                .select('id')
+                .eq('user_id', providerId)
+                .limit(1)
+                .maybeSingle();
+                
+            int skillId = 1; // Default fallback
+            if (existingSkills != null && existingSkills.containsKey('id')) {
+              skillId = existingSkills['id'];
+            }
+            
+            // Create a dummy session with minimal data
+            final dummySession = {
+              'requester_id': requesterId,
+              'provider_id': providerId,
+              'skill_id': skillId,
+              'status': 'Basic',
+              'created_at': DateTime.now().toIso8601String(),
+            };
+            
+            // Insert the session
+            Map<String, dynamic>? sessionResult;
+            try {
+              final result = await supabase
+                  .from('sessions')
+                  .insert(dummySession)
+                  .select();
+                  
+              if (result != null && result.isNotEmpty) {
+                sessionResult = result[0];
+              }
+            } catch (e) {
+              log('Error creating session: $e');
+            }
+                
+            if (sessionResult != null) {
+              final sessionId = sessionResult['id'];
+              log('Created fallback session ID: $sessionId');
+              
+              // Now update the chat with this session
+              await supabase
+                  .from('chats')
+                  .update({'session_id': sessionId})
+                  .eq('id', widget.chatId);
+                  
+              // Now we can send the message with the new session
+              final newMessage = {
+                'chat_id': widget.chatId,
+                'sender_id': widget.loggedInUserId.toString(),
+                'message': messageText,
+                'timestamp': DateTime.now().toIso8601String(),
+                'read': false,
+              };
+              
+              await supabase
+                  .from('messages')
+                  .insert(newMessage);
+                  
+              await _loadMessages();
+              setState(() => isLoading = false);
+              return;
+            }
+          }
+        } catch (sessionError) {
+          log('Error creating fallback session: $sessionError');
+        }
+        
+        _showSnackBar('Unable to send message: No session found for this chat');
+        setState(() => isLoading = false);
+        return;
       }
       
-      // Then get the session using that ID
-      final sessionData = await supabase
-          .from('sessions')
-          .select()
-          .eq('id', chatData['session_id'])
-          .single();
+      // Then get the session using that ID - Use try/catch to handle possible errors
+      Map<String, dynamic>? sessionData;
+      try {
+        sessionData = await supabase
+            .from('sessions')
+            .select()
+            .eq('id', chatData['session_id'])
+            .single();
+      } catch (e) {
+        log('Error getting session data: $e');
+        // Try again with maybeSingle
+        sessionData = await supabase
+            .from('sessions')
+            .select()
+            .eq('id', chatData['session_id'])
+            .maybeSingle();
+      }
+      
+      if (sessionData == null) {
+        log('Unable to send message: Session not found for ID ${chatData['session_id']}');
+        _showSnackBar('Unable to send message: Session not found');
+        setState(() => isLoading = false);
+        return;
+      }
       
       // Determine the recipient (the other user, not the sender)
       final recipientId = sessionData['requester_id'].toString() == widget.loggedInUserId.toString()
@@ -154,8 +285,7 @@ class _ChatPageState extends State<ChatPage> {
         'read': false,
       };
       
-      // Let Supabase auto-generate the ID by NOT specifying .single()
-      // which was causing problems with the returned data
+      // Send the message
       final result = await supabase
           .from('messages')
           .insert(newMessage)
@@ -172,50 +302,73 @@ class _ChatPageState extends State<ChatPage> {
           })
           .eq('id', widget.chatId);
       
-      // Send notification to recipient
-      final userData = await supabase
-          .from('users')
-          .select()
-          .eq('id', widget.loggedInUserId)
-          .single();
+      try {
+        // Send notification to recipient
+        Map<String, dynamic>? userData;
+        try {
+          userData = await supabase
+              .from('users')
+              .select('username, avatar_url')
+              .eq('id', widget.loggedInUserId)
+              .single();
+        } catch (e) {
+          userData = await supabase
+              .from('users')
+              .select('username, avatar_url')
+              .eq('id', widget.loggedInUserId)
+              .maybeSingle();
+        }
+            
+        final senderName = userData != null && userData.containsKey('username') 
+            ? (userData['username'] ?? 'Unknown User') 
+            : 'Unknown User';
+        final senderImage = userData != null ? userData['avatar_url'] : null;
+        
+        // Use DatabaseHelper to create notification - both read and is_read for compatibility
+        final notificationData = {
+          'user_id': recipientId,
+          'message': '$senderName: $messageText',
+          'sender_id': widget.loggedInUserId.toString(),
+          'sender_image': senderImage,
+          'read': false,
+          'is_read': false,
+          'created_at': DateTime.now().toIso8601String(),
+        };
+        
+        // Insert the notification directly for maximum compatibility
+        try {
+          await supabase
+              .from('notifications')
+              .insert(notificationData);
+              
+          log('Notification created for recipient $recipientId');
+        } catch (notificationInsertError) {
+          log('Error inserting notification directly: $notificationInsertError');
           
-      final senderName = userData['username'] ?? 'Unknown User';
-      final senderImage = userData['avatar_url'];
-      
-      // Create notification - Remove chat_id field since it's not in the schema
-      final notificationData = {
-        'user_id': recipientId,
-        'message': '$senderName: $messageText',
-        'sender_id': widget.loggedInUserId.toString(),
-        'sender_image': senderImage,
-        // 'chat_id' field removed since it doesn't exist in the schema
-        'read': false,
-        'created_at': DateTime.now().toIso8601String(),
-      };
-      
-      // Use DatabaseHelper to safely create notification
-      final notificationSuccess = await DatabaseHelper.createNotification(
-        recipientId: int.parse(recipientId.toString()),
-        message: '$senderName: $messageText',
-        senderId: widget.loggedInUserId, 
-        senderImage: senderImage,
-        chatId: widget.chatId
-      );
-      
-      if (!notificationSuccess) {
-        log('Warning: Failed to create notification, but message was sent');
+          // Fall back to DatabaseHelper if direct insert fails
+          final notificationSuccess = await DatabaseHelper.createNotification(
+            recipientId: int.parse(recipientId.toString()),
+            message: '$senderName: $messageText',
+            senderId: widget.loggedInUserId, 
+            senderImage: senderImage,
+            chatId: widget.chatId
+          );
+          
+          if (!notificationSuccess) {
+            log('Warning: Failed to create notification with DatabaseHelper');
+          }
+        }
+      } catch (notificationError) {
+        // Don't fail the whole message sending just because notification failed
+        log('Warning: Error sending notification: $notificationError');
       }
       
       await _loadMessages();
+      setState(() => isLoading = false);
     } catch (e) {
       if (mounted) {
-        debugPrint('Error sending message: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send message: $e'),
-            backgroundColor: Colors.red,
-          )
-        );
+        log('Error sending message: $e');
+        _showSnackBar('Failed to send message: $e');
       }
       setState(() => isLoading = false);
     }
@@ -232,7 +385,18 @@ class _ChatPageState extends State<ChatPage> {
           
       log('Marked messages as read for chat ${widget.chatId}');
     } catch (e) {
-      debugPrint('Error marking messages as read: $e');
+      log('Error marking messages as read: $e');
+      
+      // Try again with a simpler query if the first one fails
+      try {
+        await supabase
+            .from('messages')
+            .update({'read': true})
+            .eq('chat_id', widget.chatId)
+            .neq('sender_id', widget.loggedInUserId.toString());
+      } catch (retryError) {
+        log('Failed retry to mark messages as read: $retryError');
+      }
     }
   }
 
@@ -291,37 +455,49 @@ class _ChatPageState extends State<ChatPage> {
           future: _loadSessionAndSkill(),
           builder: (context, snapshot) {
             // Get username from snapshot or fall back to widget.otherUsername
-            final username = snapshot.hasData 
+            final username = (snapshot.hasData && snapshot.data!.containsKey('otherUsername') && 
+                              snapshot.data!['otherUsername'] != null && 
+                              snapshot.data!['otherUsername'] != 'Unknown User') 
                 ? snapshot.data!['otherUsername'] 
                 : widget.otherUsername;
                 
             return GestureDetector(
               onTap: () {
                 // Only navigate if we have session data
-                if (snapshot.hasData && snapshot.data != null) {
+                if (snapshot.hasData && snapshot.data != null && 
+                    snapshot.data!.containsKey('session') && 
+                    snapshot.data!['session'] != null) {
                   final sessionData = snapshot.data!['session'];
                   int otherUserId;
                   
-                  // Determine which user ID to use based on who is logged in
-                  if (sessionData['provider_id'] == widget.loggedInUserId) {
-                    // If logged-in user is the provider, navigate to requester's profile
-                    otherUserId = sessionData['requester_id'];
+                  // Only proceed if we have valid provider_id and requester_id
+                  if (sessionData.containsKey('provider_id') && 
+                      sessionData.containsKey('requester_id') &&
+                      sessionData['provider_id'] != 0 && 
+                      sessionData['requester_id'] != 0) {
+                    
+                    // Determine which user ID to use based on who is logged in
+                    if (sessionData['provider_id'].toString() == widget.loggedInUserId.toString()) {
+                      // If logged-in user is the provider, navigate to requester's profile
+                      otherUserId = sessionData['requester_id'];
+                    } else {
+                      // If logged-in user is the requester, navigate to provider's profile
+                      otherUserId = sessionData['provider_id'];
+                    }
+                    
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => UserPage(userId: otherUserId),
+                      ),
+                    );
                   } else {
-                    // If logged-in user is the requester, navigate to provider's profile
-                    otherUserId = sessionData['provider_id'];
+                    // Show loading message if session data isn't available yet
+                    _showSnackBar('Cannot access user profile: session data incomplete');
                   }
-                  
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => UserPage(userId: otherUserId),
-                    ),
-                  );
                 } else {
                   // Show loading message if session data isn't available yet
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Loading user data...'))
-                  );
+                  _showSnackBar('Cannot access user profile: session data not available');
                 }
               },
               child: Column(
@@ -539,15 +715,68 @@ class _ChatPageState extends State<ChatPage> {
             ),
           );
         }
-        if (snapshot.hasData) {
-          return _buildStateButton(snapshot.data!['status'], snapshot.data!);
+        
+        if (snapshot.hasError) {
+          log('Error in _buildSessionStatus: ${snapshot.error}');
+          return Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            color: Colors.white,
+            child: Text(
+              "Error loading session data",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.mulish(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.red[400],
+              ),
+            ),
+          );
         }
-        return const SizedBox.shrink();
+        
+        if (snapshot.hasData && snapshot.data != null) {
+          // Get status with a default value if it's missing
+          final status = snapshot.data!.containsKey('status') ? 
+              snapshot.data!['status'] : 'Idle';
+          
+          return _buildStateButton(status, snapshot.data!);
+        }
+        
+        // Default fallback if no data
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          color: Colors.white,
+          child: Text(
+            "Basic chat mode",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.mulish(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+        );
       },
     );
   }
 
   Widget _buildStateButton(String status, Map<String, dynamic> session) {
+    if (session == null || !session.containsKey('provider_id') || !session.containsKey('requester_id')) {
+      // If we don't have proper session data, show a generic message
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        color: Colors.white,
+        child: Text(
+          "Basic chat mode - session data incomplete",
+          textAlign: TextAlign.center,
+          style: GoogleFonts.mulish(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[700],
+          ),
+        ),
+      );
+    }
+    
     // First determine user roles
     final bool isProvider = session['provider_id'].toString() == widget.loggedInUserId.toString();
     final bool isRequester = session['requester_id'].toString() == widget.loggedInUserId.toString();
@@ -953,15 +1182,11 @@ class _ChatPageState extends State<ChatPage> {
           });
         } catch (e) {
           debugPrint('Error updating service status: $e');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error updating service: $e'))
-          );
+          _showSnackBar('Error updating service: $e');
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to request service: $e'))
-      );
+      _showSnackBar('Failed to request service: $e');
     }
   }
   
@@ -1009,12 +1234,9 @@ class _ChatPageState extends State<ChatPage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to complete service: $e'))
-      );
+      _showSnackBar('Failed to complete service: $e');
     }
   }
-
   Future<void> _handleServiceCancel(Map<String, dynamic> session) async {
     try {
       bool? result = await CancelService(session: session)
@@ -1031,9 +1253,7 @@ class _ChatPageState extends State<ChatPage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to cancel service: $e'))
-      );
+      _showSnackBar('Failed to cancel service: $e');
     }
   }
 
@@ -1046,12 +1266,7 @@ class _ChatPageState extends State<ChatPage> {
       
       final isProvider = session['provider_id'].toString() == loggedInUserId.toString();
       if (!isProvider) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Only the provider can accept service requests'),
-            backgroundColor: Colors.red,
-          )
-        );
+        _showSnackBar('Only the provider can accept service requests', backgroundColor: Colors.red);
         return;
       }
       
@@ -1069,14 +1284,7 @@ class _ChatPageState extends State<ChatPage> {
       }
     } catch (e) {
       debugPrint('Error accepting service: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error accepting service: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showSnackBar('Error accepting service: $e', backgroundColor: Colors.red);
     }
   }
   
@@ -1095,14 +1303,7 @@ class _ChatPageState extends State<ChatPage> {
       });
     } catch (e) {
       debugPrint('Error declining service: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error declining service: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showSnackBar('Error declining service: $e', backgroundColor: Colors.red);
     }
   }
 
@@ -1176,23 +1377,66 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<Map<String, dynamic>> _loadSession() async {
     try {
+      log('Fetching session data for chat ${widget.chatId}');
       // Get the chat info with session_id
-      final chatData = await supabase
-          .from('chats')
-          .select('session_id, user1_id, user2_id')
-          .eq('id', widget.chatId)
-          .single();
+      Map<String, dynamic>? chatData;
+      try {
+        chatData = await supabase
+            .from('chats')
+            .select('session_id, user1_id, user2_id')
+            .eq('id', widget.chatId)
+            .single();
+      } catch (e) {
+        // Try again with maybeSingle instead
+        chatData = await supabase
+            .from('chats')
+            .select('session_id, user1_id, user2_id')
+            .eq('id', widget.chatId)
+            .maybeSingle();
+      }
           
-      if (chatData == null || !chatData.containsKey('session_id')) {
-        throw Exception('No session found for this chat');
+      // Check if chat data exists and has a session_id
+      if (chatData == null || !chatData.containsKey('session_id') || chatData['session_id'] == null) {
+        log('No session found for chat ID: ${widget.chatId}. Creating a new session.');
+        // Create a session on the fly
+        await _verifySessionExists();
+        
+        // Try to get the chat data again
+        chatData = await supabase
+            .from('chats')
+            .select('session_id, user1_id, user2_id')
+            .eq('id', widget.chatId)
+            .maybeSingle();
+            
+        if (chatData == null || !chatData.containsKey('session_id') || chatData['session_id'] == null) {
+          log('Still could not get valid session for chat ${widget.chatId}');
+          return {'status': 'Basic', 'provider_id': widget.loggedInUserId, 'requester_id': 0, 'skill_id': 1};
+        }
       }
       
       // Get the session data without any auto-request logic
-      final sessionData = await supabase
-          .from('sessions')
-          .select()
-          .eq('id', chatData['session_id'])
-          .single();
+      Map<String, dynamic>? sessionData;
+      try {
+        sessionData = await supabase
+            .from('sessions')
+            .select()
+            .eq('id', chatData['session_id'])
+            .single();
+      } catch (e) {
+        // Try with maybeSingle if single fails
+        sessionData = await supabase
+            .from('sessions')
+            .select()
+            .eq('id', chatData['session_id'])
+            .maybeSingle(); // Use maybeSingle instead of single
+      }
+      
+      if (sessionData == null) {
+        log('Session data not found for session ID: ${chatData['session_id']}');
+        // Create a new session with this ID
+        await _verifySessionExists();
+        return {'status': 'Basic', 'provider_id': widget.loggedInUserId, 'requester_id': 0, 'skill_id': 1};
+      }
       
       // Store session for later use but don't take any actions on it
       session = sessionData;
@@ -1200,8 +1444,8 @@ class _ChatPageState extends State<ChatPage> {
       // Just return the raw data, don't modify it or trigger any services
       return sessionData;
     } catch (err) {
-      debugPrint('Error loading session: $err');
-      return {'status': 'Idle', 'provider_id': 0, 'requester_id': 0, 'skill_id': 0};
+      log('Error loading session: $err');
+      return {'status': 'Basic', 'provider_id': widget.loggedInUserId, 'requester_id': 0, 'skill_id': 1};
     }
   }
 
@@ -1212,59 +1456,172 @@ class _ChatPageState extends State<ChatPage> {
           .from('chats')
           .select('session_id, user1_id, user2_id')
           .eq('id', widget.chatId)
-          .single();
+          .maybeSingle(); // Use maybeSingle instead of single
       
       if (chatData == null || !chatData.containsKey('session_id')) {
-        throw Exception('No session found for this chat');
+        log('No session found for chat ID: ${widget.chatId}');
+        return {
+          'skillName': 'Unknown Skill',
+          'session': {'provider_id': 0, 'requester_id': 0},
+          'otherUsername': widget.otherUsername
+        };
       }
       
-      // Get the session and user data in parallel
-      final sessionFuture = supabase
-          .from('sessions')
-          .select('*, skills!inner(*)')
-          .eq('id', chatData['session_id'])
-          .single();
-          
       // Determine the other user ID
       final otherUserId = chatData['user1_id'].toString() == widget.loggedInUserId.toString()
           ? chatData['user2_id']
           : chatData['user1_id'];
           
-      // Get the other user's info
-      final userFuture = supabase
-          .from('users')
-          .select('username, avatar_url')
-          .eq('id', otherUserId)
-          .single();
-          
-      // Wait for both futures to complete
-      final results = await Future.wait([sessionFuture, userFuture]);
-      final sessionData = results[0];
-      final userData = results[1];
-      
-      return {
-        'skillName': sessionData['skills']['name'] ?? 'Unknown Skill',
-        'session': sessionData,
-        'otherUsername': userData['username'] ?? 'Unknown User'
-      };
+      try {
+        // Get the session with skill data
+        final sessionData = await supabase
+            .from('sessions')
+            .select('*, skills(*)')
+            .eq('id', chatData['session_id'])
+            .maybeSingle();
+            
+        // Get the other user's info
+        final userData = await supabase
+            .from('users')
+            .select('username, avatar_url')
+            .eq('id', otherUserId)
+            .maybeSingle();
+            
+        if (sessionData == null || userData == null) {
+          log('Session data or user data not found');
+          return {
+            'skillName': 'Unknown Skill',
+            'session': {'provider_id': 0, 'requester_id': 0},
+            'otherUsername': widget.otherUsername
+          };
+        }
+        
+        final skillName = sessionData['skills'] != null && sessionData['skills'].isNotEmpty ? 
+            sessionData['skills']['name'] : 'Unknown Skill';
+            
+        return {
+          'skillName': skillName,
+          'session': sessionData,
+          'otherUsername': userData['username'] ?? widget.otherUsername
+        };
+      } catch (e) {
+        log('Error retrieving session or user data: $e');
+        return {
+          'skillName': 'Unknown Skill',
+          'session': {'provider_id': 0, 'requester_id': 0},
+          'otherUsername': widget.otherUsername
+        };
+      }
     } catch (err) {
-      debugPrint('Error loading session data: $err');
+      log('Error loading session data: $err');
       return {
         'skillName': 'Unknown Skill',
-        'session': {},
-        'otherUsername': 'Unknown User'
+        'session': {'provider_id': 0, 'requester_id': 0},
+        'otherUsername': widget.otherUsername
       };
     }
   }
 
   Future<void> _fetchSessionData() async {
     try {
+      log('Fetching session data for chat ${widget.chatId}');
       final sessionData = await _loadSession();
-      setState(() {
-        session = sessionData;
-      });
+      if (sessionData != null) {
+        log('Session data fetched successfully, status: ${sessionData['status']}');
+        setState(() {
+          session = sessionData;
+        });
+      } else {
+        log('No session data returned for chat ${widget.chatId}');
+      }
     } catch (e) {
-      debugPrint('Error fetching session data: $e');
+      log('Error fetching session data for chat ${widget.chatId}: $e');
+    }
+  }
+
+  // Add a safe method to show snackbars
+  void _showSnackBar(String message, {Color? backgroundColor}) {
+    if (!mounted) return;
+    
+    // Use a local variable to avoid context issues
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
+    scaffoldMessenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.mulish(),
+        ),
+        backgroundColor: backgroundColor,
+      ),
+    );
+  }
+
+  // Add a method to verify a session exists for this chat, and create one if it doesn't
+  Future<void> _verifySessionExists() async {
+    log('Verifying session exists for chat ${widget.chatId}');
+    try {
+      final chatData = await supabase
+          .from('chats')
+          .select('session_id, user1_id, user2_id')
+          .eq('id', widget.chatId)
+          .single();
+          
+      if (chatData == null || !chatData.containsKey('session_id') || chatData['session_id'] == null) {
+        log('No session found for chat ${widget.chatId}, creating one');
+        
+        if (chatData != null && chatData.containsKey('user1_id') && chatData.containsKey('user2_id')) {
+          final user1Id = int.parse(chatData['user1_id'].toString());
+          final user2Id = int.parse(chatData['user2_id'].toString());
+          
+          // Determine provider and requester based on logged in user
+          int providerId = widget.loggedInUserId;
+          int requesterId = widget.loggedInUserId == user1Id ? user2Id : user1Id;
+          
+          // Try to find an existing skill for the provider
+          final existingSkills = await supabase
+              .from('skills')
+              .select('id')
+              .eq('user_id', providerId)
+              .limit(1)
+              .maybeSingle();
+              
+          int skillId = 1; // Default fallback
+          if (existingSkills != null && existingSkills.containsKey('id')) {
+            skillId = existingSkills['id'];
+          }
+          
+          // Create a new session
+          final sessionResult = await supabase
+              .from('sessions')
+              .insert({
+                'requester_id': requesterId,
+                'provider_id': providerId,
+                'skill_id': skillId,
+                'status': 'Basic',
+                'created_at': DateTime.now().toIso8601String(),
+              })
+              .select();
+              
+          if (sessionResult != null && sessionResult.isNotEmpty) {
+            final sessionId = sessionResult[0]['id'];
+            log('Created fallback session ID: $sessionId');
+            
+            // Update the chat with this session ID
+            await supabase
+                .from('chats')
+                .update({'session_id': sessionId})
+                .eq('id', widget.chatId);
+                
+            log('Updated chat ${widget.chatId} with session ID: $sessionId');
+          }
+        }
+      } else {
+        log('Session found for chat ${widget.chatId}: ${chatData['session_id']}');
+      }
+    } catch (e) {
+      log('Error verifying session exists: $e');
     }
   }
 }
+
