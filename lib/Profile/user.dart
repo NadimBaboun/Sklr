@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/Skills/skillInfo.dart';
 import '../database/database.dart';
+import '../database/supabase_service.dart';
 import '../Util/navigationbar-bar.dart';
 import 'dart:math';
 
@@ -18,12 +19,13 @@ class _UserPageState extends State<UserPage> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
   bool hasError = false;
+  String? profilePictureUrl;
   final List<String> avatars = [
-    '/Users/hamshi/Desktop/Everything/ht24-projects-ht24-group-12/assets/avatars/avatar1.png',
-    '/Users/hamshi/Desktop/Everything/ht24-projects-ht24-group-12/assets/avatars/avatar2.png',
-    '/Users/hamshi/Desktop/Everything/ht24-projects-ht24-group-12/assets/avatars/avatar3.png',
-    '/Users/hamshi/Desktop/Everything/ht24-projects-ht24-group-12/assets/avatars/avatar4.png',
-    '/Users/hamshi/Desktop/Everything/ht24-projects-ht24-group-12/assets/avatars/avatar5.png'
+    'assets/avatars/avatar1.png',
+    'assets/avatars/avatar2.png',
+    'assets/avatars/avatar3.png',
+    'assets/avatars/avatar4.png',
+    'assets/avatars/avatar5.png'
   ];
   late String randomAvatar;
 
@@ -39,8 +41,12 @@ class _UserPageState extends State<UserPage> {
     try {
       final response = await DatabaseHelper.fetchUserFromId(widget.userId);
       if (response.success) {
+        // Fetch profile picture URL
+        final pictureUrl = await SupabaseService.getProfilePictureUrl(widget.userId.toString());
+        
         setState(() {
           userData = response.data;
+          profilePictureUrl = pictureUrl;
           isLoading = false;
         });
       } else {
@@ -206,10 +212,15 @@ class _UserPageState extends State<UserPage> {
                               ],
                             ),
                             child: ClipOval(
-                              child: Image.asset(
-                                randomAvatar,
-                                fit: BoxFit.cover,
-                              ),
+                              child: profilePictureUrl != null
+                                  ? Image.network(
+                                      profilePictureUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return _buildCustomAvatar(userData!['username']);
+                                      },
+                                    )
+                                  : _buildCustomAvatar(userData!['username']),
                             ),
                           ),
                         ),
@@ -554,6 +565,30 @@ class _UserPageState extends State<UserPage> {
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCustomAvatar(String username) {
+    // Get initials from username
+    final initials = username
+        .split(' ')
+        .where((word) => word.isNotEmpty)
+        .take(2)
+        .map((word) => word[0].toUpperCase())
+        .join('');
+
+    return Container(
+      color: const Color(0xFF2196F3),
+      child: Center(
+        child: Text(
+          initials,
+          style: GoogleFonts.poppins(
+            fontSize: 48,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }

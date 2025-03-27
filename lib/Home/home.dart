@@ -915,7 +915,7 @@ class PopularServices extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => Skillinfo(id: user['id']),
+                            builder: (context) => UserPage(userId: user['id']),
                           ),
                         );
                       },
@@ -1136,6 +1136,7 @@ class AllListingsPage extends StatelessWidget {
   }
 }
 
+
 class AllServicesPage extends StatelessWidget {
   final String title;
   
@@ -1201,7 +1202,7 @@ class AllServicesPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => Skillinfo(id: user['id']),
+                        builder: (context) => UserPage(userId: user['id']),
                       ),
                     );
                   },

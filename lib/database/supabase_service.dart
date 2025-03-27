@@ -2452,4 +2452,25 @@ class SupabaseService {
       return false;
     }
   }
+
+  // Get profile picture URL
+  static Future<String?> getProfilePictureUrl(String userId) async {
+    try {
+      final String path = 'profile-pictures/$userId.jpg';
+      final String? url = await supabase.storage
+          .from('profile-pictures')
+          .getPublicUrl(path);
+      
+      // Check if the file exists
+      try {
+        await supabase.storage.from('profile-pictures').list(path: path);
+        return url;
+      } catch (e) {
+        return null; // File doesn't exist
+      }
+    } catch (e) {
+      _logOperation('Get Profile Picture', 'Error getting profile picture: $e', isError: true);
+      return null;
+    }
+  }
 }
