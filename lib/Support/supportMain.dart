@@ -11,7 +11,7 @@ class SupportMainPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF6296FF),
+        backgroundColor: const Color(0xFF2196F3),
         title: Text(
           'Support Center',
           style: GoogleFonts.poppins(
@@ -32,14 +32,14 @@ class SupportMainPage extends StatelessWidget {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF6296FF), Color(0xFF5A89F2)],
+                    colors: [Color(0xFF6296FF), Color(0xFF2196F3)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF6296FF).withOpacity(0.3),
+                      color: const Color(0xFF2196F3).withOpacity(0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -121,7 +121,7 @@ class SupportMainPage extends StatelessWidget {
                         ),
                         child: const Icon(
                           Icons.chat_outlined,
-                          color: Color(0xFF6296FF),
+                          color: Color(0xFF2196F3),
                           size: 28,
                         ),
                       ),
@@ -151,7 +151,7 @@ class SupportMainPage extends StatelessWidget {
                       ),
                       const Icon(
                         Icons.arrow_forward_ios,
-                        color: Color(0xFF6296FF),
+                        color: Color(0xFF2196F3),
                         size: 16,
                       ),
                     ],
@@ -297,3 +297,4 @@ class SupportMainPage extends StatelessWidget {
     );
   }
 }
+// the colors done 
