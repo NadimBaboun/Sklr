@@ -1206,6 +1206,23 @@ class SupabaseService {
       return false;
     }
   }
+
+  // Mark reports linked to a skill as resolved
+  static Future<bool> resolveReportsForSkill(int skillId) async {
+    try {
+      // Update reports linked to the skill to "Resolved"
+      await supabase
+          .from('reports')
+          .update({'status': 'Resolved'})
+          .eq('skill_id', skillId);
+
+      _logOperation('Reports', 'Updated reports for skill $skillId to resolved');
+      return true;
+    } catch (e) {
+      _logOperation('Reports', 'Error updating reports for skill $skillId: $e', isError: true);
+      return false;
+    }
+  }
   
   // Search skills
   static Future<List<Map<String, dynamic>>> searchSkills(String query) async {
@@ -1275,69 +1292,63 @@ class SupabaseService {
 
   // REPORTS OPERATIONS
   
-  // Fetch all pending reports
-  static Future<List<Map<String, dynamic>>> fetchReports() async {
-    try {
-      final data = await supabase
-          .from('reports')
-          .select('*')
-          .eq('status', 'Pending')
-          .order('created_at', ascending: false);
-          
-      return List<Map<String, dynamic>>.from(data);
-    } catch (e) {
-      log('Error fetching reports: $e');
-      return [];
+    // Fetch all pending reports
+    static Future<List<Map<String, dynamic>>> fetchReports() async {
+      try {
+        final data = await supabase
+            .from('reports')
+            .select('*')
+            .eq('status', 'Pending')
+            .order('created_at', ascending: false);
+            
+        return List<Map<String, dynamic>>.from(data);
+      } catch (e) {
+        log('Error fetching reports: $e');
+        return [];
+      }
     }
-  }
-  
-  // Create a new report
+    
+    // Create a new report using database function
   static Future<DatabaseResponse> createReport(Map<String, dynamic> reportData) async {
     try {
-      _logOperation('Reports', 'Creating new report: $reportData');
+      _logOperation('Reports', 'Creating new report using database function: $reportData');
       
-      // Validate required fields
-      if (!reportData.containsKey('reporter_id') || 
-          !reportData.containsKey('skill_id')) {
-        _logOperation('Reports', 'Missing required fields (reporter_id, skill_id)', isError: true);
+      // Call the database function
+      final result = await supabase.rpc(
+        'create_report',
+        params: {
+          'p_reporter_id': reportData['reporter_id'],
+          'p_skill_id': reportData['skill_id'],
+          'p_text': reportData['text'] ?? 'Reported from mobile app',
+          'p_status': reportData['status'] ?? 'Pending'
+        }
+      );
+      
+      if (result == null) {
+        _logOperation('Reports', 'No response from create_report function', isError: true);
         return DatabaseResponse(
           success: false,
-          data: {'error': 'Required fields missing (reporter_id, skill_id)'},
+          data: {'error': 'No response from server'},
         );
       }
       
-      // Ensure text field is provided (required by schema)
-      if (!reportData.containsKey('text')) {
-        reportData['text'] = 'Reported from mobile app';
-      }
-      
-      // Ensure status field is provided
-      if (!reportData.containsKey('status')) {
-        reportData['status'] = 'Pending';
-      }
-      
-      // Create the report
-      final result = await supabase
-          .from('reports')
-          .insert(reportData)
-          .select();
-          
-      if (result.isEmpty) {
-        _logOperation('Reports', 'No data returned after creating report', isError: true);
+      // The function returns {success: boolean, data/error: value}
+      final success = result['success'] ?? false;
+      if (!success) {
+        _logOperation('Reports', 'Database function returned error: ${result['error']}', isError: true);
         return DatabaseResponse(
           success: false,
-          data: {'error': 'Failed to create report'},
+          data: {'error': result['error']},
         );
       }
       
-      _logOperation('Reports', 'Report created successfully with ID: ${result[0]['id']}');
-      
+      _logOperation('Reports', 'Report created successfully');
       return DatabaseResponse(
         success: true,
-        data: result[0],
+        data: result['data'],
       );
     } catch (e) {
-      _logOperation('Reports', 'Error creating report: $e', isError: true);
+      _logOperation('Reports', 'Error calling create_report function: $e', isError: true);
       return DatabaseResponse(
         success: false,
         data: {'error': e.toString()},

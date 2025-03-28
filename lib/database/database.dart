@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:developer';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'userIdStorage.dart';
@@ -781,19 +781,23 @@ class DatabaseHelper {
     return await SupabaseService.getAllReports();
   }
 
-  // remove report
   static Future<bool> removeReport(int reportId) async {
     try {
-      await SupabaseService.getReport(reportId); // Check if report exists
-      return await SupabaseService.resolveReport(reportId);
-    } catch (e) {
-      return false;
-    }
-  }
+      final reportResponse = await SupabaseService.getReport(reportId);
+      if (!reportResponse.success) return false;
 
-  // resolve report
-  static Future<bool> resolveReport(int reportId) async {
-    return await SupabaseService.resolveReport(reportId);
+      final report = reportResponse.data;
+      final skillId = report['skill_id'];
+
+      await SupabaseService.resolveReportsForSkill(skillId);
+      return true;
+      
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error Removing Report: $e');
+      }
+      return false; // Return false if an exception occurs
+    }
   }
 
   // remove reported skill
@@ -810,8 +814,7 @@ class DatabaseHelper {
       final skillDeleted = await SupabaseService.deleteSkill(skillId);
       if (!skillDeleted) return false;
       
-      // Mark the report as resolved
-      return await SupabaseService.resolveReport(reportId);
+      return true;
     } catch (e) {
       print('Error removing reported skill: $e');
       return false;
@@ -831,6 +834,7 @@ class DatabaseHelper {
         'status': 'Pending',
         'created_at': DateTime.now().toIso8601String(),
       });
+
       return result.success;
     } catch (e) {
       return false;
