@@ -26,21 +26,52 @@ class _ModerationPageState extends State<ModerationPage> {
   
   Future<List<Map<String, dynamic>>> _fetchReports() async {
     try {
+      log('Fetching pending reports from database');
       final reports = await supabase
         .from('reports')
         .select('''
           *,
-          reporter:reporter_id (username, avatar_url),
+          reporter:reporter_id (id, username, avatar_url),
           skill:skill_id (
             *,
-            user:user_id (username, avatar_url)
+            user:user_id (id, username, avatar_url)
           )
         ''')
         .eq('status', 'Pending')
         .order('created_at', ascending: false);
       
       log('Fetched ${reports.length} reports');
-      return List<Map<String, dynamic>>.from(reports);
+      
+      // Filter out reports for skills that no longer exist
+      final validReports = reports.where((report) {
+        return report['skill'] != null && report['skill'].isNotEmpty;
+      }).toList();
+      
+      if (validReports.length != reports.length) {
+        log('Filtered out ${reports.length - validReports.length} reports with missing skills');
+        
+        // Auto-resolve reports with missing skills
+        for (var report in reports) {
+          if (report['skill'] == null || report['skill'].isEmpty) {
+            try {
+              await supabase
+                .from('reports')
+                .update({
+                  'status': 'Resolved',
+                  'resolution': 'Auto-resolved - Skill no longer exists',
+                  'resolved_at': DateTime.now().toIso8601String()
+                })
+                .eq('id', report['id']);
+              
+              log('Auto-resolved report ID: ${report['id']} for missing skill');
+            } catch (e) {
+              log('Error auto-resolving report: $e');
+            }
+          }
+        }
+      }
+      
+      return List<Map<String, dynamic>>.from(validReports);
     } catch (e) {
       log('Error fetching reports: $e');
       return [];
@@ -48,62 +79,76 @@ class _ModerationPageState extends State<ModerationPage> {
   }
 
   Future<void> _resolveReport(int reportId, String resolution) async {
-    setState(() => _isLoading = true);
+    if (_isLoading) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
     
     try {
-      // Update the report status
+      // Update the report as resolved
       await supabase
         .from('reports')
         .update({
-          'status': resolution,
+          'status': 'Resolved',
+          'resolution': resolution,
           'resolved_at': DateTime.now().toIso8601String()
         })
         .eq('id', reportId);
       
-      log('Resolved report $reportId with status: $resolution');
+      // Reload reports
+      await _fetchReports();
       
-      // Reload the reports
-      setState(() {
-        _reportsFuture = _fetchReports();
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Report $resolution successfully')),
-      );
+      // Show success message
+      _showSnackBar('Report resolved as: $resolution');
     } catch (e) {
-      log('Error resolving report: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      _showSnackBar('Error resolving report: $e', backgroundColor: Colors.red);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
   
   Future<void> _removeSkill(int skillId, int reportId) async {
-    setState(() => _isLoading = true);
+    if (_isLoading) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
     
     try {
-      // First mark the skill as removed
-      await supabase
-        .from('skills')
-        .update({
-          'status': 'Removed',
-          'removed_at': DateTime.now().toIso8601String()
-        })
-        .eq('id', skillId);
+      log('Starting skill removal process for skill ID: $skillId, report ID: $reportId');
       
-      log('Removed skill $skillId');
+      // Use the DatabaseHelper method that handles all cascading deletes
+      final result = await DatabaseHelper.removeReportedSkill(reportId);
       
-      // Then resolve the report
-      await _resolveReport(reportId, 'Removed');
+      if (result) {
+        log('Successfully removed skill and resolved report');
+        
+        // Show success message
+        _showSnackBar('Skill removed and report resolved');
+      } else {
+        log('Failed to remove skill completely, but report was resolved');
+        
+        _showSnackBar('Could not completely remove skill but report has been resolved', backgroundColor: Colors.orange);
+      }
       
+      // Reload reports
+      setState(() {
+        _reportsFuture = _fetchReports();
+      });
     } catch (e) {
-      log('Error removing skill: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error removing skill: $e')),
-      );
-      setState(() => _isLoading = false);
+      log('Error in _removeSkill: $e');
+      _showSnackBar('Error removing skill: $e', backgroundColor: Colors.red);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -247,7 +292,7 @@ class _ModerationPageState extends State<ModerationPage> {
                                   ),
                                 ),
                                 Text(
-                                  report['reason'] ?? 'No reason provided',
+                                  report['text'] ?? 'No reason provided',
                                   style: GoogleFonts.poppins(),
                                 ),
                                 const SizedBox(height: 8),
@@ -313,6 +358,26 @@ class _ModerationPageState extends State<ModerationPage> {
       return '${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return dateString;
+    }
+  }
+
+  // Safe method to show SnackBars
+  void _showSnackBar(String message, {Color? backgroundColor}) {
+    if (!mounted) return;
+    
+    try {
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: backgroundColor,
+        ),
+      );
+    } catch (e) {
+      log('Error showing SnackBar: $e');
     }
   }
 } 

@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'userIdStorage.dart';
 import 'supabase_service.dart';
+// Use a prefix for supabase.dart to avoid conflicts
+import 'supabase.dart' as supabase_client;
 // Import with a prefix to avoid conflicts
 import 'models.dart'; // Import shared models
 
@@ -56,50 +58,13 @@ class DatabaseHelper {
   static Future<LoginResponse> registerUser(
       String username, String email, String password) async {
     try {
-      // Try direct SQL registration first
-      final directResult = await SupabaseService.registerViaDirectSQL(username, email, password);
+      // Use SupabaseService's registerUser method
+      final result = await SupabaseService.registerUser(username, email, password);
       
-      if (directResult.success) {
-        return LoginResponse(
-          success: true,
-          message: directResult.message,
-          userId: directResult.userId is String ? int.tryParse(directResult.userId) ?? -1 : directResult.userId,
-        );
-      }
-      
-      // If there's a specific error (like username already exists), return it
-      if (!directResult.success) {
-        return LoginResponse(
-          success: false,
-          message: directResult.message,
-        );
-      }
-      
-      // Try direct database registration next
-      final result = await SupabaseService.registerUserDirect(username, email, password);
-      
-      if (result.success) {
-        return LoginResponse(
-          success: true,
-          message: result.message,
-          userId: result.userId is String ? int.tryParse(result.userId) ?? -1 : result.userId,
-        );
-      }
-      
-      // If direct registration fails for application reasons, return that error
-      if (!result.success) {
-        return LoginResponse(
-          success: false,
-          message: result.message,
-        );
-      }
-      
-      // If direct registration fails for technical reasons, try Supabase Auth
-      final authResult = await SupabaseService.registerUser(username, email, password);
       return LoginResponse(
-        success: authResult.success,
-        message: authResult.message,
-        userId: authResult.userId is String ? int.tryParse(authResult.userId) ?? -1 : authResult.userId,
+        success: result.success,
+        message: result.message,
+        userId: result.userId is String ? int.tryParse(result.userId) ?? -1 : result.userId,
       );
     } catch (e) {
       return LoginResponse(
@@ -204,26 +169,53 @@ class DatabaseHelper {
 
   static Future<DatabaseResponse> fetchUserFromId(dynamic userId) async {
     try {
+      if (userId == null) {
+        log('fetchUserFromId called with null userId');
+        return DatabaseResponse(
+          success: false,
+          data: {'username': 'Unknown User', 'error': 'Invalid user ID'},
+        );
+      }
+      
       // Convert to String if it's an int
       String userIdStr = userId.toString();
+      log('Fetching user details for ID: $userIdStr');
       
-      // Since the method is in supabase.dart but not in SupabaseService,
-      // either call it using the proper class if in supabase.dart or another place
+      // Get user data from SupabaseService
       final user = await SupabaseService.getUserById(userIdStr);
+      
       if (user != null && user.isNotEmpty) {
+        log('Successfully fetched user data for ID: $userIdStr');
         return DatabaseResponse(success: true, data: user);
       } else {
         log('User data not found for ID: $userIdStr');
+        
+        // Try to fetch from users table directly
+        try {
+          final directUser = await supabase_client.SupabaseService.client
+              .from('users')
+              .select('id, username, email, avatar_url')
+              .eq('id', userIdStr)
+              .maybeSingle();
+              
+          if (directUser != null) {
+            log('Found user in direct query: ${directUser['username']}');
+            return DatabaseResponse(success: true, data: directUser);
+          }
+        } catch (innerError) {
+          log('Direct query also failed: $innerError');
+        }
+        
         return DatabaseResponse(
           success: false,
-          data: {'username': 'User not found', 'error': 'User not found'},
+          data: {'id': userIdStr, 'username': 'User not found', 'error': 'User not found'},
         );
       }
     } catch (e) {
       log('Error fetching user from id: $e');
       return DatabaseResponse(
         success: false,
-        data: {'username': 'Unknown User', 'error': 'Failed to fetch user details'},
+        data: {'id': userId?.toString(), 'username': 'Unknown User', 'error': 'Failed to fetch user details'},
       );
     }
   }
@@ -642,7 +634,7 @@ class DatabaseHelper {
   static Future<bool> deleteChat(int chatId) async {
     try {
       // First check if the chat exists
-      final chatData = await supabase
+      final chatData = await supabase_client.SupabaseService.client
         .from('chats')
         .select('id, session_id')
         .eq('id', chatId)
@@ -653,13 +645,13 @@ class DatabaseHelper {
       }
       
       // Delete messages first (respecting foreign key constraints)
-      await supabase
+      await supabase_client.SupabaseService.client
         .from('messages')
         .delete()
         .eq('chat_id', chatId);
       
       // Now delete the chat
-      await supabase
+      await supabase_client.SupabaseService.client
         .from('chats')
         .delete()
         .eq('id', chatId);
@@ -799,21 +791,127 @@ class DatabaseHelper {
   // remove reported skill
   static Future<bool> removeReportedSkill(int reportId) async {
     try {
+      log('Starting removeReportedSkill for report ID: $reportId');
+      
       // First get report details to find the skill_id
       final reportResponse = await SupabaseService.getReport(reportId);
-      if (!reportResponse.success) return false;
+      log('Got report response: ${reportResponse.success}');
+      
+      if (!reportResponse.success) {
+        log('Failed to get report: ${reportResponse.data['error']}');
+        return false;
+      }
       
       final report = reportResponse.data;
       final skillId = report['skill_id'];
       
-      // Delete the skill
-      final skillDeleted = await SupabaseService.deleteSkill(skillId);
-      if (!skillDeleted) return false;
+      if (skillId == null) {
+        log('Report does not contain skill_id, just resolving the report');
+        await SupabaseService.resolveReport(reportId);
+        return true;
+      }
       
-      // Mark the report as resolved
-      return await SupabaseService.resolveReport(reportId);
+      log('Skill ID to delete: $skillId');
+      
+      // First check if the skill still exists
+      try {
+        final skillCheck = await SupabaseService.getSkill(skillId);
+        if (skillCheck.isEmpty) {
+          log('Skill $skillId does not exist, marking report as resolved');
+          await SupabaseService.resolveReport(reportId);
+          return true;
+        }
+        log('Skill exists, proceeding with deletion');
+      } catch (checkError) {
+        log('Error checking if skill exists: $checkError');
+        // Try to resolve the report anyway
+        await SupabaseService.resolveReport(reportId);
+        return false;
+      }
+      
+      // Process deletion in a transaction
+      try {
+        final client = supabase_client.SupabaseService.client;
+        
+        // 1. Find all sessions related to this skill
+        final sessions = await client
+            .from('sessions')
+            .select('id')
+            .eq('skill_id', skillId);
+        
+        log('Found ${sessions.length} related sessions');
+        
+        // 2. For each session, handle cascading deletion
+        for (var session in sessions) {
+          final sessionId = session['id'];
+          log('Processing session: $sessionId');
+          
+          // 2a. Find and delete any transactions
+          await client
+              .from('transactions')
+              .delete()
+              .eq('session_id', sessionId);
+          
+          // 2b. Find chats and delete their messages first
+          final chats = await client
+              .from('chats')
+              .select('id')
+              .eq('session_id', sessionId);
+          
+          for (var chat in chats) {
+            final chatId = chat['id'];
+            // Delete messages first (foreign key constraint)
+            await client
+                .from('messages')
+                .delete()
+                .eq('chat_id', chatId);
+            
+            // Then delete the chat
+            await client
+                .from('chats')
+                .delete()
+                .eq('id', chatId);
+          }
+        }
+        
+        // 3. Delete sessions all at once (sessions don't have dependencies)
+        if (sessions.isNotEmpty) {
+          final sessionIds = sessions.map((s) => s['id']).toList();
+          await client
+              .from('sessions')
+              .delete()
+              .inFilter('id', sessionIds);
+        }
+        
+        // 4. Delete any reports associated with this skill
+        await client
+            .from('reports')
+            .update({
+              'status': 'Resolved',
+              'resolution': 'Skill deleted',
+              'resolved_at': DateTime.now().toIso8601String()
+            })
+            .eq('skill_id', skillId);
+        
+        // 5. Finally delete the skill
+        final skillDeleted = await client
+            .from('skills')
+            .delete()
+            .eq('id', skillId);
+        
+        log('Skill deletion completed successfully');
+        
+        // 6. Make sure our specific report is resolved
+        await SupabaseService.resolveReport(reportId);
+        return true;
+      } catch (e) {
+        log('Error in cascading deletion: $e');
+        // Still try to mark the report as resolved
+        await SupabaseService.resolveReport(reportId);
+        return false;
+      }
     } catch (e) {
-      print('Error removing reported skill: $e');
+      log('Error removing reported skill: $e');
       return false;
     }
   }
@@ -821,18 +919,71 @@ class DatabaseHelper {
   // create report
   static Future<bool> createReport(int skillId) async {
     final userId = await UserIdStorage.getLoggedInUserId();
-    if (userId == null) return false;
+    if (userId == null) {
+      log('Cannot create report: No logged in user ID found');
+      return false;
+    }
     
     try {
+      log('Creating report for skill ID: $skillId by user ID: $userId');
+      
+      // Check if a report already exists
+      try {
+        final existingReports = await supabase_client.SupabaseService.client
+            .from('reports')
+            .select('id')
+            .eq('skill_id', skillId)
+            .eq('reporter_id', userId)
+            .eq('status', 'Pending');
+            
+        if (existingReports.isNotEmpty) {
+          log('Report already exists for this skill and user, skipping creation');
+          return true; // Report already exists
+        }
+      } catch (checkError) {
+        log('Error checking for existing reports: $checkError');
+        // Continue with creation attempt
+      }
+      
       final result = await SupabaseService.createReport({
-        'reporter_id': userId.toString(),
+        'reporter_id': userId,
         'skill_id': skillId,
-        'reason': 'Reported from mobile app',
+        'text': 'Reported by user', 
         'status': 'Pending',
         'created_at': DateTime.now().toIso8601String(),
       });
-      return result.success;
+      
+      if (result.success) {
+        log('Report created successfully');
+        
+        // Create notification for moderators about new report
+        try {
+          final moderators = await supabase_client.SupabaseService.client
+              .from('users')
+              .select('id')
+              .eq('moderator', true);
+              
+          for (var mod in moderators) {
+            await createNotification(
+              recipientId: int.parse(mod['id'].toString()),
+              message: 'New skill report needs your attention',
+              senderId: int.parse(userId.toString()),
+            );
+          }
+          
+          log('Notifications sent to ${moderators.length} moderators');
+        } catch (notifyError) {
+          log('Error notifying moderators: $notifyError');
+          // Continue even if notification fails
+        }
+        
+        return true;
+      } else {
+        log('Failed to create report: ${result.data['error']}');
+        return false;
+      }
     } catch (e) {
+      log('Error creating report: $e');
       return false;
     }
   }
@@ -973,24 +1124,27 @@ class DatabaseHelper {
     try {
       log('Creating notification for recipient $recipientId from sender $senderId');
       
-      // Build notification data without chat_id since it's not in the schema
+      // Build notification data
       final notificationData = {
         'user_id': recipientId,
         'message': message,
         'sender_id': senderId,
         'sender_image': senderImage,
-        // Removed chat_id field as it's not in the notifications table schema
-        'read': false,
+        'is_read': false, // Use is_read instead of read to match schema
         'created_at': DateTime.now().toIso8601String(),
       };
       
-      final result = await supabase
-          .from('notifications')
-          .insert(notificationData)
-          .select()
-          .single();
+      // Add chat_id if provided (useful for navigation)
+      if (chatId != null) {
+        notificationData['chat_id'] = chatId;
+      }
       
-      log('Notification created successfully with ID: ${result['id']}');
+      // Insert without requesting the result back to avoid errors
+      await supabase_client.SupabaseService.client
+          .from('notifications')
+          .insert(notificationData);
+      
+      log('Notification created successfully for recipient $recipientId');
       return true;
     } catch (e) {
       log('Error creating notification: $e');
@@ -1100,7 +1254,7 @@ class DatabaseHelper {
       // First ensure the columns exist
       try {
         // Check if columns exist using a simple select
-        await supabase
+        await supabase_client.SupabaseService.client
           .from('sessions')
           .select('requester_confirmed, provider_confirmed')
           .eq('id', sessionId)
@@ -1110,7 +1264,7 @@ class DatabaseHelper {
         try {
           // Directly execute ALTER TABLE commands instead of trying to create a function
           // Add requester_confirmed column if it doesn't exist
-          await supabase
+          await supabase_client.SupabaseService.client
             .from('sessions')
             .update({ 'dummy_col': 'dummy_val' }) // Dummy update to ensure the column exists
             .eq('id', sessionId)
@@ -1123,7 +1277,7 @@ class DatabaseHelper {
         
         try {
           // Check if provider_confirmed exists
-          await supabase
+          await supabase_client.SupabaseService.client
             .from('sessions')
             .update({ 'dummy_col': 'dummy_val' }) // Dummy update to ensure the column exists
             .eq('id', sessionId)
@@ -1150,14 +1304,14 @@ class DatabaseHelper {
       }
       
       if (updateData.isNotEmpty) {
-        await supabase
+        await supabase_client.SupabaseService.client
           .from('sessions')
           .update(updateData)
           .eq('id', sessionId);
 
         // Check if both are confirmed and update status if needed
         if (requesterConfirmed == true || providerConfirmed == true) {
-          final session = await supabase
+          final session = await supabase_client.SupabaseService.client
               .from('sessions')
               .select('requester_confirmed, provider_confirmed')
               .eq('id', sessionId)
@@ -1167,7 +1321,7 @@ class DatabaseHelper {
               session['requester_confirmed'] == true && 
               session['provider_confirmed'] == true) {
             // Both confirmed, update status to Completed
-            await supabase
+            await supabase_client.SupabaseService.client
                 .from('sessions')
                 .update({'status': 'Completed'})
                 .eq('id', sessionId);
@@ -1189,7 +1343,7 @@ class DatabaseHelper {
   static Future<bool> _processServicePayment(int sessionId) async {
     try {
       // Get session details
-      final sessionData = await supabase
+      final sessionData = await supabase_client.SupabaseService.client
           .from('sessions')
           .select('*, skills(*)')
           .eq('id', sessionId)
@@ -1205,7 +1359,7 @@ class DatabaseHelper {
       final skillCost = double.parse(sessionData['skills']['cost'].toString());
       
       // Get provider's current credits
-      final providerData = await supabase
+      final providerData = await supabase_client.SupabaseService.client
           .from('users')
           .select('credits')
           .eq('id', providerId)
@@ -1220,20 +1374,20 @@ class DatabaseHelper {
       final newProviderCredits = providerCredits + skillCost.toInt();
       
       // Update provider's credits
-      await supabase
+      await supabase_client.SupabaseService.client
           .from('users')
           .update({'credits': newProviderCredits})
           .eq('id', providerId);
       
       // Update transaction status
-      final transactions = await supabase
+      final transactions = await supabase_client.SupabaseService.client
           .from('transactions')
           .select()
           .eq('session_id', sessionId)
           .eq('status', 'Pending');
           
       if (transactions != null && transactions.isNotEmpty) {
-        await supabase
+        await supabase_client.SupabaseService.client
             .from('transactions')
             .update({
               'status': 'Completed',
@@ -1245,6 +1399,19 @@ class DatabaseHelper {
       return true;
     } catch (e) {
       print('Error processing service payment: $e');
+      return false;
+    }
+  }
+
+  // Force mark a report as resolved without deleting the skill
+  static Future<bool> forceResolveReport(int reportId) async {
+    try {
+      print('Force resolving report ID: $reportId');
+      final result = await SupabaseService.resolveReport(reportId);
+      print('Force resolve result: $result');
+      return result;
+    } catch (e) {
+      print('Error force resolving report: $e');
       return false;
     }
   }
