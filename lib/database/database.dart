@@ -61,6 +61,21 @@ class DatabaseHelper {
       // Use SupabaseService's registerUser method
       final result = await SupabaseService.registerUser(username, email, password);
       
+      // If registration was successful, grant 50 initial credits to the new user
+      if (result.success && result.userId != null) {
+        try {
+          // Convert userId to int if it's a string
+          final userId = result.userId is String ? int.tryParse(result.userId) ?? -1 : result.userId;
+          
+          // Grant 50 initial credits
+          await grantInitialCredits(userId);
+          log('Granted 50 initial credits to new user ID: $userId');
+        } catch (creditsError) {
+          // Log error but don't fail registration
+          log('Error granting initial credits: $creditsError');
+        }
+      }
+      
       return LoginResponse(
         success: result.success,
         message: result.message,
@@ -1412,6 +1427,32 @@ class DatabaseHelper {
       return result;
     } catch (e) {
       print('Error force resolving report: $e');
+      return false;
+    }
+  }
+
+  // Grant initial credits to a new user
+  static Future<bool> grantInitialCredits(int userId) async {
+    try {
+      // Get current credits (should be 0 for new users)
+      final userData = await SupabaseService.getUser(userId.toString());
+      if (!userData.success) return false;
+      
+      // Set credits to 50 instead of adding to current credits
+      final result = await SupabaseService.updateUserData(
+        userId.toString(),
+        {'credits': 50}
+      );
+      
+      // If the previous method fails, try the dedicated credits update method
+      if (!result.success) {
+        // Try alternative method using addCreditsToUser
+        return await addCreditsToUser(userId, 50);
+      }
+      
+      return result.success;
+    } catch (e) {
+      log('Error granting initial credits: $e');
       return false;
     }
   }

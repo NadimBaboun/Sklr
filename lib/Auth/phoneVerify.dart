@@ -129,28 +129,37 @@ class PhoneVerifyPageState extends State<PhoneVerifyPage> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: PhoneAppbar(),
-      body: Stack(
-        children: [
-          Center(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0.0,
+        automaticallyImplyLeading: false, // Ensures no back button
+        toolbarHeight: 0, // Minimizes the app bar
+      ),
+      resizeToAvoidBottomInset: true, // Handle keyboard properly
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
-              spacing: 16,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(height: 50), 
+                const SizedBox(height: 20),
                 Image.asset(
                   'assets/images/illustration-smartphone.png',
-                  height: 250,
-                  width: 250,
-                  fit: BoxFit.cover,
+                  height: 160,
+                  width: 160,
+                  fit: BoxFit.contain,
                 ),
+                const SizedBox(height: 16),
                 Text(
                   'Verify Your Phone',
                   style: GoogleFonts.mulish(
-                    color: Color(0xff053742),
-                    fontSize: 32,
+                    color: const Color(0xff053742),
+                    fontSize: 24,
                     fontWeight: FontWeight.w600
                   ),
                 ),
+                const SizedBox(height: 8),
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
@@ -158,58 +167,52 @@ class PhoneVerifyPageState extends State<PhoneVerifyPage> {
                       TextSpan(
                         text: 'Please enter the 4 digit code sent to\n',
                         style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
+                          textStyle: const TextStyle(
                             color: Color(0xff88879C),
-                            fontSize: 16,
+                            fontSize: 14,
                           )
                         ),
                       ),
                       TextSpan(
                         text: '+${widget.phoneNumber}',
                         style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
+                          textStyle: const TextStyle(
                             color: Color(0xff3204FF),
-                            fontSize: 16
+                            fontSize: 14
                           )
                         )
                       ),
                     ],
                   )
                 ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 32),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: PinCodeTextField(
-                          appContext: context,
-                          length: 4,
-                          controller: otpController,
-                          onChanged: onOTPChanged,
-                          keyboardType: TextInputType.number,
-                          pinTheme: PinTheme(
-                            shape: PinCodeFieldShape.underline,
-                            fieldHeight: 75,
-                            fieldWidth: 75,
-                            activeColor: Colors.blue,
-                            inactiveColor: Colors.grey,
-                            selectedColor: Colors.black,
-                          ),
-                          enableActiveFill: false,
-                        )
-                      )
-                    ]
-                  )
+                const SizedBox(height: 20),
+                PinCodeTextField(
+                  appContext: context,
+                  length: 4,
+                  controller: otpController,
+                  onChanged: onOTPChanged,
+                  keyboardType: TextInputType.number,
+                  pinTheme: PinTheme(
+                    shape: PinCodeFieldShape.underline,
+                    fieldHeight: 50,
+                    fieldWidth: 50,
+                    activeColor: Colors.blue,
+                    inactiveColor: Colors.grey,
+                    selectedColor: Colors.black,
+                  ),
+                  enableActiveFill: false,
                 ),
+                const SizedBox(height: 12),
                 Text(
                   formatTime(remaining),
                   style: GoogleFonts.mulish(
-                    textStyle: TextStyle(
+                    textStyle: const TextStyle(
                       color: Color(0xff88879C),
-                      fontSize: 16,
+                      fontSize: 14,
                     )
                   )
                 ),
+                const SizedBox(height: 8),
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
@@ -217,9 +220,9 @@ class PhoneVerifyPageState extends State<PhoneVerifyPage> {
                       TextSpan(
                         text: 'Didn\'t receive the code? ',
                         style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
+                          textStyle: const TextStyle(
                             color: Color(0xff88879C),
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600
                           )
                         ),
@@ -228,8 +231,8 @@ class PhoneVerifyPageState extends State<PhoneVerifyPage> {
                         text: 'Resend',
                         style: GoogleFonts.mulish(
                           textStyle: TextStyle(
-                            color: enableResend ? Color(0xff3204FF) : Color(0xff88879C),
-                            fontSize: 14,
+                            color: enableResend ? const Color(0xff3204FF) : const Color(0xff88879C),
+                            fontSize: 13,
                             fontWeight: FontWeight.w600
                           ),
                         ),
@@ -243,46 +246,76 @@ class PhoneVerifyPageState extends State<PhoneVerifyPage> {
                     ]
                   )
                 ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // otp is filled & active "session" is ongoing
-                            if (otpFilled && !enableResend) {
-                              verifyOTP();
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: otpFilled && !enableResend ? Color(0xff3204FF) : Colors.grey[350],
-                            padding: EdgeInsets.all(24),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)
-                            )
-                          ),
-                          child: Text(
-                            'Verify',
-                            style: GoogleFonts.mulish(
-                              textStyle: TextStyle(
-                                color: otpFilled && !enableResend ? Colors.white : Color(0xff88879C),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600
-                              )
-                            )
-                          )
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // otp is filled & active "session" is ongoing
+                      if (otpFilled && !enableResend) {
+                        verifyOTP();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: otpFilled && !enableResend ? const Color(0xff3204FF) : Colors.grey[350],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)
+                      )
+                    ),
+                    child: Text(
+                      'Verify',
+                      style: GoogleFonts.mulish(
+                        textStyle: TextStyle(
+                          color: otpFilled && !enableResend ? Colors.white : const Color(0xff88879C),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600
                         )
-                      ) 
+                      )
                     )
-                  ]
+                  )
                 ),
-              ]
-            )
-          )
-        ],
-      )
+                const SizedBox(height: 16),
+                // Skip button for verification - always show for registration
+                if (widget.isRegistration)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: TextButton(
+                      onPressed: () async {
+                        // Ensure the user keeps their initial 50 credits even when skipping
+                        if (widget.userId != null) {
+                          // No need to award additional credits, they already got 50 on registration
+                          // Just navigate to home
+                          Navigator.pushReplacement(
+                            context, 
+                            MaterialPageRoute(builder: (context) => HomePage()),
+                          );
+                        } else {
+                          // Fallback if user ID is missing
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Session error. Please try again.'))
+                          );
+                        }
+                      },
+                      child: Text(
+                        'Skip for now',
+                        style: GoogleFonts.mulish(
+                          textStyle: const TextStyle(
+                            color: Color(0xff88879C),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600
+                          )
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16), // Extra space at bottom for keyboard
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
