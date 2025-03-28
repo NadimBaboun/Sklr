@@ -366,14 +366,6 @@ class SupabaseService {
     }
   }
 
-  static Future<LoginResponse> registerViaDirectSQL(String username, String email, String password) async {
-    return LoginResponse(success: false, message: "Stub implementation for Chrome testing");
-  }
-
-  static Future<LoginResponse> registerUserDirect(String username, String email, String password) async {
-    return LoginResponse(success: false, message: "Stub implementation for Chrome testing");
-  }
-
   // For backward compatibility with original DatabaseHelper
   static Future<LoginResponse> fetchUserId(String email, String password) async {
     // Try direct SQL authentication first
