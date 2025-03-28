@@ -108,7 +108,7 @@ class SupabaseService {
               'username': username,
               'email': email,
               'password': password, // Required per schema
-              'credits': 0, // Required per schema default
+              'credits': 50, // Required per schema default
               'auth_id': authId, // Store the auth ID for reference
             }).select();
             
@@ -366,6 +366,14 @@ class SupabaseService {
     }
   }
 
+  static Future<LoginResponse> registerViaDirectSQL(String username, String email, String password) async {
+    return LoginResponse(success: false, message: "Stub implementation for Chrome testing");
+  }
+
+  static Future<LoginResponse> registerUserDirect(String username, String email, String password) async {
+    return LoginResponse(success: false, message: "Stub implementation for Chrome testing");
+  }
+
   // For backward compatibility with original DatabaseHelper
   static Future<LoginResponse> fetchUserId(String email, String password) async {
     // Try direct SQL authentication first
@@ -496,7 +504,7 @@ class SupabaseService {
             'username': username,
             'email': email,
             'password': 'apple_oauth_${DateTime.now().millisecondsSinceEpoch}', // Required by schema
-            'credits': 0, // Required per schema
+            'credits': 50, // Required per schema
             // created_at has a default value in the schema
           }).select();
           

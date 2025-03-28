@@ -100,16 +100,6 @@ class _StartPageState extends State<StartPage> {
                     width: screenWidth * 0.6, // 60% of screen width
                     fit: BoxFit.cover,
                   ),
-                  Text(
-                    'Login with...',
-                    style: GoogleFonts.mulish(
-                      textStyle: TextStyle(
-                        color: Colors.black,
-                        fontSize: screenWidth * 0.05, // 5% of screen width
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
                   SizedBox(height: screenHeight * 0.02), // 2% of screen height
                   
                   // Email login button
@@ -137,43 +127,12 @@ class _StartPageState extends State<StartPage> {
                         ),
                       ),
                       child: Text(
-                        'Email',
+                        'Log In',
                         style: GoogleFonts.mulish(
                           textStyle: TextStyle(
                             color: Colors.black,
                             fontSize:
                                 screenWidth * 0.04, // 4% of screen width
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  SizedBox(height: screenHeight * 0.02), // 2% of screen height
-                  
-                  // Apple Sign-In Button
-                  SizedBox(
-                    width: screenWidth * 0.7, // 70% of screen width
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      icon: Icon(Icons.apple, color: Colors.black),
-                      onPressed: _isLoading ? null : _signInWithApple,
-                      style: ButtonStyle(
-                        backgroundColor: WidgetStateProperty.all(Colors.white),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: Colors.blueGrey),
-                          ),
-                        ),
-                      ),
-                      label: Text(
-                        'Continue with Apple',
-                        style: GoogleFonts.mulish(
-                          textStyle: TextStyle(
-                            color: Colors.black,
-                            fontSize: screenWidth * 0.04,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -206,7 +165,7 @@ class _StartPageState extends State<StartPage> {
                             side: BorderSide(color: Colors.blueGrey),
                           ))),
                       child: Text(
-                        'Create account',
+                        'Sign Up',
                         style: GoogleFonts.mulish(
                           textStyle: TextStyle(
                             color: Colors.black,
@@ -233,5 +192,3 @@ class _StartPageState extends State<StartPage> {
     );
   }
 }
-
-//responsive check done
