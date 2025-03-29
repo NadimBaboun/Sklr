@@ -6,7 +6,6 @@ import 'package:sklr/Util/PrivacyPolicy.dart';
 import 'package:sklr/Profile/dashboard.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/Util/startpage.dart';
-import 'dart:io';
 import 'editProfile.dart';
 import '../Util/navigationbar-bar.dart';
 import '../database/database.dart';
@@ -19,7 +18,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
-  File? _image;
   final ImagePicker _picker = ImagePicker();
   final supabase = Supabase.instance.client;
   Map<String, dynamic>? userData;

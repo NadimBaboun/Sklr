@@ -1,3 +1,16 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:sklr/Chat/chatsHome.dart';
+import 'package:sklr/database/database.dart';
+import 'package:sklr/database/userIdStorage.dart';
+
+class MySkills extends StatefulWidget {
+  const MySkills({super.key});
+
+  @override
+  _MySkillsState createState() => _MySkillsState();
+}
+
 class _MySkillsState extends State<MySkills> {
   late Future<List<Map<String, dynamic>>> skillsFuture;
   bool isLoading = false;

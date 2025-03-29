@@ -421,7 +421,7 @@ class MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSta
                           ],
                         ),
                         child: Text(
-                          '£${(skill['cost'] ?? 0).toStringAsFixed(2)}',
+                          '${(skill['cost'] ?? 0).toInt()} credits',
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             color: Colors.white,

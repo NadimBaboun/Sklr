@@ -6,9 +6,16 @@ import 'package:sklr/database/userIdStorage.dart';
 import '../database/database.dart';
 import '../Profile/user.dart';
 
-class Skillinfo extends StatelessWidget {
+class Skillinfo extends StatefulWidget {
   final int id;
-  Skillinfo({super.key, required this.id});
+  
+  const Skillinfo({super.key, required this.id});
+  
+  @override
+  State<Skillinfo> createState() => _SkillinfoState();
+}
+
+class _SkillinfoState extends State<Skillinfo> {
   String userName = '';
 
   Future<Map<String, dynamic>> fetchSkill(int? id) async {
@@ -56,7 +63,7 @@ class Skillinfo extends StatelessWidget {
         ),
       ),
       body: FutureBuilder<Map<String, dynamic>?>(
-        future: fetchSkill(id),
+        future: fetchSkill(widget.id),
         builder: (context, skillSnapshot) {
           if (skillSnapshot.connectionState == ConnectionState.waiting) {
             return Center(
@@ -391,18 +398,13 @@ class Skillinfo extends StatelessWidget {
                                         final self = await UserIdStorage.getLoggedInUserId();
                                         final selfInt = self is String ? int.tryParse(self) ?? -1 : self;
                                         
-                                        final session = await DatabaseHelper.createSession(
-                                          selfInt,
-                                          skill['id'],
-                                        );
-                                        
                                         final skillUserId = skill['user_id'] is String ? 
                                             int.tryParse(skill['user_id']) ?? -1 : skill['user_id'];
                                             
                                         final result = await DatabaseHelper.getOrCreateChat(
                                           selfInt,
                                           skillUserId,
-                                          session.data['id'],
+                                          skill['id'],
                                         );
                                         
                                         Navigator.of(context).push(
@@ -478,23 +480,24 @@ class Skillinfo extends StatelessWidget {
   }
 
   Future<void> _confirmReport(BuildContext context, int skillId) async {
-    return showDialog(
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
+    showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
           title: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.red),
+              Icon(
+                Icons.flag_rounded,
+                color: Colors.red[400],
+                size: 24,
+              ),
               const SizedBox(width: 12),
               Text(
                 'Report Skill',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
                 ),
               ),
             ],
@@ -507,7 +510,7 @@ class Skillinfo extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
                 'Cancel',
                 style: GoogleFonts.poppins(
@@ -518,30 +521,33 @@ class Skillinfo extends StatelessWidget {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop();
-                await DatabaseHelper.createReport(skillId);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        const Icon(Icons.check_circle, color: Colors.white),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Skill reported successfully',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
+                Navigator.of(dialogContext).pop();
+                final success = await DatabaseHelper.createReport(skillId);
+                
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 12),
+                          Text(
+                            success ? 'Skill reported successfully' : 'Failed to report skill',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                      backgroundColor: success ? Colors.red : Colors.grey[700],
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    backgroundColor: Colors.red,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                );
+                  );
+                }
               },
               style: TextButton.styleFrom(
                 backgroundColor: Colors.red.withOpacity(0.1),

@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/Skills/skillInfo.dart';
 import 'package:sklr/database/database.dart';
 import '../database/models.dart';
-import 'package:sklr/Profile/OtherProfile.dart';
 import 'package:sklr/Profile/user.dart';
 
 class SearchResultsPage extends StatefulWidget {
@@ -175,7 +174,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> with SingleTicker
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  '£${(skill['cost'] ?? 0).toStringAsFixed(2)}',
+                                  '${(skill['cost'] ?? 0).toInt()} credits',
                             style: GoogleFonts.mulish(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,

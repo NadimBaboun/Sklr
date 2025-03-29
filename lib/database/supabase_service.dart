@@ -18,49 +18,6 @@ class SupabaseService {
     log('[$timestamp] $prefix - $operation: $details');
   }
   
-  // UTILITY FUNCTIONS
-  
-  // Convert user ID between string/int as needed
-  static dynamic _convertUserId(dynamic userId) {
-    if (userId is int) {
-      return userId.toString();
-    } else if (userId is String) {
-      // Try to parse as int if possible (for backward compatibility)
-      try {
-        return int.parse(userId);
-      } catch (_) {
-        return userId; // Keep as string if it's not a valid int
-      }
-    }
-    return userId;
-  }
-  
-  // Check if the current user has access to the resource
-  static Future<bool> _checkAccess(String table, String id, {String? action}) async {
-    try {
-      // This is a simple implementation - real RLS would be in Supabase policies
-      final currentUser = supabase.auth.currentUser;
-      if (currentUser == null) return false;
-      
-      if (table == 'users' && id == currentUser.id) {
-        return true; // Users can access their own data
-      }
-      
-      // For other resources, check if the user owns them
-      final resource = await supabase.from(table).select().eq('id', id).maybeSingle();
-      if (resource != null && resource['user_id'] == currentUser.id) {
-        return true;
-      }
-      
-      return false;
-    } catch (e) {
-      log('Error checking access: $e');
-      return false;
-    }
-  }
-  
-  // AUTH OPERATIONS
-  
   // Sign up with email and password
   static Future<LoginResponse> registerUser(
       String username, String email, String password) async {
@@ -189,6 +146,8 @@ class SupabaseService {
         );
       }
     }
+
+
 
   // Sign in with email and password
   static Future<LoginResponse> signInWithEmail(

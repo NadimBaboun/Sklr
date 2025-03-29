@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/Skills/skillInfo.dart';
 import '../database/database.dart';
 import '../Util/navigationbar-bar.dart';
-import 'dart:math';
 
 class OtherProfile extends StatefulWidget {
   final String userId;
@@ -539,7 +538,7 @@ class _OtherProfileState extends State<OtherProfile> {
                                               borderRadius: BorderRadius.circular(20),
                                             ),
                                             child: Text(
-                                              '£${(listing['cost'] ?? 0).toStringAsFixed(2)}',
+                                              '${(listing['cost'] ?? 0).toStringAsFixed(2)} credits',
                                               style: GoogleFonts.poppins(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w600,

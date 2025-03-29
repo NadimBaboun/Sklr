@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:developer';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:http/http.dart' as http;
+import 'package:sklr/database/supabase.dart' as supabase_client;
 import 'dart:convert';
 import 'userIdStorage.dart';
 import 'supabase_service.dart';
@@ -824,19 +825,71 @@ class DatabaseHelper {
   // create report
   static Future<bool> createReport(int skillId) async {
     final userId = await UserIdStorage.getLoggedInUserId();
-    if (userId == null) return false;
+    if (userId == null) {
+      log('Cannot create report: No logged in user ID found');
+      return false;
+    }
     
     try {
+      log('Creating report for skill ID: $skillId by user ID: $userId');
+      
+      // Check if a report already exists
+      try {
+        final existingReports = await supabase_client.SupabaseService.client
+            .from('reports')
+            .select('id')
+            .eq('skill_id', skillId)
+            .eq('reporter_id', userId)
+            .eq('status', 'Pending');
+            
+        if (existingReports.isNotEmpty) {
+          log('Report already exists for this skill and user, skipping creation');
+          return true; // Report already exists
+        }
+      } catch (checkError) {
+        log('Error checking for existing reports: $checkError');
+        // Continue with creation attempt
+      }
+      
       final result = await SupabaseService.createReport({
-        'reporter_id': userId.toString(),
+        'reporter_id': userId,
         'skill_id': skillId,
-        'reason': 'Reported from mobile app',
+        'text': 'Reported by user', 
         'status': 'Pending',
         'created_at': DateTime.now().toIso8601String(),
       });
-
-      return result.success;
+      
+      if (result.success) {
+        log('Report created successfully');
+        
+        // Create notification for moderators about new report
+        try {
+          final moderators = await supabase_client.SupabaseService.client
+              .from('users')
+              .select('id')
+              .eq('moderator', true);
+              
+          for (var mod in moderators) {
+            await createNotification(
+              recipientId: int.parse(mod['id'].toString()),
+              message: 'New skill report needs your attention',
+              senderId: int.parse(userId.toString()),
+            );
+          }
+          
+          log('Notifications sent to ${moderators.length} moderators');
+        } catch (notifyError) {
+          log('Error notifying moderators: $notifyError');
+          // Continue even if notification fails
+        }
+        
+        return true;
+      } else {
+        log('Failed to create report: ${result.data['error']}');
+        return false;
+      }
     } catch (e) {
+      log('Error creating report: $e');
       return false;
     }
   }

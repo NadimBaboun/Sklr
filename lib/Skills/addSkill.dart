@@ -204,7 +204,7 @@ class AddSkillPageState extends State<AddSkillPage> {
                         },
                         style: GoogleFonts.poppins(),
                         decoration: InputDecoration(
-                          hintText: "Enter cost in pounds (£) - whole numbers only",
+                          hintText: "Enter cost in credits",
                           fillColor: const Color(0xFFF5F7FF),
                           filled: true,
                           border: OutlineInputBorder(
@@ -350,7 +350,7 @@ class AddSkillPageState extends State<AddSkillPage> {
                         skillname,
                         skilldescription,
                         chosenCategory!,
-                        skillcost!
+                        skillcost
                       );
                       
                       if (response.success) {

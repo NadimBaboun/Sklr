@@ -95,16 +95,16 @@ class _HomePageState extends State<HomePage> {
           child: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-              toolbarHeight: size.height * 0.24, // Match preferredSize height
+            toolbarHeight: size.height * 0.24, // Match preferredSize height
             flexibleSpace: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                      horizontal: 24.0, vertical: 10.0), // Reduced vertical padding
+                  horizontal: 24.0, vertical: 10.0), // Reduced vertical padding
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                        'Hello, ${username ?? "Unknown User"} 👋',
+                      'Hello, ${username ?? "Unknown User"} 👋',
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontSize: 20,
@@ -123,7 +123,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 16),
                     Container(
-                      height: 50,
+                      height: 48, // Adjusted height for better alignment
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(15),
@@ -142,7 +142,7 @@ class _HomePageState extends State<HomePage> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
-                                      SearchResultsPage(initialSearch: value),
+                                    SearchResultsPage(initialSearch: value),
                               ),
                             );
                           }
@@ -159,8 +159,10 @@ class _HomePageState extends State<HomePage> {
                             color: Color(0xFF2196F3),
                             size: 24,
                           ),
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -299,44 +301,10 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildProviderActions(Map<String, dynamic> skill) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // View profile button
-        TextButton(
-          onPressed: () {
-            if (skill['user_id'] != null) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => UserPage(userId: int.parse(skill['user_id'].toString())),
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('User information not available')),
-              );
-            }
-          },
-          child: Text(
-            'View Profile',
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Colors.blue,
-            ),
-          ),
-        ),
-        
-        // ... existing code ...
-      ],
-    );
-  }
 }
 
 class ServiceCategoryCards extends StatefulWidget {
-  const ServiceCategoryCards({Key? key}) : super(key: key);
+  const ServiceCategoryCards({super.key});
 
   @override
   _serviceCategoryState createState() => _serviceCategoryState();
@@ -720,7 +688,7 @@ class _recentListingsState extends State<RecentListings> {
                       ),
                     ),
                     child: Text(
-                      '\$${listing['cost']}',
+                      '${listing['cost']} credits',
                       style: GoogleFonts.poppins(
                         color: Colors.green[700],
                         fontSize: 16,
@@ -766,7 +734,7 @@ class _recentListingsState extends State<RecentListings> {
         }
 
         final data = snapshot.data!;
-        final listings = data[0] as List<Map<String, dynamic>>;
+        final listings = data[0];
         final categoryMap = {
           for (var category in data[1]) category['name']: category['asset']
         };
@@ -1112,7 +1080,7 @@ class AllListingsPage extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
-                                    '\$${listing['cost']}',
+                                    '${listing['cost']} credits',
                                     style: GoogleFonts.poppins(
                                       color: Colors.green,
                                       fontSize: 16,

@@ -6,7 +6,7 @@ class SupabaseService {
   // Get a user from their ID
   static Future<Map<String, dynamic>> getUserFromId(String userId) async {
     try {
-      if (userId == null || userId.isEmpty) {
+      if (userId.isEmpty) {
         print('Error: userID is null or empty');
         return {};
       }

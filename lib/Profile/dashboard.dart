@@ -43,13 +43,30 @@ class _ModeratorDashboardState extends State<ModeratorDashboard> with SingleTick
 
     await Future.delayed(const Duration(milliseconds: 300));
     
-    setState(() {
-      reportsFuture = DatabaseHelper.fetchReports();
-      isLoading = false;
-    });
-
-    _animationController.reset();
-    _animationController.forward();
+    try {
+      final reports = await DatabaseHelper.fetchReports();
+      
+      if (mounted) {
+        setState(() {
+          reportsFuture = Future.value(reports);
+          isLoading = false;
+        });
+      }
+      
+      _animationController.reset();
+      _animationController.forward();
+    } catch (e) {
+      print('Error reloading reports: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          // Set to empty list on error rather than keeping old state
+          reportsFuture = Future.value([]);
+        });
+        
+        _showSnackBar(context, 'Error loading reports: $e', backgroundColor: Colors.red);
+      }
+    }
   }
 
   @override
@@ -227,190 +244,245 @@ class _ModeratorDashboardState extends State<ModeratorDashboard> with SingleTick
                 itemCount: reports.length,
                 itemBuilder: (context, index) {
                   final report = reports[index];
-                  final skillId = report['skill_id'];
-                 
-                  return FutureBuilder<Map<String, dynamic>>(
-                    future: DatabaseHelper.fetchOneSkill(skillId),
-                    builder: (context, skillSnapshot) {
-                      if (skillSnapshot.connectionState == ConnectionState.waiting) {
-                        return const SizedBox(height: 200);
-                      } else if (skillSnapshot.hasError || !skillSnapshot.hasData || skillSnapshot.data!.isEmpty) {
-                        return const SizedBox.shrink();
-                      } else {
-                        final skill = skillSnapshot.data!;
-                        final skillName = skill['name'];
-                        final skillDesc = skill['description'];
+                  final skill = report['skill'] ?? {};
+                  final reporter = report['reporter'] ?? {};
+                  
+                  if (skill == null || skill.isEmpty) {
+                    return const SizedBox.shrink(); // Skip if skill is missing
+                  }
+                  
+                  final skillName = skill['name'] ?? 'Unknown Skill';
+                  final skillDesc = skill['description'] ?? 'No description available';
+                  final skillOwner = skill['user'] ?? {};
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.03),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => Skillinfo(id: skill['id']))
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF6296FF).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.flag_rounded,
+                                      color: Color(0xFF6296FF),
+                                      size: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          skillName,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 10,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red[50],
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                'Reported Content',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 12,
+                                                  color: Colors.red[400],
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'by ${reporter['username'] ?? 'Unknown User'}',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              if (skillOwner != null && skillOwner.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Text(
+                                    'Created by: ${skillOwner['username'] ?? 'Unknown User'}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ),
+                              Text(
+                                skillDesc,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                  height: 1.6,
+                                ),
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (report['text'] != null && report['text'].toString().isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Report reason:',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      Text(
+                                        report['text'],
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          color: Colors.black54,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              const SizedBox(height: 20),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextButton.icon(
+                                      icon: const Icon(Icons.check_circle_outline),
+                                      label: Text(
+                                        'Dismiss',
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        _confirmationDialog(
+                                          context: context,
+                                          title: 'Dismiss Report',
+                                          content: 'Are you sure you want to dismiss this report? This action is irreversible.',
+                                          onConfirm: () async {
+                                            final result = await DatabaseHelper.removeReport(report['id']);
+                                            if (result) {
+                                              reloadReports();
+                                            }
+                                          },
+                                          confirmText: 'Dismiss',
+                                          confirmColor: Colors.green[600]!,
+                                        );
+                                      },
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.green[600],
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: TextButton.icon(
+                                      icon: const Icon(Icons.delete_outline),
+                                      label: Text(
+                                        'Remove',
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        _confirmationDialog(
+                                          context: context,
+                                          title: 'Remove Listing',
+                                          content: 'Are you sure you want to remove this listing? This action is irreversible.',
+                                          onConfirm: () async {
+                                            // Show a loading indicator
+                                            _showLoadingSnackBar(context, 'Removing skill...');
+                                            
+                                            final result = await DatabaseHelper.removeReportedSkill(report['id']);
+                                            
+                                            // Dismiss the loading indicator
+                                            _hideSnackBar(context);
+                                            
+                                            if (result) {
+                                              _showSnackBar(context, 'Skill successfully removed', backgroundColor: Colors.green);
+                                              reloadReports();
+                                            } else {
+                                              // If deletion fails, just mark as resolved
+                                              await DatabaseHelper.removeReport(report['id']);
+                                              _showSnackBar(context, 'Could not delete skill but report has been resolved', backgroundColor: Colors.orange);
+                                              reloadReports();
+                                            }
+                                          },
+                                          confirmText: 'Remove',
+                                          confirmColor: Colors.red[600]!,
+                                        );
+                                      },
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.red[600],
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(20),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => Skillinfo(id: skill['id']))
-                                );
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(20),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF6296FF).withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: const Icon(
-                                            Icons.flag_rounded,
-                                            color: Color(0xFF6296FF),
-                                            size: 24,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                skillName,
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 10,
-                                                  vertical: 4,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.red[50],
-                                                  borderRadius: BorderRadius.circular(20),
-                                                ),
-                                                child: Text(
-                                                  'Reported Content',
-                                                  style: GoogleFonts.poppins(
-                                                    fontSize: 12,
-                                                    color: Colors.red[400],
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      skillDesc,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        color: Colors.black54,
-                                        height: 1.6,
-                                      ),
-                                      maxLines: 3,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: TextButton.icon(
-                                            icon: const Icon(Icons.check_circle_outline),
-                                            label: Text(
-                                              'Dismiss',
-                                              style: GoogleFonts.poppins(
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            onPressed: () {
-                                              _confirmationDialog(
-                                                context: context,
-                                                title: 'Dismiss Report',
-                                                content: 'Are you sure you want to dismiss this report? This action is irreversible.',
-                                                onConfirm: () async {
-                                                  final result = await DatabaseHelper.removeReport(report['id']);
-                                                  if (result) {
-                                                    reloadReports();
-                                                  }
-                                                },
-                                                confirmText: 'Dismiss',
-                                                confirmColor: Colors.green[600]!,
-                                              );
-                                            },
-                                            style: TextButton.styleFrom(
-                                              foregroundColor: Colors.green[600],
-                                              padding: const EdgeInsets.symmetric(vertical: 12),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: TextButton.icon(
-                                            icon: const Icon(Icons.delete_outline),
-                                            label: Text(
-                                              'Remove',
-                                              style: GoogleFonts.poppins(
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            onPressed: () {
-                                              _confirmationDialog(
-                                                context: context,
-                                                title: 'Remove Listing',
-                                                content: 'Are you sure you want to remove this listing? This action is irreversible.',
-                                                onConfirm: () async {
-                                                  final result = await DatabaseHelper.removeReportedSkill(report['id']);
-                                                  if (result) {
-                                                    reloadReports();
-                                                  }
-                                                },
-                                                confirmText: 'Remove',
-                                                confirmColor: Colors.red[600]!,
-                                              );
-                                            },
-                                            style: TextButton.styleFrom(
-                                              foregroundColor: Colors.red[600],
-                                              padding: const EdgeInsets.symmetric(vertical: 12),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                    },
+                        ),
+                      ),
+                    ),
                   );
                 },
               ),
@@ -429,9 +501,11 @@ class _ModeratorDashboardState extends State<ModeratorDashboard> with SingleTick
     required String confirmText,
     required Color confirmColor,
   }) async {
+    ScaffoldMessenger.of(context);
+    
     return showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -476,7 +550,7 @@ class _ModeratorDashboardState extends State<ModeratorDashboard> with SingleTick
                   children: [
                     Expanded(
                       child: TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => Navigator.of(dialogContext).pop(),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
@@ -496,7 +570,7 @@ class _ModeratorDashboardState extends State<ModeratorDashboard> with SingleTick
                     Expanded(
                       child: TextButton(
                         onPressed: () {
-                          Navigator.of(context).pop();
+                          Navigator.of(dialogContext).pop();
                           onConfirm();
                         },
                         style: TextButton.styleFrom(
@@ -523,5 +597,67 @@ class _ModeratorDashboardState extends State<ModeratorDashboard> with SingleTick
         );
       },
     );
+  }
+
+  // Safe helper to show SnackBar messages
+  void _showSnackBar(BuildContext context, String message, {Color? backgroundColor, Duration? duration}) {
+    try {
+      // Store the scaffoldMessenger reference first
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: backgroundColor,
+          duration: duration ?? const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      print('Error showing SnackBar: $e');
+    }
+  }
+  
+  void _showLoadingSnackBar(BuildContext context, String message) {
+    try {
+      // Store the scaffoldMessenger reference first
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20, 
+                height: 20, 
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 2,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                message,
+                style: GoogleFonts.poppins(),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 60),
+          backgroundColor: Colors.blue[600],
+        ),
+      );
+    } catch (e) {
+      print('Error showing loading SnackBar: $e');
+    }
+  }
+  
+  void _hideSnackBar(BuildContext context) {
+    try {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    } catch (e) {
+      print('Error hiding SnackBar: $e');
+    }
   }
 }

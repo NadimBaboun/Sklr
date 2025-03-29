@@ -220,7 +220,7 @@ class SupportMainPage extends StatelessWidget {
                     _buildContactItem(Icons.email_outlined, 'support@sklr.app'),
                     const SizedBox(height: 8),
                     _buildContactItem(
-                        Icons.phone_outlined, '+972 123 456 7890'),
+                        Icons.phone_outlined, '+972 568308468'),
                     const SizedBox(height: 8),
                     _buildContactItem(
                         Icons.access_time_outlined, 'Mon-Fri, 9am-5pm GMT'),

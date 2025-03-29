@@ -1,4 +1,3 @@
-import 'package:country_flags/country_flags.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
@@ -41,23 +40,30 @@ class _PhoneNumberPageState extends State<PhoneNumberPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          'Phone Verification',
-          style: GoogleFonts.poppins(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
+      appBar: widget.isRegistration 
+        ? AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            toolbarHeight: 0,
+            automaticallyImplyLeading: false,
+          )
+        : AppBar(
+            centerTitle: true,
+            title: Text(
+              'Phone Verification',
+              style: GoogleFonts.poppins(
+                color: Colors.black87,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black87),
+              onPressed: () => Navigator.pop(context),
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            systemOverlayStyle: SystemUiOverlayStyle.dark,
           ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -71,10 +77,10 @@ class _PhoneNumberPageState extends State<PhoneNumberPage> {
                 alignment: Alignment.center,
                 child: Image.asset(
                   'assets/images/skillerlogo.png',
-                  height: isLargeScreen ? 240 : 180,
+                  height: isLargeScreen ? 200 : 150,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               // Heading
               Text(
                 'Phone Verification',
@@ -99,7 +105,7 @@ class _PhoneNumberPageState extends State<PhoneNumberPage> {
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
               // Phone Input
               IntlPhoneField(
                 decoration: InputDecoration(
@@ -155,7 +161,7 @@ class _PhoneNumberPageState extends State<PhoneNumberPage> {
                 showDropdownIcon: true,
                 dropdownIconPosition: IconPosition.trailing,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
               // Continue Button
               SizedBox(
                 width: double.infinity,
@@ -212,8 +218,33 @@ class _PhoneNumberPageState extends State<PhoneNumberPage> {
                         ),
                 ),
               ),
-              const SizedBox(height: 24),
-              // Skip button (only for optional phone verification)
+              const SizedBox(height: 20),
+              // Skip button (show for registration flow)
+              if (widget.isRegistration)
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: TextButton(
+                    onPressed: () async {
+                      // Ensure user keeps their initial 50 credits
+                      // User already received 50 credits during registration
+                      // No need to award additional credits here
+                      Navigator.pushReplacement(
+                        context, 
+                        MaterialPageRoute(builder: (context) => HomePage()),
+                      );
+                    },
+                    child: Text(
+                      'Skip phone verification',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              // Skip button (only for optional phone verification that's not registration)
               if (!widget.isRegistration)
                 TextButton(
                   onPressed: () {
@@ -369,4 +400,3 @@ class PhoneNumberInputFormatter extends TextInputFormatter {
     );
   }
 }
-//phone number page done 

@@ -160,12 +160,12 @@ class _SupportFinderPageState extends State<SupportFinderPage> with SingleTicker
         Uri.parse('https://openrouter.ai/api/v1/chat/completions'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer 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',
+          'Authorization': 'Bearer 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',
           'HTTP-Referer': 'https://sklr.app',
           'X-Title': 'SKLR Support Assistant',
         },
         body: jsonEncode({
-          'model': 'google/gemini-2.0-pro-exp-02-05:free',
+          'model': 'meta-llama/llama-3.2-3b-instruct:free',
           'messages': messages,
           'temperature': 0.7,
           'max_tokens': 1000,

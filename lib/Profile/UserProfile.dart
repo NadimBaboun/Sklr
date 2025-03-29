@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/Skills/skillInfo.dart';
 import '../database/database.dart';
-import '../Util/navigationbar-bar.dart';
 import 'dart:math';
 
 class UserProfilePage extends StatefulWidget {
