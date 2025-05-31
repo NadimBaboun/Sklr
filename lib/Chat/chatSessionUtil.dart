@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, use_build_context_synchronously, deprecated_member_use
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sklr/database/database.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,7 +12,9 @@ final supabaseClient = Supabase.instance.client;
 // Add this function at the top level outside any class
 Future<bool> updateUserCredits(int userId, int newCreditAmount) async {
   try {
-    print('Attempting to update user $userId credits to $newCreditAmount with direct approach');
+    if (kDebugMode) {
+      print('Attempting to update user $userId credits to $newCreditAmount with direct approach');
+    }
     
     // Get current credits for logging purposes
     try {
@@ -20,11 +24,13 @@ Future<bool> updateUserCredits(int userId, int newCreditAmount) async {
           .eq('id', userId)
           .single();
       
-      final int currentCredits = currentData != null && currentData['credits'] != null
+      final int currentCredits = currentData['credits'] != null
           ? int.parse(currentData['credits'].toString())
           : 0;
       
-      print('Current credits before update: $currentCredits');
+      if (kDebugMode) {
+        print('Current credits before update: $currentCredits');
+      }
       
       // IMPORTANT: Add a notification here about the credit change
       // This ensures users are notified even if the update fails
@@ -46,36 +52,52 @@ Future<bool> updateUserCredits(int userId, int newCreditAmount) async {
               'created_at': DateTime.now().toIso8601String(),
               'is_read': false,
             });
-          print('Credit notification sent to user $userId');
+          if (kDebugMode) {
+            print('Credit notification sent to user $userId');
+          }
         } catch (e) {
-          print('Error sending credit notification: $e');
+          if (kDebugMode) {
+            print('Error sending credit notification: $e');
+          }
         }
       }
     } catch (e) {
-      print('Error getting current credits: $e');
+      if (kDebugMode) {
+        print('Error getting current credits: $e');
+      }
     }
     
     // Attempt 1: Perform direct update with Supabase client
     bool updateSuccess = false;
     try {
-      print('Attempting direct update with Supabase client');
+      if (kDebugMode) {
+        print('Attempting direct update with Supabase client');
+      }
       
       final updateData = {'credits': newCreditAmount};
-      print('Update data: $updateData');
+      if (kDebugMode) {
+        print('Update data: $updateData');
+      }
       
       final result = await supabaseClient
           .from('users')
           .update(updateData)
           .eq('id', userId);
       
-      print('Update result: $result');
+      if (kDebugMode) {
+        print('Update result: $result');
+      }
       updateSuccess = true;
     } catch (e) {
-      print('Direct update failed: $e');
+      if (kDebugMode) {
+        print('Direct update failed: $e');
+      }
       
       // Attempt 2: Try using the RPC function if it exists
       try {
-        print('Trying RPC function');
+        if (kDebugMode) {
+          print('Trying RPC function');
+        }
         await supabaseClient.rpc(
           'direct_update_user_credits',
           params: {
@@ -85,11 +107,15 @@ Future<bool> updateUserCredits(int userId, int newCreditAmount) async {
         );
         updateSuccess = true;
       } catch (rpcError) {
-        print('RPC update failed: $rpcError');
+        if (kDebugMode) {
+          print('RPC update failed: $rpcError');
+        }
         
         // Attempt 3: Last resort - Use a direct HTTP request
         try {
-          print('Attempting direct HTTP request');
+          if (kDebugMode) {
+            print('Attempting direct HTTP request');
+          }
           final response = await supabaseClient.functions.invoke(
             'update-user-credits',
             body: {
@@ -98,12 +124,16 @@ Future<bool> updateUserCredits(int userId, int newCreditAmount) async {
             },
           );
           
-          print('Function response: ${response.data}');
+          if (kDebugMode) {
+            print('Function response: ${response.data}');
+          }
           if (response.status == 200) {
             updateSuccess = true;
           }
         } catch (functionError) {
-          print('Function call failed: $functionError');
+          if (kDebugMode) {
+            print('Function call failed: $functionError');
+          }
         }
       }
     }
@@ -116,16 +146,13 @@ Future<bool> updateUserCredits(int userId, int newCreditAmount) async {
           .eq('id', userId)
           .single();
       
-      if (verifyData == null) {
-        print('Verification failed - no data returned');
-        return updateSuccess;  // Return the update success flag
-      }
-      
       final int updatedCredits = verifyData['credits'] != null
           ? int.parse(verifyData['credits'].toString())
           : 0;
       
-      print('Credits after update: $updatedCredits');
+      if (kDebugMode) {
+        print('Credits after update: $updatedCredits');
+      }
       
       // If verification confirms the update, return true
       if (updatedCredits == newCreditAmount) {
@@ -136,11 +163,15 @@ Future<bool> updateUserCredits(int userId, int newCreditAmount) async {
       // return our success flag anyway
       return updateSuccess;
     } catch (e) {
-      print('Verification failed: $e');
+      if (kDebugMode) {
+        print('Verification failed: $e');
+      }
       return updateSuccess;  // Return our best guess
     }
   } catch (e) {
-    print('Overall error in updateUserCredits: $e');
+    if (kDebugMode) {
+      print('Overall error in updateUserCredits: $e');
+    }
     return false;
   }
 }
@@ -348,7 +379,7 @@ class RequestService {
                       .eq('id', requesterId)
                       .single();
                       
-                  final int currentCredits = latestRequesterData != null && latestRequesterData['credits'] != null
+                  final int currentCredits = latestRequesterData['credits'] != null
                       ? int.parse(latestRequesterData['credits'].toString())
                       : 0;
                       
@@ -359,7 +390,9 @@ class RequestService {
                   }
 
                   // Try to reserve the credits using the database function
-                  print('Trying to reserve credits directly in the database');
+                  if (kDebugMode) {
+                    print('Trying to reserve credits directly in the database');
+                  }
                   try {
                     final result = await supabaseClient.rpc(
                       'reserve_credits_for_service',
@@ -375,9 +408,13 @@ class RequestService {
                       return;
                     }
                     
-                    print('Credits reserved successfully via RPC function');
+                    if (kDebugMode) {
+                      print('Credits reserved successfully via RPC function');
+                    }
                   } catch (e) {
-                    print('RPC function failed, but we will continue: $e');
+                    if (kDebugMode) {
+                      print('RPC function failed, but we will continue: $e');
+                    }
                     // Continue with normal flow even if RPC fails
                   }
                   
@@ -396,7 +433,9 @@ class RequestService {
                     'status': 'Pending' // Changed from 'Reserved' to match DB constraints
                   };
                   
-                  print('Creating transaction: $transactionData');
+                  if (kDebugMode) {
+                    print('Creating transaction: $transactionData');
+                  }
                   
                   try {
                     // Check if a transaction for this session already exists
@@ -405,8 +444,10 @@ class RequestService {
                         .select()
                         .eq('session_id', sessionId);
                         
-                    if (existingTransactions != null && existingTransactions.isNotEmpty) {
-                      print('Transaction already exists for session $sessionId, deleting existing transactions');
+                    if (existingTransactions.isNotEmpty) {
+                      if (kDebugMode) {
+                        print('Transaction already exists for session $sessionId, deleting existing transactions');
+                      }
                       
                       try {
                         // Delete existing transactions for this session
@@ -415,26 +456,34 @@ class RequestService {
                             .delete()
                             .eq('session_id', sessionId);
                             
-                        print('Deleted existing transactions for session $sessionId');
+                        if (kDebugMode) {
+                          print('Deleted existing transactions for session $sessionId');
+                        }
                       } catch (deleteError) {
-                        print('Error deleting existing transactions: $deleteError');
+                        if (kDebugMode) {
+                          print('Error deleting existing transactions: $deleteError');
+                        }
                         // Continue anyway, we'll try to create a new transaction
                       }
                     }
                     
                     try {
                       // Create a fresh transaction
-                      print('Creating fresh transaction');
-                      final result = await supabaseClient
-                          .from('transactions')
-                          .insert(transactionData);
-                          
-                      print('Transaction created successfully');
+                      if (kDebugMode) {
+                        print('Creating fresh transaction');
+                      } 
+                      if (kDebugMode) {
+                        print('Transaction created successfully');
+                      }
                     } catch (createError) {
-                      print('Error creating transaction: $createError');
+                      if (kDebugMode) {
+                        print('Error creating transaction: $createError');
+                      }
                       
                       // Final fallback: try just updating existing transaction status
-                      print('Trying to update existing transaction as fallback');
+                      if (kDebugMode) {
+                        print('Trying to update existing transaction as fallback');
+                      }
                       
                       try {
                         await supabaseClient
@@ -445,14 +494,20 @@ class RequestService {
                             })
                             .eq('session_id', sessionId);
                             
-                        print('Existing transaction updated successfully as fallback');
+                        if (kDebugMode) {
+                          print('Existing transaction updated successfully as fallback');
+                        }
                       } catch (updateError) {
-                        print('Final fallback failed: $updateError');
+                        if (kDebugMode) {
+                          print('Final fallback failed: $updateError');
+                        }
                         // Give up, but we already have the credit reservation
                       }
                     }
                   } catch (e) {
-                    print('Error with transaction: $e');
+                    if (kDebugMode) {
+                      print('Error with transaction: $e');
+                    }
                     showSafeSnackBar(context, 'Error with transaction: $e');
                     // Continue anyway since credits are already deducted
                   }
@@ -623,7 +678,9 @@ class RequestService {
                   final double skillCost = skillData['cost'] != null ? 
                       double.parse(skillData['cost'].toString()) : 0.0;
                   
-                  print('Declining service. Refund amount: $skillCost credits');
+                  if (kDebugMode) {
+                    print('Declining service. Refund amount: $skillCost credits');
+                  }
                   
                   // Update session status to 'Declined'
                   await supabaseClient
@@ -638,8 +695,10 @@ class RequestService {
                       .eq('session_id', sessionId)
                       .eq('status', 'Pending');
                       
-                  if (transactions != null && transactions.isNotEmpty) {
-                    print('Updating transaction status to Declined - this will trigger credit refund');
+                  if (transactions.isNotEmpty) {
+                    if (kDebugMode) {
+                      print('Updating transaction status to Declined - this will trigger credit refund');
+                    }
                     await supabaseClient
                         .from('transactions')
                         .update({
@@ -648,9 +707,13 @@ class RequestService {
                         })
                         .eq('session_id', sessionId);
                     
-                    print('Transaction status updated successfully');
+                    if (kDebugMode) {
+                      print('Transaction status updated successfully');
+                    }
                   } else {
-                    print('No pending transaction found for this session');
+                    if (kDebugMode) {
+                      print('No pending transaction found for this session');
+                    }
                   }
                   
                   // Notify the requester that the request was declined
@@ -709,7 +772,7 @@ class RequestService {
                       .eq('session_id', sessionId)
                       .eq('status', 'Pending');
                       
-                  if (transactions != null && transactions.isNotEmpty) {
+                  if (transactions.isNotEmpty) {
                     await supabaseClient
                         .from('transactions')
                         .update({
@@ -787,13 +850,6 @@ class RequestService {
       );
       return false;
     }
-
-    // Deduct credits from the requester
-    final deductResult = await supabaseClient
-        .from('users')
-        .update({'credits': currentCredits - requiredCredits})
-        .eq('id', loggedInUserId);
-
     return true;
   }
 
@@ -843,7 +899,7 @@ class RequestService {
 class CompleteService extends StatelessWidget {
   final Map<String, dynamic> session;
 
-  CompleteService({required this.session});
+  const CompleteService({super.key, required this.session});
 
   // Show finalize dialog that asks for confirmation
   Future<bool?> showFinalizeDialog(BuildContext context) async {
@@ -928,8 +984,7 @@ class CompleteService extends StatelessWidget {
                       .eq('id', session['id'])
                       .single();
                       
-                  if (updatedSession != null && 
-                      updatedSession['provider_confirmed'] == true && 
+                  if (updatedSession['provider_confirmed'] == true && 
                       updatedSession['requester_confirmed'] == true) {
                     
                     // Both parties confirmed, finalize the transaction
@@ -946,7 +1001,9 @@ class CompleteService extends StatelessWidget {
                     final double skillCost = skillData['cost'] != null ? 
                         double.parse(skillData['cost'].toString()) : 0.0;
                         
-                    print('Service completed. Cost: $skillCost credits');
+                    if (kDebugMode) {
+                      print('Service completed. Cost: $skillCost credits');
+                    }
                     
                     // 2. Update session status to completed
                     await supabaseClient
@@ -961,8 +1018,10 @@ class CompleteService extends StatelessWidget {
                         .eq('session_id', session['id'])
                         .eq('status', 'Pending');
                         
-                    if (transactions != null && transactions.isNotEmpty) {
-                      print('Updating transaction status to Completed - this will trigger credit transfer');
+                    if (transactions.isNotEmpty) {
+                      if (kDebugMode) {
+                        print('Updating transaction status to Completed - this will trigger credit transfer');
+                      }
                       await supabaseClient
                           .from('transactions')
                           .update({
@@ -971,7 +1030,9 @@ class CompleteService extends StatelessWidget {
                           })
                           .eq('session_id', session['id']);
                       
-                      print('Transaction updated successfully');
+                      if (kDebugMode) {
+                        print('Transaction updated successfully');
+                      }
                     }
                     
                     showSafeSnackBar(context, 'Service completed successfully! Credits have been transferred to the provider.', backgroundColor: Colors.green);
@@ -1016,7 +1077,7 @@ class CancelService {
   
   Future<bool?> showFinalizeDialog(BuildContext context) async {
     try {
-      final requesterId = int.parse(session['requester_id'].toString());
+      int.parse(session['requester_id'].toString());
       final skillId = session['skill_id'];
       
       // Get skill info
@@ -1025,23 +1086,9 @@ class CancelService {
         showSafeSnackBar(context, 'Error fetching skill information');
         return false;
       }
-      
-      // Get requester info directly from Supabase
-      final requesterData = await supabaseClient
-          .from('users')
-          .select('username, credits, avatar_url')
-          .eq('id', requesterId)
-          .single();
-      
-      if (requesterData == null) {
-        showSafeSnackBar(context, 'Error fetching requester information');
-        return false;
-      }
-      
+
       // Calculate amount to refund
       final double skillCost = skillData['cost'] != null ? double.parse(skillData['cost'].toString()) : 0.0;
-      final int requesterCredits = requesterData['credits'] != null ? int.parse(requesterData['credits'].toString()) : 0;
-      final int newRequesterCredits = requesterCredits + skillCost.toInt();
       
       // Show confirmation dialog
     return await showDialog<bool>(
@@ -1145,7 +1192,9 @@ class CancelService {
                   final double skillCost = skillData['cost'] != null ? 
                       double.parse(skillData['cost'].toString()) : 0.0;
                   
-                  print('Cancelling service. Refund amount: $skillCost credits');
+                  if (kDebugMode) {
+                    print('Cancelling service. Refund amount: $skillCost credits');
+                  }
                   
                   // Update session status to Cancelled
                   await supabaseClient
@@ -1160,8 +1209,10 @@ class CancelService {
                       .eq('session_id', sessionId)
                       .eq('status', 'Pending');
                       
-                  if (transactions != null && transactions.isNotEmpty) {
-                    print('Updating transaction status to Cancelled - this will trigger credit refund');
+                  if (transactions.isNotEmpty) {
+                    if (kDebugMode) {
+                      print('Updating transaction status to Cancelled - this will trigger credit refund');
+                    }
                     await supabaseClient
                         .from('transactions')
                         .update({
@@ -1170,9 +1221,13 @@ class CancelService {
                         })
                         .eq('session_id', sessionId);
                     
-                    print('Transaction cancelled successfully');
+                    if (kDebugMode) {
+                      print('Transaction cancelled successfully');
+                    }
                   } else {
-                    print('No pending transaction found for this session');
+                    if (kDebugMode) {
+                      print('No pending transaction found for this session');
+                    }
                   }
                   
                   // Success!

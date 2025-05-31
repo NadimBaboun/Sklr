@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../database/supabase_service.dart';
-import '../database/database.dart';
 import '../Home/home.dart';
 
 class TestAuthPage extends StatelessWidget {
@@ -49,4 +48,4 @@ class TestAuthPage extends StatelessWidget {
       ),
     );
   }
-} 
+}

@@ -24,7 +24,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
   bool isLoading = false;
   late TabController _tabController;
   late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
   List<Map<String, dynamic>> chats = [];
 
   @override
@@ -34,9 +33,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     
     // Initialize user ID first
@@ -91,11 +87,9 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
               final response = await supabase
                 .from('sessions')
                 .select('*, skills(*)')
-                .or('requester_id.eq.${loggedInUserId},provider_id.eq.${loggedInUserId}')
+                .or('requester_id.eq.$loggedInUserId,provider_id.eq.$loggedInUserId')
                 .inFilter('status', ['Requested', 'Pending', 'ReadyForCompletion'])
                 .order('updated_at', ascending: false);
-              
-              if (response == null) return [];
               
               // Process each service to include user names
               final processedServices = await Future.wait(response.map((service) async {
@@ -307,20 +301,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
     } else {
       // Format as time if today
       return '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
-    }
-  }
-
-  Future<void> _cacheUsernames(List<Map<String, dynamic>> chats) async {
-    for (var chat in chats) {
-      final otherUserId = chat['user_id'];
-      if (!usernameCache.containsKey(otherUserId)) {
-        final response = await supabase
-          .from('users')
-          .select()
-          .eq('id', otherUserId)
-          .single();
-        usernameCache[otherUserId] = response['username'] ?? 'Unknown';
-      }
     }
   }
 
@@ -1124,46 +1104,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF6296FF).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(32),
-            ),
-            child: const Icon(
-              Icons.chat_bubble_outline_rounded,
-              size: 64,
-              color: Color(0xFF6296FF),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'No messages yet',
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              color: const Color(0xFF1A1D26),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Start a conversation with someone!',
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              color: const Color(0xFF88879C),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -1,9 +1,6 @@
-import 'dart:io';
 import 'dart:developer';
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
-import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:sklr/database/supabase.dart' as supabase_client;
-import 'dart:convert';
 import 'userIdStorage.dart';
 import 'supabase_service.dart';
 // Import with a prefix to avoid conflicts
@@ -13,21 +10,6 @@ import 'models.dart'; // Import shared models
 class DatabaseHelper {
   // Flag to determine whether to use Supabase (true) or HTTP API (false)
   static const bool useSupabase = true;
-  
-  // Legacy backend URL (no longer used but kept for reference)
-  static final String baseUrl = _initBackendUrl();
-  
-  static String _initBackendUrl() {
-    if (kIsWeb) {
-      return 'http://localhost:3000';
-    } else if (Platform.isAndroid) {
-      return 'http://10.0.2.2:3000';
-    } else if (Platform.isIOS) {
-      return 'http://127.0.0.1:3000';
-    } else {
-      return 'http://localhost:3000';
-    }
-  }
 
   // test backend server connection
   static Future<String> testConnection() async {
@@ -556,7 +538,7 @@ class DatabaseHelper {
         'description': description,
         'created_at': DateTime.now().toIso8601String(),
         'category': category,
-        'cost': cost != null ? cost.toInt() : null,
+        'cost': cost?.toInt(),
       });
       
       return Response(
@@ -641,18 +623,7 @@ class DatabaseHelper {
 
   // delete chat
   static Future<bool> deleteChat(int chatId) async {
-    try {
-      // First check if the chat exists
-      final chatData = await supabase
-        .from('chats')
-        .select('id, session_id')
-        .eq('id', chatId)
-        .single();
-      
-      if (chatData == null) {
-        return false;
-      }
-      
+    try {      
       // Delete messages first (respecting foreign key constraints)
       await supabase
         .from('messages')
@@ -817,7 +788,9 @@ class DatabaseHelper {
       
       return true;
     } catch (e) {
-      print('Error removing reported skill: $e');
+      if (kDebugMode) {
+        print('Error removing reported skill: $e');
+      }
       return false;
     }
   }
@@ -933,23 +906,9 @@ class DatabaseHelper {
   }
 
   // Get a user's skills
+  // Get a user's skills using Supabase only
   static Future<List<Map<String, dynamic>>> getUserSkills(String userId) async {
-    if (useSupabase) {
-      return await SupabaseService.getUserSkills(userId: userId.toString());
-    } else {
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/skills/user/$userId'),
-      );
-      
-      if (response.statusCode == 200) {
-        return List<Map<String, dynamic>>.from(
-          json.decode(response.body),
-        );
-      } else {
-        print('Failed to load user skills: ${response.statusCode}');
-        return [];
-      }
-    }
+    return await SupabaseService.getUserSkills(userId: userId.toString());
   }
 
   // Get user profile with their skills
@@ -969,7 +928,9 @@ class DatabaseHelper {
         
         return userProfile;
       } catch (e) {
-        print('Error fetching user profile with skills: $e');
+        if (kDebugMode) {
+          print('Error fetching user profile with skills: $e');
+        }
         return {'error': 'Failed to fetch user profile'};
       }
     } else {
@@ -1009,7 +970,9 @@ class DatabaseHelper {
         
         return providerDetails;
       } catch (e) {
-        print('Error fetching provider details: $e');
+        if (kDebugMode) {
+          print('Error fetching provider details: $e');
+        }
         return {'error': 'Failed to fetch provider details'};
       }
     } else {
@@ -1174,7 +1137,9 @@ class DatabaseHelper {
             .select('requester_confirmed')
             .maybeSingle();
         } catch (columnError) {
-          print('Error checking requester_confirmed column: $columnError');
+          if (kDebugMode) {
+            print('Error checking requester_confirmed column: $columnError');
+          }
           // Column likely doesn't exist, but we'll continue execution
         }
         
@@ -1187,7 +1152,9 @@ class DatabaseHelper {
             .select('provider_confirmed')
             .maybeSingle();
         } catch (columnError) {
-          print('Error checking provider_confirmed column: $columnError');
+          if (kDebugMode) {
+            print('Error checking provider_confirmed column: $columnError');
+          }
           // Column likely doesn't exist, but we'll continue execution
         }
         
@@ -1220,8 +1187,7 @@ class DatabaseHelper {
               .eq('id', sessionId)
               .single();
               
-          if (session != null && 
-              session['requester_confirmed'] == true && 
+          if (session['requester_confirmed'] == true && 
               session['provider_confirmed'] == true) {
             // Both confirmed, update status to Completed
             await supabase
@@ -1237,7 +1203,9 @@ class DatabaseHelper {
       
       return true;
     } catch (e) {
-      print('Error updating session confirmation: $e');
+      if (kDebugMode) {
+        print('Error updating session confirmation: $e');
+      }
       return false;
     }
   }
@@ -1251,13 +1219,8 @@ class DatabaseHelper {
           .select('*, skills(*)')
           .eq('id', sessionId)
           .single();
-          
-      if (sessionData == null) {
-        print('Error: Session not found');
-        return false;
-      }
       
-      final requesterId = int.parse(sessionData['requester_id'].toString());
+      int.parse(sessionData['requester_id'].toString());
       final providerId = int.parse(sessionData['provider_id'].toString());
       final skillCost = double.parse(sessionData['skills']['cost'].toString());
       
@@ -1267,11 +1230,6 @@ class DatabaseHelper {
           .select('credits')
           .eq('id', providerId)
           .single();
-          
-      if (providerData == null) {
-        print('Error: Provider not found');
-        return false;
-      }
       
       final providerCredits = int.parse(providerData['credits'].toString());
       final newProviderCredits = providerCredits + skillCost.toInt();
@@ -1289,7 +1247,7 @@ class DatabaseHelper {
           .eq('session_id', sessionId)
           .eq('status', 'Pending');
           
-      if (transactions != null && transactions.isNotEmpty) {
+      if (transactions.isNotEmpty) {
         await supabase
             .from('transactions')
             .update({
@@ -1301,7 +1259,9 @@ class DatabaseHelper {
       
       return true;
     } catch (e) {
-      print('Error processing service payment: $e');
+      if (kDebugMode) {
+        print('Error processing service payment: $e');
+      }
       return false;
     }
   }

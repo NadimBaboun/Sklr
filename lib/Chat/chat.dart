@@ -4,13 +4,7 @@ import 'package:sklr/Chat/chatSessionUtil.dart';
 import 'package:sklr/Profile/user.dart';
 import '../database/database.dart';
 import '../database/userIdStorage.dart';
-import '../Util/navigationbar-bar.dart';
 import 'chatsHome.dart';
-import '../Home/home.dart';
-import '../Skills/myOrders.dart';
-import '../Profile/profile.dart';
-import '../Support/supportMain.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer';
 
 class ChatPage extends StatefulWidget {
@@ -202,7 +196,7 @@ class _ChatPageState extends State<ChatPage> {
                   .insert(dummySession)
                   .select();
                   
-              if (result != null && result.isNotEmpty) {
+              if (result.isNotEmpty) {
                 sessionResult = result[0];
               }
             } catch (e) {
@@ -402,6 +396,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: () async {
         Navigator.pushAndRemoveUntil(
@@ -663,6 +658,7 @@ class _ChatPageState extends State<ChatPage> {
           ),
           boxShadow: [
             BoxShadow(
+              // ignore: deprecated_member_use
               color: Colors.black.withOpacity(0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
@@ -687,6 +683,7 @@ class _ChatPageState extends State<ChatPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
+            // ignore: deprecated_member_use
             color: Colors.black.withOpacity(0.05),
             borderRadius: BorderRadius.circular(12),
           ),
@@ -760,7 +757,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildStateButton(String status, Map<String, dynamic> session) {
-    if (session == null || !session.containsKey('provider_id') || !session.containsKey('requester_id')) {
+    if (!session.containsKey('provider_id') || !session.containsKey('requester_id')) {
       // If we don't have proper session data, show a generic message
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1226,7 +1223,7 @@ class _ChatPageState extends State<ChatPage> {
         await DatabaseHelper.sendMessage(
           widget.chatId,
           -1,
-          'The Service Completion has been confirmed by ' + (session['provider_id'].toString() == widget.loggedInUserId.toString() ? 'the provider' : 'the requester') + '.',
+          'The Service Completion has been confirmed by ${session['provider_id'].toString() == widget.loggedInUserId.toString() ? 'the provider' : 'the requester'}.',
         );
         setState(() {
           _loadSession();
@@ -1245,7 +1242,7 @@ class _ChatPageState extends State<ChatPage> {
         await DatabaseHelper.sendMessage(
           widget.chatId,
           -1,
-          'The Service was Cancelled by ' + (session['provider_id'].toString() == widget.loggedInUserId.toString() ? 'the provider' : 'the requester') + '.',
+          'The Service was Cancelled by ${session['provider_id'].toString() == widget.loggedInUserId.toString() ? 'the provider' : 'the requester'}.',
         );
         setState(() {
           _loadSession();
@@ -1274,6 +1271,7 @@ class _ChatPageState extends State<ChatPage> {
       RequestService requestService = RequestService(session: session);
       
       // Show the accept dialog and wait for result
+      // ignore: use_build_context_synchronously
       final bool? result = await requestService.showAcceptDialog(context);
       
       if (result == true) {
@@ -1291,12 +1289,6 @@ class _ChatPageState extends State<ChatPage> {
   // Handle service declination by the provider
   Future<void> _handleServiceDecline(Map<String, dynamic> session) async {
     try {
-      // Create instance of RequestService to use the accept dialog (which has decline functionality)
-      RequestService requestService = RequestService(session: session);
-      
-      // Show the accept dialog and wait for result
-      final bool? result = await requestService.showAcceptDialog(context);
-      
       // Refresh the page even if declined
       setState(() {
         messages = _initializeMessages();
@@ -1314,6 +1306,7 @@ class _ChatPageState extends State<ChatPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
+            // ignore: deprecated_member_use
             color: Colors.black.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, -2),
@@ -1526,15 +1519,11 @@ class _ChatPageState extends State<ChatPage> {
     try {
       log('Fetching session data for chat ${widget.chatId}');
       final sessionData = await _loadSession();
-      if (sessionData != null) {
-        log('Session data fetched successfully, status: ${sessionData['status']}');
-        setState(() {
-          session = sessionData;
-        });
-      } else {
-        log('No session data returned for chat ${widget.chatId}');
-      }
-    } catch (e) {
+      log('Session data fetched successfully, status: ${sessionData['status']}');
+      setState(() {
+        session = sessionData;
+      });
+        } catch (e) {
       log('Error fetching session data for chat ${widget.chatId}: $e');
     }
   }
@@ -1567,10 +1556,10 @@ class _ChatPageState extends State<ChatPage> {
           .eq('id', widget.chatId)
           .single();
           
-      if (chatData == null || !chatData.containsKey('session_id') || chatData['session_id'] == null) {
+      if (!chatData.containsKey('session_id') || chatData['session_id'] == null) {
         log('No session found for chat ${widget.chatId}, creating one');
         
-        if (chatData != null && chatData.containsKey('user1_id') && chatData.containsKey('user2_id')) {
+        if (chatData.containsKey('user1_id') && chatData.containsKey('user2_id')) {
           final user1Id = int.parse(chatData['user1_id'].toString());
           final user2Id = int.parse(chatData['user2_id'].toString());
           
@@ -1603,7 +1592,7 @@ class _ChatPageState extends State<ChatPage> {
               })
               .select();
               
-          if (sessionResult != null && sessionResult.isNotEmpty) {
+          if (sessionResult.isNotEmpty) {
             final sessionId = sessionResult[0]['id'];
             log('Created fallback session ID: $sessionId');
             
@@ -1624,4 +1613,3 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 }
-
