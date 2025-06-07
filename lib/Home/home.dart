@@ -126,7 +126,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           builder: (context, constraints) {
             return Column(
               children: [
-                // Fixed Header
+                // Fixed Header with compact layout
                 Container(
                   height: size.height * 0.25,
                   decoration: BoxDecoration(
@@ -170,16 +170,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         'Welcome back! 👋',
                                         style: GoogleFonts.poppins(
                                           color: Colors.white.withOpacity(0.9),
-                                          fontSize: 16,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.w400,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 2),
                                       Text(
                                         username ?? "User",
                                         style: GoogleFonts.poppins(
                                           color: Colors.white,
-                                          fontSize: 26,
+                                          fontSize: 19,
                                           fontWeight: FontWeight.w700,
                                         ),
                                         overflow: TextOverflow.ellipsis,
@@ -205,22 +205,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 10),
                             Text(
                               "Find exceptional talent",
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
-                                fontSize: 28,
+                                fontSize: 22,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -0.8,
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 14),
                             Container(
-                              height: 50,
+                              height: 44,
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(30),
+                                borderRadius: BorderRadius.circular(28),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withOpacity(0.1),
@@ -237,19 +237,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   hintText: 'Search for services...',
                                   hintStyle: TextStyle(
                                     color: Colors.grey[600],
-                                    fontSize: 16,
+                                    fontSize: 14,
                                   ),
                                   prefixIcon: Icon(
                                     Icons.search, 
                                     color: Colors.grey[600],
-                                    size: 22,
+                                    size: 18,
                                   ),
                                   suffixIcon: _searchController.text.isNotEmpty
                                       ? IconButton(
                                           icon: Icon(
                                             Icons.clear,
                                             color: Colors.grey[600],
-                                            size: 20,
+                                            size: 16,
                                           ),
                                           onPressed: () {
                                             _searchController.clear();
@@ -260,13 +260,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           icon: Icon(
                                             Icons.arrow_forward,
                                             color: const Color(0xFF2196F3),
-                                            size: 20,
+                                            size: 16,
                                           ),
                                           onPressed: () => _performSearch(_searchController.text),
                                         ),
                                   contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 15,
-                                    horizontal: 20,
+                                    vertical: 10,
+                                    horizontal: 18,
                                   ),
                                 ),
                                 onChanged: (value) {
