@@ -237,6 +237,94 @@ class SupabaseService {
     }
   }
 
+  static Future<LoginResponse> registerViaDirectSQL(String username, String email, String password) async {
+    _logOperation('Direct SQL Registration', 'Starting direct SQL registration for: $email');
+    
+    try {
+      // Check if username or email already exists
+      final userExists = await usernameExists(username);
+      if (userExists) {
+        _logOperation('Direct SQL Registration', 'Username already exists: $username', isError: true);
+        return LoginResponse(
+          success: false,
+          message: 'Username already exists',
+        );
+      }
+      
+      final isEmailTaken = await emailExists(email);
+      if (isEmailTaken) {
+        _logOperation('Direct SQL Registration', 'Email already exists: $email', isError: true);
+        return LoginResponse(
+          success: false,
+          message: 'Email already exists',
+        );
+      }
+
+      // Insert the user directly into the users table
+      final result = await supabase.from('users').insert({
+        'username': username,
+        'email': email,
+        'password': password,
+        'credits': 50, // Default credits
+      }).select();
+
+      if (result.isNotEmpty) {
+        final userId = result[0]['id'];
+        _logOperation('Direct SQL Registration', 'User created successfully with ID: $userId');
+        
+        // Store the user ID for future reference
+        try {
+          await UserIdStorage.saveLoggedInUserId(userId);
+          _logOperation('Direct SQL Registration', 'User ID saved in local storage: $userId');
+          
+          return LoginResponse(
+            success: true,
+            message: 'User registered successfully',
+            userId: userId,
+          );
+        } catch (storageError) {
+          _logOperation('Direct SQL Registration', 'Error saving user ID: $storageError', isError: true);
+          return LoginResponse(
+            success: true,
+            message: 'User created but ID storage failed',
+            userId: userId,
+          );
+        }
+      } else {
+        _logOperation('Direct SQL Registration', 'No result returned from user insertion', isError: true);
+        return LoginResponse(
+          success: false,
+          message: 'User creation failed - no ID returned',
+        );
+      }
+    } catch (e) {
+      _logOperation('Direct SQL Registration', 'Error creating user: $e', isError: true);
+      return LoginResponse(
+        success: false,
+        message: e.toString(),
+      );
+    }
+  }
+  
+  static Future<LoginResponse> registerUserDirect(String username, String email, String password) async {
+    _logOperation('Direct Registration', 'Starting direct registration for: $email');
+    
+    try {
+      // Hash the password before storing
+      final bytes = utf8.encode(password);
+      final hashedPassword = sha256.convert(bytes).toString();
+      
+      // Use the direct SQL registration method with hashed password
+      return await registerViaDirectSQL(username, email, hashedPassword);
+    } catch (e) {
+      _logOperation('Direct Registration', 'Error in registration: $e', isError: true);
+      return LoginResponse(
+        success: false,
+        message: e.toString(),
+      );
+    }
+  } 
+
   // Direct authentication from users table
   static Future<LoginResponse> authenticateFromUsersTable(String email, String password) async {
     try {
