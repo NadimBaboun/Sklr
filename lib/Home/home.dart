@@ -21,6 +21,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   String? username;
   final ScrollController _scrollController = ScrollController();
   final _scrollKey = GlobalKey();
+  final TextEditingController _searchController = TextEditingController();
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -41,6 +42,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -57,6 +59,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           username = userData['username'];
         });
       }
+    }
+  }
+
+  void _performSearch(String query) {
+    if (query.trim().isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SearchResultsPage(initialSearch: query.trim()),
+        ),
+      );
     }
   }
 
@@ -107,203 +120,242 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: Colors.grey[50],
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(size.height * 0.25),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFF2196F3),
-                  const Color(0xFF1976D2),
-                  const Color(0xFF0D47A1),
-                ],
-              ),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(35),
-                bottomRight: Radius.circular(35),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF2196F3).withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              automaticallyImplyLeading: false,
-              toolbarHeight: size.height * 0.25,
-              flexibleSpace: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return Column(
+              children: [
+                // Fixed Header
+                Container(
+                  height: size.height * 0.25,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFF2196F3),
+                        const Color(0xFF1976D2),
+                        const Color(0xFF0D47A1),
+                      ],
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(35),
+                      bottomRight: Radius.circular(35),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2196F3).withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  'Welcome back! 👋',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w400,
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Welcome back! 👋',
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        username ?? "User",
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  username ?? "User",
-                                  style: GoogleFonts.poppins(
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.notifications_outlined,
                                     color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w700,
+                                    size: 24,
                                   ),
                                 ),
                               ],
                             ),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.notifications_outlined,
+                            const SizedBox(height: 20),
+                            Text(
+                              "Find exceptional talent",
+                              style: GoogleFonts.poppins(
                                 color: Colors.white,
-                                size: 24,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.8,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Container(
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(30),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: TextField(
+                                controller: _searchController,
+                                onSubmitted: _performSearch,
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  hintText: 'Search for services...',
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 16,
+                                  ),
+                                  prefixIcon: Icon(
+                                    Icons.search, 
+                                    color: Colors.grey[600],
+                                    size: 22,
+                                  ),
+                                  suffixIcon: _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: Icon(
+                                            Icons.clear,
+                                            color: Colors.grey[600],
+                                            size: 20,
+                                          ),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            setState(() {});
+                                          },
+                                        )
+                                      : IconButton(
+                                          icon: Icon(
+                                            Icons.arrow_forward,
+                                            color: const Color(0xFF2196F3),
+                                            size: 20,
+                                          ),
+                                          onPressed: () => _performSearch(_searchController.text),
+                                        ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 15,
+                                    horizontal: 20,
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  setState(() {});
+                                },
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
-                        Text(
-                          "Find exceptional talent",
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.8,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Container(
-                          height: 50, // Add explicit height
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: TextField(
-                            onSubmitted: (value) {
-                              if (value.isNotEmpty) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => SearchResultsPage(initialSearch: value),
-                                  ),
-                                );
-                              }
-                            },
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'Search for services...',
-                              hintStyle: TextStyle(color: Colors.grey),
-                              prefixIcon: Icon(Icons.search, color: Colors.grey),
-                              contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                            ),
-                          ),
-                        ),
-
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ),
-        ),
-        body: SingleChildScrollView(
-          controller: _scrollController,
-          key: _scrollKey,
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader('Service Categories', null),
-                  const SizedBox(height: 16),
-                  const ModernServiceCategoryCards(),
-                  const SizedBox(height: 32),
-                  _buildSectionHeader('Recent Listings', () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AllListingsPage(title: 'Recent Listings'),
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 16),
-                  Container(
-                    height: 340,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.08),
-                          spreadRadius: 2,
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
+                // Scrollable Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    key: _scrollKey,
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader('Service Categories', null),
+                            const SizedBox(height: 16),
+                            const ModernServiceCategoryCards(),
+                            const SizedBox(height: 32),
+                            _buildSectionHeader('Recent Listings', () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AllListingsPage(title: 'Recent Listings'),
+                                ),
+                              );
+                            }),
+                            const SizedBox(height: 16),
+                            Container(
+                              height: 340,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.08),
+                                    spreadRadius: 2,
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: const ModernRecentListings(),
+                            ),
+                            const SizedBox(height: 32),
+                            _buildSectionHeader('Popular Services', () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AllServicesPage(title: 'Popular Services'),
+                                ),
+                              );
+                            }),
+                            const SizedBox(height: 16),
+                            Container(
+                              height: 340,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.08),
+                                    spreadRadius: 2,
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: const ModernPopularServices(),
+                            ),
+                            SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: const ModernRecentListings(),
-                  ),
-                  const SizedBox(height: 32),
-                  _buildSectionHeader('Popular Services', () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AllServicesPage(title: 'Popular Services'),
                       ),
-                    );
-                  }),
-                  const SizedBox(height: 16),
-                  Container(
-                    height: 340,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.08),
-                          spreadRadius: 2,
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
                     ),
-                    child: const ModernPopularServices(),
                   ),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
-          ),
+                ),
+              ],
+            );
+          },
         ),
         bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 0),
       ),
@@ -349,7 +401,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     'View All',
                     style: GoogleFonts.poppins(
                       color: const Color(0xFF2196F3),
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -419,7 +471,7 @@ class _ModernServiceCategoryState extends State<ModernServiceCategoryCards> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Container(
-        height: 280,
+        height: 320,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -442,7 +494,7 @@ class _ModernServiceCategoryState extends State<ModernServiceCategoryCards> {
     
     if (_error != null || _categories.isEmpty) {
       return Container(
-        height: 280,
+        height: 320,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -480,7 +532,7 @@ class _ModernServiceCategoryState extends State<ModernServiceCategoryCards> {
     return Column(
       children: [
         Container(
-          height: 280,
+          height: 320,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
@@ -592,8 +644,8 @@ class _ModernServiceCategoryState extends State<ModernServiceCategoryCards> {
             BoxShadow(
               color: const Color(0xFF2196F3).withOpacity(0.08),
               spreadRadius: 0,
-              blurRadius: 15,
-              offset: const Offset(0, 5),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
           border: Border.all(
@@ -605,8 +657,8 @@ class _ModernServiceCategoryState extends State<ModernServiceCategoryCards> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 50,
-              height: 50,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -614,9 +666,9 @@ class _ModernServiceCategoryState extends State<ModernServiceCategoryCards> {
                     const Color(0xFF2196F3).withOpacity(0.05),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
               ),
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               child: Image.asset(
                 'assets/images/${category['asset']}.png',
                 fit: BoxFit.contain,
@@ -714,7 +766,7 @@ class ModernRecentListings extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             itemCount: listings.length,
             itemBuilder: (context, index) {
               return InkWell(
@@ -747,13 +799,13 @@ class ModernRecentListings extends StatelessWidget {
             Colors.grey[50]!,
           ],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF2196F3).withOpacity(0.08),
             spreadRadius: 0,
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
           ),
         ],
         border: Border.all(
@@ -780,8 +832,8 @@ class ModernRecentListings extends StatelessWidget {
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    width: 70,
-                    height: 70,
+                    width: 65,
+                    height: 65,
                     padding: const EdgeInsets.all(16),
                     child: Image.asset(
                       'assets/images/${categoryMap[listing['category']]}.png',
@@ -821,7 +873,7 @@ class ModernRecentListings extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -830,8 +882,8 @@ class ModernRecentListings extends StatelessWidget {
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Container(
-                        width: 20,
-                        height: 20,
+                        width: 16,
+                        height: 16,
                         child: const CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
@@ -849,7 +901,7 @@ class ModernRecentListings extends StatelessWidget {
                               const Color(0xFF2196F3).withOpacity(0.05),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: const Color(0xFF2196F3).withOpacity(0.2),
                             width: 1,
@@ -859,8 +911,8 @@ class ModernRecentListings extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 20,
-                              height: 20,
+                              width: 18,
+                              height: 18,
                               decoration: BoxDecoration(
                                 color: const Color(0xFF2196F3),
                                 shape: BoxShape.circle,
@@ -897,7 +949,7 @@ class ModernRecentListings extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(18),
                       ),
                       child: Text(
                         'Unknown',
@@ -911,7 +963,7 @@ class ModernRecentListings extends StatelessWidget {
                 ),
                 if (listing['cost'] != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -919,7 +971,7 @@ class ModernRecentListings extends StatelessWidget {
                           Colors.green.withOpacity(0.05),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(
                         color: Colors.green.withOpacity(0.3),
                         width: 1,
@@ -1006,7 +1058,7 @@ class ModernPopularServices extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             itemCount: snapshot.data!.length,
             itemBuilder: (context, index) {
               final user = snapshot.data![index];
@@ -1022,13 +1074,13 @@ class ModernPopularServices extends StatelessWidget {
                       Colors.grey[50]!,
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF2196F3).withOpacity(0.08),
                       spreadRadius: 0,
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+                      blurRadius: 15,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                   border: Border.all(
@@ -1053,8 +1105,8 @@ class ModernPopularServices extends StatelessWidget {
                               ),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            width: 60,
-                            height: 60,
+                            width: 55,
+                            height: 55,
                             child: Center(
                               child: Text(
                                 user['username'] != null && user['username'].toString().isNotEmpty
@@ -1062,7 +1114,7 @@ class ModernPopularServices extends StatelessWidget {
                                     : '?',
                                 style: GoogleFonts.poppins(
                                   color: const Color(0xFF2196F3),
-                                  fontSize: 24,
+                                  fontSize: 22,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -1105,7 +1157,7 @@ class ModernPopularServices extends StatelessWidget {
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: Colors.grey[200]!,
                               width: 1,
@@ -1139,9 +1191,9 @@ class ModernPopularServices extends StatelessWidget {
                             backgroundColor: const Color(0xFF2196F3),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             elevation: 0,
                             shadowColor: Colors.transparent,
                           ),
