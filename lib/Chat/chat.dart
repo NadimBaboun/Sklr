@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/Chat/chatSessionUtil.dart';
 import 'package:sklr/Profile/user.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../database/database.dart';
 import '../database/userIdStorage.dart';
 import 'chatsHome.dart';
@@ -30,19 +31,19 @@ class _ChatPageState extends State<ChatPage> {
   bool isLoading = false;
   Map<String, dynamic>? session;
 
-  @override
-  void initState() {
-    super.initState();
-    messages = _initializeMessages();
-    _markMessagesAsRead();
-    // First verify that session exists, and if not, create one
-    _verifySessionExists().then((_) {
-      // Fetch session data
-      _fetchSessionData();
-    });
-    // Set up periodic refresh every 10 seconds
-    _startPeriodicRefresh();
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   messages = _initializeMessages();
+  //   _markMessagesAsRead();
+  //   // First verify that session exists, and if not, create one
+  //   _verifySessionExists().then((_) {
+  //     // Fetch session data
+  //     _fetchSessionData();
+  //   });
+  //   // Set up periodic refresh every 10 seconds
+  //   _startPeriodicRefresh();
+  // }
 
   Future<List<Map<String, dynamic>>> _initializeMessages() async {
     try {
@@ -61,54 +62,114 @@ class _ChatPageState extends State<ChatPage> {
       return [];
     }
   }
-
-  void _startPeriodicRefresh() {
-    Future.delayed(const Duration(seconds: 10), () {
-      if (mounted) {
-        _loadMessages();
-        _startPeriodicRefresh();
-      }
-    });
+  Future<void> _loadMessagesQuietly() async {
+  if (!mounted) return;
+  
+  try {
+    final messagesList = await _initializeMessages();
+    await _markMessagesAsRead();
+    
+    if (mounted) {
+      setState(() {
+        messages = Future.value(messagesList);
+        // Note: No isLoading state change here
+      });
+    }
+    
+    // Optional: Only scroll if user is near bottom to avoid interrupting reading
+    await Future.delayed(const Duration(milliseconds: 50));
+    if (_scrollController.hasClients && _scrollController.offset < 100) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    }
+  } catch (e) {
+    // Silent error handling - don't show snackbar for background refreshes
+    log('Background refresh error: $e');
   }
+}
+
+
+//  void _startPeriodicRefresh() {
+//   Future.delayed(const Duration(seconds: 10), () {
+//     if (mounted) {
+//       _loadMessagesQuietly(); // Use quiet refresh instead
+//       _startPeriodicRefresh();
+//     }
+//   });
+// }
+
+@override
+void initState() {
+  super.initState();
+  _loadMessages();
+  _setupRealTimeListener(); // Add this instead of periodic refresh
+}
+
+void _setupRealTimeListener() {
+  supabase
+      .channel('messages')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'messages',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'chat_id',
+          value: widget.chatId,
+        ),
+        callback: (payload) {
+          _loadMessagesQuietly(); // Silent refresh when new message arrives
+        },
+      )
+      .subscribe();
+}
+
+
 
   @override
   void dispose() {
+      supabase.removeAllChannels();
+   
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
   Future<void> _loadMessages() async {
-    if (!mounted) return;
+  if (!mounted) return;
+  
+  setState(() => isLoading = true);
+  try {
+    final messagesList = await _initializeMessages();
+    await _markMessagesAsRead();
     
-    setState(() => isLoading = true);
-    try {
-      final messagesList = await _initializeMessages();
-      await _markMessagesAsRead();
-      
-      if (mounted) {
-        setState(() {
-          messages = Future.value(messagesList);
-          isLoading = false;
-        });
-      }
-      
-      // Scroll to bottom after messages load
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => isLoading = false);
-        _showSnackBar('Error loading messages: $e');
-      }
+    if (mounted) {
+      setState(() {
+        messages = Future.value(messagesList);
+        isLoading = false;
+      });
+    }
+    
+    // Always scroll to bottom for manual refresh
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      setState(() => isLoading = false);
+      _showSnackBar('Error loading messages: $e');
     }
   }
+}
+
 
   Future<void> _handleSendMessage() async {
     final messageText = _messageController.text.trim();
