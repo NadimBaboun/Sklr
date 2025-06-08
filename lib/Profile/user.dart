@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/Skills/skillInfo.dart';
+import 'package:sklr/Chat/chat.dart';
 import '../database/database.dart';
+import '../database/userIdStorage.dart';
 import '../database/supabase_service.dart';
 import '../Util/navigationbar-bar.dart';
 import 'dart:math';
@@ -114,144 +116,92 @@ class _UserPageState extends State<UserPage>
     }
   }
 
-  void _showMessageDialog() {
+  Future<void> _openChatWithUser() async {
+  try {
     showDialog(
       context: context,
-      barrierDismissible: true,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
+      barrierDismissible: false,
+      builder: (context) => Center(
         child: Container(
-          padding: const EdgeInsets.all(28),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2196F3).withOpacity(0.15),
-                blurRadius: 30,
-                offset: const Offset(0, 15),
-                spreadRadius: 0,
+                color: const Color(0xFF2196F3).withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF2196F3),
-                      Color(0xFF1976D2),
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.message_rounded,
-                  color: Colors.white,
-                  size: 32,
-                ),
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+                strokeWidth: 3,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Text(
-                'Message ${userData?['username'] ?? 'User'}',
+                'Opening chat...',
                 style: GoogleFonts.poppins(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
                   color: const Color(0xFF1A1D29),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF2196F3).withOpacity(0.2),
-                  ),
-                ),
-                child: TextField(
-                  maxLines: 4,
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    color: const Color(0xFF1A1D29),
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Type your message...',
-                    hintStyle: GoogleFonts.poppins(
-                      color: Colors.grey[400],
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(
-                        'Cancel',
-                        style: GoogleFonts.poppins(
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Message sent to ${userData?['username'] ?? 'User'}',
-                              style: GoogleFonts.poppins(),
-                            ),
-                            backgroundColor: const Color(0xFF2196F3),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2196F3),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Send Message',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+
+    final currentUserId = await UserIdStorage.getLoggedInUserId();
+    if (currentUserId == null) {
+      Navigator.pop(context);
+      _showErrorSnackBar('Please log in to send messages');
+      return;
+    }
+
+    // Use -1 or 0 instead of null to indicate no specific skill
+    final chatId = await DatabaseHelper.getOrCreateChat(
+      currentUserId,
+      widget.userId,
+      -1, // Use -1 to indicate general chat (not skill-specific)
+    );
+
+    Navigator.pop(context);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatPage(
+          chatId: chatId,
+          loggedInUserId: currentUserId,
+          otherUsername: userData?['username'] ?? 'User',
+        ),
+      ),
+    );
+
+  } catch (e) {
+    Navigator.pop(context);
+    _showErrorSnackBar('Failed to open chat: ${e.toString()}');
+  }
+}
+
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.poppins(),
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );
@@ -432,19 +382,33 @@ class _UserPageState extends State<UserPage>
                 margin: const EdgeInsets.only(right: 16),
                 child: IconButton(
                   icon: Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF2196F3),
+                          Color(0xFF1976D2),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2196F3).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: const Icon(
-                      Icons.message_rounded,
+                      Icons.chat_bubble_rounded,
                       color: Colors.white,
                       size: 20,
                     ),
                   ),
-                  onPressed: _showMessageDialog,
-                  tooltip: 'Send Message',
+                  onPressed: _openChatWithUser,
+                  tooltip: 'Start Chat',
                 ),
               ),
             ],
@@ -459,6 +423,37 @@ class _UserPageState extends State<UserPage>
             ),
           ),
         ],
+      ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF2196F3),
+              Color(0xFF1976D2),
+              Color(0xFF0D47A1),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2196F3).withOpacity(0.4),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: _openChatWithUser,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(
+            Icons.message_rounded,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
       ),
       bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 0),
     );
@@ -1086,7 +1081,6 @@ class ModernCirclesPainter extends CustomPainter {
       ..color = Colors.white.withOpacity(0.1)
       ..style = PaintingStyle.fill;
 
-    // Create modern geometric shapes
     canvas.drawCircle(
       Offset(size.width * 0.15, size.height * 0.25),
       60,
@@ -1105,7 +1099,6 @@ class ModernCirclesPainter extends CustomPainter {
       paint,
     );
 
-    // Add some smaller accent circles
     paint.color = Colors.white.withOpacity(0.05);
     canvas.drawCircle(
       Offset(size.width * 0.3, size.height * 0.1),
