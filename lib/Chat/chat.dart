@@ -8,6 +8,8 @@ import '../database/userIdStorage.dart';
 import 'chatsHome.dart';
 import 'dart:developer';
 
+final supabase = Supabase.instance.client;
+
 class ChatPage extends StatefulWidget {
   final int chatId;
   final int loggedInUserId; 
@@ -24,31 +26,85 @@ class ChatPage extends StatefulWidget {
   _ChatPageState createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   late Future<List<Map<String, dynamic>>> messages;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool isLoading = false;
   Map<String, dynamic>? session;
+  
+  late AnimationController _animationController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   messages = _initializeMessages();
-  //   _markMessagesAsRead();
-  //   // First verify that session exists, and if not, create one
-  //   _verifySessionExists().then((_) {
-  //     // Fetch session data
-  //     _fetchSessionData();
-  //   });
-  //   // Set up periodic refresh every 10 seconds
-  //   _startPeriodicRefresh();
-  // }
+  @override
+  void initState() {
+    super.initState();
+    _setupAnimations();
+    _loadMessages();
+    _setupRealTimeListener();
+  }
+
+  void _setupAnimations() {
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    
+    _slideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    _animationController.forward();
+    _slideController.forward();
+  }
+
+  void _setupRealTimeListener() {
+    supabase
+        .channel('messages')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'chat_id',
+            value: widget.chatId,
+          ),
+          callback: (payload) {
+            _loadMessagesQuietly();
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    supabase.removeAllChannels();
+    _animationController.dispose();
+    _slideController.dispose();
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   Future<List<Map<String, dynamic>>> _initializeMessages() async {
     try {
       log('Initializing messages for chat ${widget.chatId}');
-      // Directly query messages from Supabase to ensure fresh data
       final messagesResponse = await supabase
           .from('messages')
           .select()
@@ -62,114 +118,63 @@ class _ChatPageState extends State<ChatPage> {
       return [];
     }
   }
+
   Future<void> _loadMessagesQuietly() async {
-  if (!mounted) return;
-  
-  try {
-    final messagesList = await _initializeMessages();
-    await _markMessagesAsRead();
+    if (!mounted) return;
     
-    if (mounted) {
-      setState(() {
-        messages = Future.value(messagesList);
-        // Note: No isLoading state change here
-      });
+    try {
+      final messagesList = await _initializeMessages();
+      await _markMessagesAsRead();
+      
+      if (mounted) {
+        setState(() {
+          messages = Future.value(messagesList);
+        });
+      }
+      
+      await Future.delayed(const Duration(milliseconds: 50));
+      if (_scrollController.hasClients && _scrollController.offset < 100) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    } catch (e) {
+      log('Background refresh error: $e');
     }
-    
-    // Optional: Only scroll if user is near bottom to avoid interrupting reading
-    await Future.delayed(const Duration(milliseconds: 50));
-    if (_scrollController.hasClients && _scrollController.offset < 100) {
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
-    }
-  } catch (e) {
-    // Silent error handling - don't show snackbar for background refreshes
-    log('Background refresh error: $e');
-  }
-}
-
-
-//  void _startPeriodicRefresh() {
-//   Future.delayed(const Duration(seconds: 10), () {
-//     if (mounted) {
-//       _loadMessagesQuietly(); // Use quiet refresh instead
-//       _startPeriodicRefresh();
-//     }
-//   });
-// }
-
-@override
-void initState() {
-  super.initState();
-  _loadMessages();
-  _setupRealTimeListener(); // Add this instead of periodic refresh
-}
-
-void _setupRealTimeListener() {
-  supabase
-      .channel('messages')
-      .onPostgresChanges(
-        event: PostgresChangeEvent.insert,
-        schema: 'public',
-        table: 'messages',
-        filter: PostgresChangeFilter(
-          type: PostgresChangeFilterType.eq,
-          column: 'chat_id',
-          value: widget.chatId,
-        ),
-        callback: (payload) {
-          _loadMessagesQuietly(); // Silent refresh when new message arrives
-        },
-      )
-      .subscribe();
-}
-
-
-
-  @override
-  void dispose() {
-      supabase.removeAllChannels();
-   
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadMessages() async {
-  if (!mounted) return;
-  
-  setState(() => isLoading = true);
-  try {
-    final messagesList = await _initializeMessages();
-    await _markMessagesAsRead();
+    if (!mounted) return;
     
-    if (mounted) {
-      setState(() {
-        messages = Future.value(messagesList);
-        isLoading = false;
-      });
-    }
-    
-    // Always scroll to bottom for manual refresh
-    await Future.delayed(const Duration(milliseconds: 100));
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
-  } catch (e) {
-    if (mounted) {
-      setState(() => isLoading = false);
-      _showSnackBar('Error loading messages: $e');
+    setState(() => isLoading = true);
+    try {
+      final messagesList = await _initializeMessages();
+      await _markMessagesAsRead();
+      
+      if (mounted) {
+        setState(() {
+          messages = Future.value(messagesList);
+          isLoading = false;
+        });
+      }
+      
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => isLoading = false);
+        _showSnackBar('Error loading messages: $e');
+      }
     }
   }
-}
-
 
   Future<void> _handleSendMessage() async {
     final messageText = _messageController.text.trim();
@@ -179,7 +184,6 @@ void _setupRealTimeListener() {
     _messageController.clear();
     
     try {
-      // Get the chat info with session_id - Use try/catch to handle possible errors
       Map<String, dynamic>? chatData;
       try {
         chatData = await supabase
@@ -189,7 +193,6 @@ void _setupRealTimeListener() {
             .single();
       } catch (e) {
         log('Error getting chat data: $e');
-        // Try again with maybeSingle instead
         chatData = await supabase
             .from('chats')
             .select('session_id, user1_id, user2_id')
@@ -200,7 +203,6 @@ void _setupRealTimeListener() {
       if (chatData == null || !chatData.containsKey('session_id') || chatData['session_id'] == null) {
         log('No session found for chat ${widget.chatId}, attempting to create one');
         
-        // Get the users from the chat
         int user1Id = 0;
         int user2Id = 0;
         
@@ -209,7 +211,6 @@ void _setupRealTimeListener() {
             user1Id = int.parse(chatData['user1_id'].toString());
             user2Id = int.parse(chatData['user2_id'].toString());
           } else {
-            // Fallback: Try to get chat users directly
             final chatUsers = await supabase
                 .from('chats')
                 .select('user1_id, user2_id')
@@ -223,11 +224,9 @@ void _setupRealTimeListener() {
           }
           
           if (user1Id > 0 && user2Id > 0) {
-            // Determine provider and requester based on logged in user
             int providerId = widget.loggedInUserId;
             int requesterId = widget.loggedInUserId == user1Id ? user2Id : user1Id;
             
-            // First try to find any existing skill associated with these users
             final existingSkills = await supabase
                 .from('skills')
                 .select('id')
@@ -235,12 +234,11 @@ void _setupRealTimeListener() {
                 .limit(1)
                 .maybeSingle();
                 
-            int skillId = 1; // Default fallback
+            int skillId = 1;
             if (existingSkills != null && existingSkills.containsKey('id')) {
               skillId = existingSkills['id'];
             }
             
-            // Create a dummy session with minimal data
             final dummySession = {
               'requester_id': requesterId,
               'provider_id': providerId,
@@ -249,7 +247,6 @@ void _setupRealTimeListener() {
               'created_at': DateTime.now().toIso8601String(),
             };
             
-            // Insert the session
             Map<String, dynamic>? sessionResult;
             try {
               final result = await supabase
@@ -268,13 +265,11 @@ void _setupRealTimeListener() {
               final sessionId = sessionResult['id'];
               log('Created fallback session ID: $sessionId');
               
-              // Now update the chat with this session
               await supabase
                   .from('chats')
                   .update({'session_id': sessionId})
                   .eq('id', widget.chatId);
                   
-              // Now we can send the message with the new session
               final newMessage = {
                 'chat_id': widget.chatId,
                 'sender_id': widget.loggedInUserId.toString(),
@@ -301,7 +296,6 @@ void _setupRealTimeListener() {
         return;
       }
       
-      // Then get the session using that ID - Use try/catch to handle possible errors
       Map<String, dynamic>? sessionData;
       try {
         sessionData = await supabase
@@ -311,7 +305,6 @@ void _setupRealTimeListener() {
             .single();
       } catch (e) {
         log('Error getting session data: $e');
-        // Try again with maybeSingle
         sessionData = await supabase
             .from('sessions')
             .select()
@@ -326,12 +319,10 @@ void _setupRealTimeListener() {
         return;
       }
       
-      // Determine the recipient (the other user, not the sender)
       final recipientId = sessionData['requester_id'].toString() == widget.loggedInUserId.toString()
           ? sessionData['provider_id']
           : sessionData['requester_id'];
       
-      // Important: Don't include an ID field to avoid duplicate key errors
       final newMessage = {
         'chat_id': widget.chatId,
         'sender_id': widget.loggedInUserId.toString(),
@@ -340,7 +331,6 @@ void _setupRealTimeListener() {
         'read': false,
       };
       
-      // Send the message
       final result = await supabase
           .from('messages')
           .insert(newMessage)
@@ -348,7 +338,6 @@ void _setupRealTimeListener() {
           
       log('Message sent: ${result.isNotEmpty ? result[0]['id'] : 'unknown'}');
       
-      // Update the chat's last_updated timestamp
       await supabase
           .from('chats')
           .update({
@@ -358,7 +347,6 @@ void _setupRealTimeListener() {
           .eq('id', widget.chatId);
       
       try {
-        // Send notification to recipient
         Map<String, dynamic>? userData;
         try {
           userData = await supabase
@@ -379,7 +367,6 @@ void _setupRealTimeListener() {
             : 'Unknown User';
         final senderImage = userData != null ? userData['avatar_url'] : null;
         
-        // Use DatabaseHelper to create notification - both read and is_read for compatibility
         final notificationData = {
           'user_id': recipientId,
           'message': '$senderName: $messageText',
@@ -390,7 +377,6 @@ void _setupRealTimeListener() {
           'created_at': DateTime.now().toIso8601String(),
         };
         
-        // Insert the notification directly for maximum compatibility
         try {
           await supabase
               .from('notifications')
@@ -400,7 +386,6 @@ void _setupRealTimeListener() {
         } catch (notificationInsertError) {
           log('Error inserting notification directly: $notificationInsertError');
           
-          // Fall back to DatabaseHelper if direct insert fails
           final notificationSuccess = await DatabaseHelper.createNotification(
             recipientId: int.parse(recipientId.toString()),
             message: '$senderName: $messageText',
@@ -414,7 +399,6 @@ void _setupRealTimeListener() {
           }
         }
       } catch (notificationError) {
-        // Don't fail the whole message sending just because notification failed
         log('Warning: Error sending notification: $notificationError');
       }
       
@@ -431,7 +415,6 @@ void _setupRealTimeListener() {
 
   Future<void> _markMessagesAsRead() async {
     try {
-      // Mark all messages not sent by current user as read
       await supabase
           .from('messages')
           .update({'read': true})
@@ -442,7 +425,6 @@ void _setupRealTimeListener() {
     } catch (e) {
       log('Error marking messages as read: $e');
       
-      // Try again with a simpler query if the first one fails
       try {
         await supabase
             .from('messages')
@@ -457,7 +439,6 @@ void _setupRealTimeListener() {
 
   @override
   Widget build(BuildContext context) {
-    // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: () async {
         Navigator.pushAndRemoveUntil(
@@ -470,152 +451,214 @@ void _setupRealTimeListener() {
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
-          backgroundColor: const Color(0xFFF5F7FA),
-          appBar: _buildAppBar(),
-          body: Column(
-            children: [
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _loadMessages,
-                  color: const Color(0xFF6296FF),
-                  child: _buildMessageList(),
-                ),
+          backgroundColor: Colors.grey[50],
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.grey[50]!,
+                  Colors.white,
+                ],
               ),
-              _buildSessionStatus(),
-              _buildMessageInput(),
-            ],
+            ),
+            child: Column(
+              children: [
+                _buildModernAppBar(),
+                Expanded(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: RefreshIndicator(
+                        onRefresh: _loadMessages,
+                        color: const Color(0xFF2196F3),
+                        child: _buildMessageList(),
+                      ),
+                    ),
+                  ),
+                ),
+                _buildSessionStatus(),
+                _buildModernMessageInput(),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  PreferredSize _buildAppBar() {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(85),
-      child: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFF6296FF),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () {
-            // Navigate to ChatsHomePage when back button is pressed
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const ChatsHomePage()),
-              (route) => false,
-            );
-          },
+  Widget _buildModernAppBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF2196F3),
+            Color(0xFF1976D2),
+            Color(0xFF0D47A1),
+          ],
         ),
-        title: FutureBuilder<Map<String, dynamic>>(
-          future: _loadSessionAndSkill(),
-          builder: (context, snapshot) {
-            // Get username from snapshot or fall back to widget.otherUsername
-            final username = (snapshot.hasData && snapshot.data!.containsKey('otherUsername') && 
-                              snapshot.data!['otherUsername'] != null && 
-                              snapshot.data!['otherUsername'] != 'Unknown User') 
-                ? snapshot.data!['otherUsername'] 
-                : widget.otherUsername;
-                
-            return GestureDetector(
-              onTap: () {
-                // Only navigate if we have session data
-                if (snapshot.hasData && snapshot.data != null && 
-                    snapshot.data!.containsKey('session') && 
-                    snapshot.data!['session'] != null) {
-                  final sessionData = snapshot.data!['session'];
-                  int otherUserId;
-                  
-                  // Only proceed if we have valid provider_id and requester_id
-                  if (sessionData.containsKey('provider_id') && 
-                      sessionData.containsKey('requester_id') &&
-                      sessionData['provider_id'] != 0 && 
-                      sessionData['requester_id'] != 0) {
-                    
-                    // Determine which user ID to use based on who is logged in
-                    if (sessionData['provider_id'].toString() == widget.loggedInUserId.toString()) {
-                      // If logged-in user is the provider, navigate to requester's profile
-                      otherUserId = sessionData['requester_id'];
-                    } else {
-                      // If logged-in user is the requester, navigate to provider's profile
-                      otherUserId = sessionData['provider_id'];
-                    }
-                    
-                    Navigator.push(
+      ),
+      child: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => UserPage(userId: otherUserId),
+                      MaterialPageRoute(builder: (context) => const ChatsHomePage()),
+                      (route) => false,
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: FutureBuilder<Map<String, dynamic>>(
+                  future: _loadSessionAndSkill(),
+                  builder: (context, snapshot) {
+                    final username = (snapshot.hasData && 
+                                    snapshot.data!.containsKey('otherUsername') && 
+                                    snapshot.data!['otherUsername'] != null && 
+                                    snapshot.data!['otherUsername'] != 'Unknown User') 
+                        ? snapshot.data!['otherUsername'] 
+                        : widget.otherUsername;
+                        
+                    return GestureDetector(
+                      onTap: () {
+                        if (snapshot.hasData && snapshot.data != null && 
+                            snapshot.data!.containsKey('session') && 
+                            snapshot.data!['session'] != null) {
+                          final sessionData = snapshot.data!['session'];
+                          int otherUserId;
+                          
+                          if (sessionData.containsKey('provider_id') && 
+                              sessionData.containsKey('requester_id') &&
+                              sessionData['provider_id'] != 0 && 
+                              sessionData['requester_id'] != 0) {
+                            
+                            if (sessionData['provider_id'].toString() == widget.loggedInUserId.toString()) {
+                              otherUserId = sessionData['requester_id'];
+                            } else {
+                              otherUserId = sessionData['provider_id'];
+                            }
+                            
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserPage(userId: otherUserId),
+                              ),
+                            );
+                          } else {
+                            _showSnackBar('Cannot access user profile: session data incomplete');
+                          }
+                        } else {
+                          _showSnackBar('Cannot access user profile: session data not available');
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFF2196F3),
+                                  Color(0xFF1976D2),
+                                ],
+                              ),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                username.isNotEmpty ? username[0].toUpperCase() : 'U',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  username,
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (snapshot.connectionState == ConnectionState.waiting)
+                                  Text(
+                                    'Loading...',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  )
+                                else if (snapshot.hasError)
+                                  Text(
+                                    'Error loading skill info',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.red[100],
+                                      fontSize: 12,
+                                    ),
+                                  )
+                                else
+                                  Text(
+                                    snapshot.data?['skillName'] ?? 'Unknown Skill',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
-                  } else {
-                    // Show loading message if session data isn't available yet
-                    _showSnackBar('Cannot access user profile: session data incomplete');
-                  }
-                } else {
-                  // Show loading message if session data isn't available yet
-                  _showSnackBar('Cannot access user profile: session data not available');
-                }
-              },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          username,
-                          style: GoogleFonts.mulish(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      const Icon(
-                        Icons.person_outline,
-                        color: Colors.white70,
-                        size: 16,
-                      ),
-                    ],
-                  ),
-                  if (snapshot.connectionState == ConnectionState.waiting)
-                    Text(
-                      'Loading...',
-                      style: GoogleFonts.mulish(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
-                    )
-                  else if (snapshot.hasError)
-                    Text(
-                      'Error loading skill info',
-                      style: GoogleFonts.mulish(
-                        color: Colors.red[100],
-                        fontSize: 14,
-                      ),
-                    )
-                  else
-                    Text(
-                      snapshot.data?['skillName'] ?? 'Unknown Skill',
-                      style: GoogleFonts.mulish(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
-                    ),
-                ],
+                  },
+                ),
               ),
-            );
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: _loadMessages,
-            tooltip: 'Refresh messages',
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                  onPressed: _loadMessages,
+                  tooltip: 'Refresh messages',
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -624,7 +667,8 @@ void _setupRealTimeListener() {
     return isLoading
         ? const Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation(Color(0xFF6296FF)),
+              valueColor: AlwaysStoppedAnimation(Color(0xFF2196F3)),
+              strokeWidth: 3,
             ),
           )
         : FutureBuilder<List<Map<String, dynamic>>>(
@@ -633,19 +677,54 @@ void _setupRealTimeListener() {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation(Color(0xFF6296FF)),
+                    valueColor: AlwaysStoppedAnimation(Color(0xFF2196F3)),
+                    strokeWidth: 3,
                   ),
                 );
               }
 
               if (snapshot.hasError) {
                 return Center(
-                  child: Text(
-                    'Error loading messages\nPull to refresh',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.mulish(
-                      color: Colors.red,
-                      fontSize: 16,
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    margin: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2196F3).withOpacity(0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.error_outline_rounded,
+                          size: 48,
+                          color: Colors.red[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error loading messages',
+                          style: GoogleFonts.poppins(
+                            color: Colors.red[700],
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Pull to refresh',
+                          style: GoogleFonts.poppins(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -654,12 +733,60 @@ void _setupRealTimeListener() {
               final messagesList = snapshot.data ?? [];
               if (messagesList.isEmpty) {
                 return Center(
-                  child: Text(
-                    'No messages yet\nStart the conversation!',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.mulish(
-                      color: Colors.grey,
-                      fontSize: 16,
+                  child: Container(
+                    padding: const EdgeInsets.all(32),
+                    margin: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2196F3).withOpacity(0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                const Color(0xFF2196F3).withOpacity(0.1),
+                                const Color(0xFF1976D2).withOpacity(0.05),
+                              ],
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 48,
+                            color: Color(0xFF2196F3),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'No messages yet',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF1A1D29),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Start the conversation!',
+                          style: GoogleFonts.poppins(
+                            color: Colors.grey[600],
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -683,7 +810,7 @@ void _setupRealTimeListener() {
                       bottom: isPrevSameSender ? 4 : 12,
                       top: isNextSameSender ? 4 : 12,
                     ),
-                    child: _buildMessageBubble(message, isSentByUser),
+                    child: _buildModernMessageBubble(message, isSentByUser),
                   );
                 },
               );
@@ -691,7 +818,7 @@ void _setupRealTimeListener() {
           );
   }
 
-  Widget _buildMessageBubble(Map<String, dynamic> message, bool isSentByUser) {
+  Widget _buildModernMessageBubble(Map<String, dynamic> message, bool isSentByUser) {
     if (message['sender_id'] == -1) {
       return _buildSystemMessage(message);
     }
@@ -706,31 +833,41 @@ void _setupRealTimeListener() {
           left: isSentByUser ? 50 : 0,
           right: isSentByUser ? 0 : 50,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: isSentByUser
-              ? const Color(0xFF6296FF)
-              : Colors.white,
+          gradient: isSentByUser
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF2196F3),
+                    Color(0xFF1976D2),
+                  ],
+                )
+              : null,
+          color: isSentByUser ? null : Colors.white,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(20),
-            topRight: const Radius.circular(20),
-            bottomLeft: Radius.circular(isSentByUser ? 20 : 5),
-            bottomRight: Radius.circular(isSentByUser ? 5 : 20),
+            topLeft: const Radius.circular(24),
+            topRight: const Radius.circular(24),
+            bottomLeft: Radius.circular(isSentByUser ? 24 : 8),
+            bottomRight: Radius.circular(isSentByUser ? 8 : 24),
           ),
           boxShadow: [
             BoxShadow(
-              // ignore: deprecated_member_use
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: isSentByUser 
+                ? const Color(0xFF2196F3).withOpacity(0.3)
+                : Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             )
           ],
         ),
         child: Text(
           message['message'],
-          style: GoogleFonts.mulish(
-            color: isSentByUser ? Colors.white : Colors.black87,
+          style: GoogleFonts.poppins(
+            color: isSentByUser ? Colors.white : const Color(0xFF1A1D29),
             fontSize: 15,
+            height: 1.4,
           ),
         ),
       ),
@@ -742,19 +879,30 @@ void _setupRealTimeListener() {
       margin: const EdgeInsets.symmetric(vertical: 12),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
-            // ignore: deprecated_member_use
-            color: Colors.black.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF2196F3).withOpacity(0.1),
+                const Color(0xFF1976D2).withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFF2196F3).withOpacity(0.2),
+              width: 1,
+            ),
           ),
           child: Text(
             message['message'],
-            style: GoogleFonts.mulish(
-              color: Colors.black54,
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF2196F3),
               fontSize: 13,
-              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
           ),
         ),
       ),
@@ -766,10 +914,14 @@ void _setupRealTimeListener() {
       future: _loadSession(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation(Color(0xFF6296FF)),
+          return Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.white,
+            child: const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation(Color(0xFF2196F3)),
+                strokeWidth: 3,
+              ),
             ),
           );
         }
@@ -777,12 +929,12 @@ void _setupRealTimeListener() {
         if (snapshot.hasError) {
           log('Error in _buildSessionStatus: ${snapshot.error}');
           return Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             color: Colors.white,
             child: Text(
               "Error loading session data",
               textAlign: TextAlign.center,
-              style: GoogleFonts.mulish(
+              style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.red[400],
@@ -792,21 +944,28 @@ void _setupRealTimeListener() {
         }
         
         if (snapshot.hasData && snapshot.data != null) {
-          // Get status with a default value if it's missing
           final status = snapshot.data!.containsKey('status') ? 
               snapshot.data!['status'] : 'Idle';
           
           return _buildStateButton(status, snapshot.data!);
         }
         
-        // Default fallback if no data
         return Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2196F3).withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
           child: Text(
             "Basic chat mode",
             textAlign: TextAlign.center,
-            style: GoogleFonts.mulish(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.grey[700],
@@ -819,14 +978,22 @@ void _setupRealTimeListener() {
 
   Widget _buildStateButton(String status, Map<String, dynamic> session) {
     if (!session.containsKey('provider_id') || !session.containsKey('requester_id')) {
-      // If we don't have proper session data, show a generic message
       return Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        color: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2196F3).withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
         child: Text(
           "Basic chat mode - session data incomplete",
           textAlign: TextAlign.center,
-          style: GoogleFonts.mulish(
+          style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: Colors.grey[700],
@@ -835,36 +1002,41 @@ void _setupRealTimeListener() {
       );
     }
     
-    // First determine user roles
     final bool isProvider = session['provider_id'].toString() == widget.loggedInUserId.toString();
     final bool isRequester = session['requester_id'].toString() == widget.loggedInUserId.toString();
     
-    // If user is not part of this session, don't show any buttons
     if (!isProvider && !isRequester) {
       return const SizedBox.shrink();
     }
     
-    // If user is the provider, show provider options
     if (isProvider) {
       switch (status) {
         case 'Requested':
-          // Provider sees request acceptance button
           return Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            color: Colors.white,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2196F3).withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   "Service Request Pending Your Approval",
-                  style: GoogleFonts.mulish(
+                  style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.orange[700],
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
@@ -873,12 +1045,11 @@ void _setupRealTimeListener() {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green[600],
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          elevation: 2,
-                          shadowColor: Colors.black26,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(16),
                           ),
+                          elevation: 0,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -887,7 +1058,7 @@ void _setupRealTimeListener() {
                             const SizedBox(width: 8),
                             Text(
                               'Accept',
-                              style: GoogleFonts.mulish(
+                              style: GoogleFonts.poppins(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -903,12 +1074,11 @@ void _setupRealTimeListener() {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red[600],
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          elevation: 2,
-                          shadowColor: Colors.black26,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(16),
                           ),
+                          elevation: 0,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -917,7 +1087,7 @@ void _setupRealTimeListener() {
                             const SizedBox(width: 8),
                             Text(
                               'Decline',
-                              style: GoogleFonts.mulish(
+                              style: GoogleFonts.poppins(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -932,10 +1102,18 @@ void _setupRealTimeListener() {
             ),
           );
         case 'Pending':
-          // Provider sees complete and cancel buttons
           return Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-            color: Colors.white,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2196F3).withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -944,12 +1122,11 @@ void _setupRealTimeListener() {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green[600],
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      elevation: 2,
-                      shadowColor: Colors.black26,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      elevation: 0,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -958,7 +1135,7 @@ void _setupRealTimeListener() {
                         const SizedBox(width: 8),
                         Text(
                           'Complete',
-                          style: GoogleFonts.mulish(
+                          style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
@@ -974,12 +1151,11 @@ void _setupRealTimeListener() {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red[600],
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      elevation: 2,
-                      shadowColor: Colors.black26,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      elevation: 0,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -988,7 +1164,7 @@ void _setupRealTimeListener() {
                         const SizedBox(width: 8),
                         Text(
                           'Cancel',
-                          style: GoogleFonts.mulish(
+                          style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1000,45 +1176,57 @@ void _setupRealTimeListener() {
               ],
             ),
           );
-        case 'Completed':
-        case 'Cancelled':
-        case 'Declined':
         default:
           return Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2196F3).withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
             child: Text(
               "You are providing this service",
               textAlign: TextAlign.center,
-              style: GoogleFonts.mulish(
+              style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF6296FF),
+                color: const Color(0xFF2196F3),
               ),
             ),
           );
       }
     }
 
-    // Handle different session statuses for the requester
     switch (status) {
       case 'Idle':
-        // Show Request Service button for requester in Idle state
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          color: Colors.white,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2196F3).withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
           child: ElevatedButton(
             onPressed: () => _handleServiceRequest(session),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6296FF),
+              backgroundColor: const Color(0xFF2196F3),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              elevation: 2,
-              shadowColor: Colors.black26,
+              padding: const EdgeInsets.symmetric(vertical: 18),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(16),
               ),
+              elevation: 0,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1048,7 +1236,7 @@ void _setupRealTimeListener() {
                 const SizedBox(width: 10),
                 Text(
                   'Request Service',
-                  style: GoogleFonts.mulish(
+                  style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1059,14 +1247,22 @@ void _setupRealTimeListener() {
         );
 
       case 'Requested':
-        // Show waiting message for requester
         return Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2196F3).withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
           child: Text(
             "Service request sent. Waiting for provider to accept.",
             textAlign: TextAlign.center,
-            style: GoogleFonts.mulish(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.orange[700],
@@ -1075,10 +1271,18 @@ void _setupRealTimeListener() {
         );
 
       case 'Pending':
-        // Show requester buttons to confirm completion or cancel
         return Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          color: Colors.white,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2196F3).withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
           child: Row(
             children: [
               Expanded(
@@ -1087,12 +1291,11 @@ void _setupRealTimeListener() {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[600],
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    elevation: 2,
-                    shadowColor: Colors.black26,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(16),
                     ),
+                    elevation: 0,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1101,7 +1304,7 @@ void _setupRealTimeListener() {
                       const SizedBox(width: 8),
                       Text(
                         'Complete',
-                        style: GoogleFonts.mulish(
+                        style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1117,12 +1320,11 @@ void _setupRealTimeListener() {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red[600],
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    elevation: 2,
-                    shadowColor: Colors.black26,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(16),
                     ),
+                    elevation: 0,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1131,7 +1333,7 @@ void _setupRealTimeListener() {
                       const SizedBox(width: 8),
                       Text(
                         'Cancel',
-                        style: GoogleFonts.mulish(
+                        style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1145,14 +1347,22 @@ void _setupRealTimeListener() {
         );
 
       case 'Completed':
-        // Show completed message 
         return Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2196F3).withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
           child: Text(
             "This service has been completed",
             textAlign: TextAlign.center,
-            style: GoogleFonts.mulish(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.green[700],
@@ -1161,14 +1371,22 @@ void _setupRealTimeListener() {
         );
 
       case 'Cancelled':
-        // Show cancelled message
         return Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2196F3).withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
           child: Text(
             "This service was cancelled",
             textAlign: TextAlign.center,
-            style: GoogleFonts.mulish(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.red[700],
@@ -1177,14 +1395,22 @@ void _setupRealTimeListener() {
         );
         
       case 'Declined':
-        // Show declined message
         return Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2196F3).withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
           child: Text(
             "This service request was declined by the provider",
             textAlign: TextAlign.center,
-            style: GoogleFonts.mulish(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.red[700],
@@ -1197,43 +1423,135 @@ void _setupRealTimeListener() {
     }
   }
 
+  Widget _buildModernMessageInput() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2196F3).withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          )
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.grey[50]!,
+                      Colors.grey[100]!,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: const Color(0xFF2196F3).withOpacity(0.1),
+                    width: 1,
+                  ),
+                ),
+                child: TextField(
+                  controller: _messageController,
+                  decoration: InputDecoration(
+                    hintText: 'Type a message...',
+                    hintStyle: GoogleFonts.poppins(
+                      color: Colors.grey[400],
+                      fontSize: 15,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                  ),
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    color: const Color(0xFF1A1D29),
+                  ),
+                  maxLines: null,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _handleSendMessage(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF2196F3),
+                    Color(0xFF1976D2),
+                  ],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2196F3).withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(28),
+                  onTap: _handleSendMessage,
+                  child: const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Icon(
+                      Icons.send_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Service handling methods
   Future<void> _handleServiceRequest(Map<String, dynamic> session) async {
     try {
-      // Show request dialog and wait for confirmation
       bool? result = await RequestService(session: session)
           .showRequestDialog(context);
           
       if (result == true) {
         try {
-          // Get session ID
           final sessionId = session['id'];
           
-          // Update the status to 'Requested' in database
           await supabase
               .from('sessions')
               .update({'status': 'Requested'})
               .eq('id', sessionId);
               
-          // Add system message about the request
           await DatabaseHelper.sendMessage(
             widget.chatId,
-            -1, // System message sender ID
+            -1,
             'Service requested. Waiting for provider to accept.',
           );
           
-          // Add a notification for both requester and provider
-          // to ensure tracking in the notifications area
           final requesterName = await _getUserName(session['requester_id']);
           final skillName = await _getSkillName(session['skill_id']);
           
-          // Notify the provider
           await DatabaseHelper.createNotification(
             recipientId: int.parse(session['provider_id'].toString()),
             message: '$requesterName has requested your service: $skillName',
             senderId: int.parse(session['requester_id'].toString()),
           );
           
-          // Reload the session and messages
           setState(() {
             _loadSession();
             _loadMessages();
@@ -1248,7 +1566,6 @@ void _setupRealTimeListener() {
     }
   }
   
-  // Helper method to get a user's name
   Future<String> _getUserName(dynamic userId) async {
     try {
       final userData = await supabase
@@ -1262,7 +1579,6 @@ void _setupRealTimeListener() {
     }
   }
   
-  // Helper method to get a skill's name
   Future<String> _getSkillName(dynamic skillId) async {
     try {
       final skillData = await supabase
@@ -1295,6 +1611,7 @@ void _setupRealTimeListener() {
       _showSnackBar('Failed to complete service: $e');
     }
   }
+
   Future<void> _handleServiceCancel(Map<String, dynamic> session) async {
     try {
       bool? result = await CancelService(session: session)
@@ -1315,10 +1632,8 @@ void _setupRealTimeListener() {
     }
   }
 
-  // Handle service acceptance by the provider
   Future<void> _handleServiceAccept(Map<String, dynamic> session) async {
     try {
-      // Verify that the current user is the provider
       final loggedInUserId = await UserIdStorage.getLoggedInUserId();
       if (loggedInUserId == null) return;
       
@@ -1328,15 +1643,11 @@ void _setupRealTimeListener() {
         return;
       }
       
-      // Create instance of RequestService to use the accept dialog
       RequestService requestService = RequestService(session: session);
       
-      // Show the accept dialog and wait for result
-      // ignore: use_build_context_synchronously
       final bool? result = await requestService.showAcceptDialog(context);
       
       if (result == true) {
-        // Refresh the page to show updated status
         setState(() {
           messages = _initializeMessages();
         });
@@ -1347,10 +1658,8 @@ void _setupRealTimeListener() {
     }
   }
   
-  // Handle service declination by the provider
   Future<void> _handleServiceDecline(Map<String, dynamic> session) async {
     try {
-      // Refresh the page even if declined
       setState(() {
         messages = _initializeMessages();
       });
@@ -1360,79 +1669,10 @@ void _setupRealTimeListener() {
     }
   }
 
-  Widget _buildMessageInput() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            // ignore: deprecated_member_use
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          )
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: TextField(
-                  controller: _messageController,
-                  decoration: InputDecoration(
-                    hintText: 'Type a message...',
-                    hintStyle: GoogleFonts.mulish(color: Colors.grey[400]),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                  ),
-                  style: GoogleFonts.mulish(),
-                  maxLines: null,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _handleSendMessage(),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF6296FF),
-                shape: BoxShape.circle,
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(24),
-                  onTap: _handleSendMessage,
-                  child: const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Icon(
-                      Icons.send_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
+  // Helper methods
   Future<Map<String, dynamic>> _loadSession() async {
     try {
       log('Fetching session data for chat ${widget.chatId}');
-      // Get the chat info with session_id
       Map<String, dynamic>? chatData;
       try {
         chatData = await supabase
@@ -1441,7 +1681,6 @@ void _setupRealTimeListener() {
             .eq('id', widget.chatId)
             .single();
       } catch (e) {
-        // Try again with maybeSingle instead
         chatData = await supabase
             .from('chats')
             .select('session_id, user1_id, user2_id')
@@ -1449,13 +1688,10 @@ void _setupRealTimeListener() {
             .maybeSingle();
       }
           
-      // Check if chat data exists and has a session_id
       if (chatData == null || !chatData.containsKey('session_id') || chatData['session_id'] == null) {
         log('No session found for chat ID: ${widget.chatId}. Creating a new session.');
-        // Create a session on the fly
         await _verifySessionExists();
         
-        // Try to get the chat data again
         chatData = await supabase
             .from('chats')
             .select('session_id, user1_id, user2_id')
@@ -1468,7 +1704,6 @@ void _setupRealTimeListener() {
         }
       }
       
-      // Get the session data without any auto-request logic
       Map<String, dynamic>? sessionData;
       try {
         sessionData = await supabase
@@ -1477,25 +1712,20 @@ void _setupRealTimeListener() {
             .eq('id', chatData['session_id'])
             .single();
       } catch (e) {
-        // Try with maybeSingle if single fails
         sessionData = await supabase
             .from('sessions')
             .select()
             .eq('id', chatData['session_id'])
-            .maybeSingle(); // Use maybeSingle instead of single
+            .maybeSingle();
       }
       
       if (sessionData == null) {
         log('Session data not found for session ID: ${chatData['session_id']}');
-        // Create a new session with this ID
         await _verifySessionExists();
         return {'status': 'Basic', 'provider_id': widget.loggedInUserId, 'requester_id': 0, 'skill_id': 1};
       }
       
-      // Store session for later use but don't take any actions on it
       session = sessionData;
-      
-      // Just return the raw data, don't modify it or trigger any services
       return sessionData;
     } catch (err) {
       log('Error loading session: $err');
@@ -1505,12 +1735,11 @@ void _setupRealTimeListener() {
 
   Future<Map<String, dynamic>> _loadSessionAndSkill() async {
     try {
-      // Get session data for this chat
       final chatData = await supabase
           .from('chats')
           .select('session_id, user1_id, user2_id')
           .eq('id', widget.chatId)
-          .maybeSingle(); // Use maybeSingle instead of single
+          .maybeSingle();
       
       if (chatData == null || !chatData.containsKey('session_id')) {
         log('No session found for chat ID: ${widget.chatId}');
@@ -1521,20 +1750,17 @@ void _setupRealTimeListener() {
         };
       }
       
-      // Determine the other user ID
       final otherUserId = chatData['user1_id'].toString() == widget.loggedInUserId.toString()
           ? chatData['user2_id']
           : chatData['user1_id'];
           
       try {
-        // Get the session with skill data
         final sessionData = await supabase
             .from('sessions')
             .select('*, skills(*)')
             .eq('id', chatData['session_id'])
             .maybeSingle();
             
-        // Get the other user's info
         final userData = await supabase
             .from('users')
             .select('username, avatar_url')
@@ -1576,101 +1802,94 @@ void _setupRealTimeListener() {
     }
   }
 
-  Future<void> _fetchSessionData() async {
-    try {
-      log('Fetching session data for chat ${widget.chatId}');
-      final sessionData = await _loadSession();
-      log('Session data fetched successfully, status: ${sessionData['status']}');
-      setState(() {
-        session = sessionData;
-      });
-        } catch (e) {
-      log('Error fetching session data for chat ${widget.chatId}: $e');
-    }
-  }
-
-  // Add a safe method to show snackbars
   void _showSnackBar(String message, {Color? backgroundColor}) {
     if (!mounted) return;
     
-    // Use a local variable to avoid context issues
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     
     scaffoldMessenger.showSnackBar(
       SnackBar(
         content: Text(
           message,
-          style: GoogleFonts.mulish(),
+          style: GoogleFonts.poppins(),
         ),
-        backgroundColor: backgroundColor,
+        backgroundColor: backgroundColor ?? const Color(0xFF2196F3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
     );
   }
 
-  // Add a method to verify a session exists for this chat, and create one if it doesn't
-  Future<void> _verifySessionExists() async {
-    log('Verifying session exists for chat ${widget.chatId}');
-    try {
-      final chatData = await supabase
-          .from('chats')
-          .select('session_id, user1_id, user2_id')
-          .eq('id', widget.chatId)
-          .single();
-          
-      if (!chatData.containsKey('session_id') || chatData['session_id'] == null) {
-        log('No session found for chat ${widget.chatId}, creating one');
+Future<void> _verifySessionExists() async {
+  log('Verifying session exists for chat ${widget.chatId}');
+  try {
+    final chatData = await supabase
+        .from('chats')
+        .select('session_id, user1_id, user2_id')
+        .eq('id', widget.chatId)
+        .single();
         
-        if (chatData.containsKey('user1_id') && chatData.containsKey('user2_id')) {
-          final user1Id = int.parse(chatData['user1_id'].toString());
-          final user2Id = int.parse(chatData['user2_id'].toString());
-          
-          // Determine provider and requester based on logged in user
-          int providerId = widget.loggedInUserId;
-          int requesterId = widget.loggedInUserId == user1Id ? user2Id : user1Id;
-          
-          // Try to find an existing skill for the provider
-          final existingSkills = await supabase
-              .from('skills')
-              .select('id')
-              .eq('user_id', providerId)
-              .limit(1)
-              .maybeSingle();
-              
-          int skillId = 1; // Default fallback
-          if (existingSkills != null && existingSkills.containsKey('id')) {
-            skillId = existingSkills['id'];
-          }
-          
-          // Create a new session
+    if (!chatData.containsKey('session_id') || chatData['session_id'] == null) {
+      log('No session found for chat ${widget.chatId}, creating one');
+      
+      if (chatData.containsKey('user1_id') && chatData.containsKey('user2_id')) {
+        final user1Id = int.parse(chatData['user1_id'].toString());
+        final user2Id = int.parse(chatData['user2_id'].toString());
+        
+        // Determine provider and requester
+        int providerId = widget.loggedInUserId;
+        int requesterId = widget.loggedInUserId == user1Id ? user2Id : user1Id;
+        
+        // Get a skill ID for the session
+        final existingSkills = await supabase
+            .from('skills')
+            .select('id')
+            .eq('user_id', providerId)
+            .limit(1)
+            .maybeSingle();
+            
+        int skillId = 1; // Default fallback
+        if (existingSkills != null && existingSkills.containsKey('id')) {
+          skillId = existingSkills['id'];
+        }
+        
+        // Create new session
+        final newSession = {
+          'requester_id': requesterId,
+          'provider_id': providerId,
+          'skill_id': skillId,
+          'status': 'Idle',
+          'created_at': DateTime.now().toIso8601String(),
+        };
+        
+        try {
           final sessionResult = await supabase
               .from('sessions')
-              .insert({
-                'requester_id': requesterId,
-                'provider_id': providerId,
-                'skill_id': skillId,
-                'status': 'Basic',
-                'created_at': DateTime.now().toIso8601String(),
-              })
-              .select();
+              .insert(newSession)
+              .select()
+              .single();
               
-          if (sessionResult.isNotEmpty) {
-            final sessionId = sessionResult[0]['id'];
-            log('Created fallback session ID: $sessionId');
-            
-            // Update the chat with this session ID
-            await supabase
-                .from('chats')
-                .update({'session_id': sessionId})
-                .eq('id', widget.chatId);
-                
-            log('Updated chat ${widget.chatId} with session ID: $sessionId');
-          }
+          final sessionId = sessionResult['id'];
+          log('Created new session with ID: $sessionId');
+          
+          // Update chat with session ID
+          await supabase
+              .from('chats')
+              .update({'session_id': sessionId})
+              .eq('id', widget.chatId);
+              
+          log('Updated chat ${widget.chatId} with session ID: $sessionId');
+        } catch (sessionError) {
+          log('Error creating session: $sessionError');
         }
       } else {
-        log('Session found for chat ${widget.chatId}: ${chatData['session_id']}');
+        log('Chat data incomplete, cannot create session');
       }
-    } catch (e) {
-      log('Error verifying session exists: $e');
     }
+  } catch (e) {
+    log('Error in _verifySessionExists: $e');
   }
+}
 }
