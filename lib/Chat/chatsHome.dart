@@ -38,7 +38,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _setupAnimations();
     
     // Initialize user ID first
@@ -99,8 +99,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
         return chats.where((chat) => pinnedChats.contains(chat['id'])).toList();
       case 'Unread':
         return chats.where((chat) => chat['unread'] == true).toList();
-      case 'Archived':
-        return chats.where((chat) => chat['archived'] == true).toList();
       default:
         return chats;
     }
@@ -320,11 +318,10 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
               'unread_count': unreadCount,
               'avatar_url': otherUserData['avatar_url'],
               'session_id': chat['session_id'],
-              'is_online': _generateRandomOnlineStatus(), // Simulate online status
-              'is_typing': false, // Will be updated with real-time data
+              'is_online': _generateRandomOnlineStatus(),
+              'is_typing': false,
               'pinned': pinnedChats.contains(chat['id']),
               'muted': mutedChats.contains(chat['id']),
-              'archived': false, // Add archive functionality
             });
           } catch (e) {
             log('Error processing chat: $e');
@@ -346,7 +343,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
   }
 
   bool _generateRandomOnlineStatus() {
-    // Simulate online status - in real app, this would come from presence system
     return DateTime.now().millisecond % 3 == 0;
   }
 
@@ -372,7 +368,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
       } else {
         pinnedChats.add(chatId);
       }
-      // Update the chat in the list
       final chatIndex = chats.indexWhere((chat) => chat['id'] == chatId);
       if (chatIndex != -1) {
         chats[chatIndex]['pinned'] = pinnedChats.contains(chatId);
@@ -388,150 +383,11 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
       } else {
         mutedChats.add(chatId);
       }
-      // Update the chat in the list
       final chatIndex = chats.indexWhere((chat) => chat['id'] == chatId);
       if (chatIndex != -1) {
         chats[chatIndex]['muted'] = mutedChats.contains(chatId);
       }
     });
-  }
-
-  Future<void> _deleteChat(int chatId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF2196F3).withOpacity(0.15),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.red.withOpacity(0.1),
-                        Colors.red.withOpacity(0.05),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.warning_amber_rounded,
-                    color: Colors.red[400],
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Delete Chat',
-                  style: GoogleFonts.poppins(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1A1D29),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Are you sure you want to delete this chat? This action cannot be undone.',
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    color: Colors.grey[600],
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 28),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: GoogleFonts.poppins(
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[600],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'Delete',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (confirmed == true) {
-      await supabase
-        .from('chats')
-        .delete()
-        .eq('id', chatId);
-      _loadChats();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Chat deleted successfully',
-              style: GoogleFonts.poppins(color: Colors.white),
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-    }
   }
 
   @override
@@ -670,7 +526,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                   tabs: const [
                     Tab(text: 'Chats'),
                     Tab(text: 'Services'),
-                    Tab(text: 'Archive'),
                   ],
                 ),
               ],
@@ -703,7 +558,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                   ],
                 ),
                 _buildActiveServicesList(),
-                _buildArchivedChats(),
               ],
             ),
           ),
@@ -758,68 +612,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildArchivedChats() {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.all(32),
-        margin: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF2196F3).withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    const Color(0xFF2196F3).withOpacity(0.1),
-                    const Color(0xFF1976D2).withOpacity(0.05),
-                  ],
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.archive_outlined,
-                size: 64,
-                color: Color(0xFF2196F3),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'No Archived Chats',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF1A1D29),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Archived conversations will appear here',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1295,170 +1087,12 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
           ],
         ),
       ),
-      secondaryBackground: Container(
-        padding: const EdgeInsets.only(right: 20),
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Colors.red, Color(0xFFE53E3E)],
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        alignment: Alignment.centerRight,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
-              'Delete',
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.delete_outline_rounded,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-          ],
-        ),
-      ),
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
-          // Pin/Unpin action
           _togglePinChat(chat['id']);
-          return false; // Don't actually dismiss
-        } else {
-          // Delete action - show confirmation
-          return await showDialog<bool>(
-            context: context,
-            builder: (BuildContext context) {
-              return Dialog(
-                backgroundColor: Colors.transparent,
-                child: Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF2196F3).withOpacity(0.15),
-                        blurRadius: 30,
-                        offset: const Offset(0, 15),
-                        spreadRadius: 0,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.red.withOpacity(0.1),
-                              Colors.red.withOpacity(0.05),
-                            ],
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.delete_outline_rounded,
-                          color: Colors.red[400],
-                          size: 32,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Delete Chat',
-                        style: GoogleFonts.poppins(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1A1D29),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Are you sure you want to delete this chat with $username? This action cannot be undone.',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          color: Colors.grey[600],
-                          height: 1.5,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 28),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              child: Text(
-                                'Cancel',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.grey[700],
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red[600],
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Text(
-                                'Delete',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
+          return false;
         }
-      },
-      onDismissed: (direction) {
-        if (direction == DismissDirection.endToStart) {
-          _deleteChat(chat['id']);
-        }
+        return false;
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1613,10 +1247,10 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                               child: Row(
                                 children: [
                                   if (isPinned) ...[
-                                    Icon(
+                                    const Icon(
                                       Icons.push_pin_rounded,
                                       size: 16,
-                                      color: const Color(0xFF2196F3),
+                                      color: Color(0xFF2196F3),
                                     ),
                                     const SizedBox(width: 4),
                                   ],
@@ -1634,7 +1268,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                                       style: GoogleFonts.poppins(
                                         fontWeight: unread ? FontWeight.w800 : FontWeight.w600,
                                         fontSize: 16,
-                                        color: unread ? const Color(0xFF1A1D29) : const Color(0xFF1A1D29),
+                                        color: const Color(0xFF1A1D29),
                                         letterSpacing: unread ? 0.2 : 0,
                                       ),
                                       overflow: TextOverflow.ellipsis,
@@ -1697,31 +1331,25 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                isTyping ? 'Typing...' : lastMessage,
-                                style: GoogleFonts.poppins(
-                                  color: isTyping 
-                                      ? const Color(0xFF2196F3)
-                                      : unread 
-                                          ? const Color(0xFF1A1D29) 
-                                          : Colors.grey[600],
-                                  fontWeight: isTyping 
-                                      ? FontWeight.w600
-                                      : unread 
-                                          ? FontWeight.w500 
-                                          : FontWeight.normal,
-                                  fontSize: 14,
-                                  height: 1.4,
-                                  fontStyle: isTyping ? FontStyle.italic : FontStyle.normal,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 2,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          isTyping ? 'Typing...' : lastMessage,
+                          style: GoogleFonts.poppins(
+                            color: isTyping 
+                                ? const Color(0xFF2196F3)
+                                : unread 
+                                    ? const Color(0xFF1A1D29) 
+                                    : Colors.grey[600],
+                            fontWeight: isTyping 
+                                ? FontWeight.w600
+                                : unread 
+                                    ? FontWeight.w500 
+                                    : FontWeight.normal,
+                            fontSize: 14,
+                            height: 1.4,
+                            fontStyle: isTyping ? FontStyle.italic : FontStyle.normal,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
                         ),
                       ],
                     ),
@@ -1736,158 +1364,141 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
   }
 
   void _showChatOptions(Map<String, dynamic> chat) {
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    builder: (context) => Container(
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(28),
-          topRight: Radius.circular(28),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
         ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Chat Options',
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF1A1D29),
-            ),
-          ),
-          const SizedBox(height: 24),
-          _buildOptionTile(
-            icon: chat['pinned'] ? Icons.push_pin_outlined : Icons.push_pin_rounded,
-            title: chat['pinned'] ? 'Unpin Chat' : 'Pin Chat',
-            onTap: () {
-              Navigator.pop(context);
-              _togglePinChat(chat['id']);
-            },
-          ),
-          _buildOptionTile(
-            icon: chat['muted'] ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-            title: chat['muted'] ? 'Unmute Chat' : 'Mute Chat',
-            onTap: () {
-              Navigator.pop(context);
-              _toggleMuteChat(chat['id']);
-            },
-          ),
-          _buildOptionTile(
-            icon: Icons.archive_outlined,
-            title: 'Archive Chat',
-            onTap: () {
-              Navigator.pop(context);
-              // Add archive functionality
-            },
-          ),
-          _buildOptionTile(
-            icon: Icons.delete_outline_rounded,
-            title: 'Delete Chat',
-            isDestructive: true,
-            onTap: () {
-              Navigator.pop(context);
-              _deleteChat(chat['id']);
-            },
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
-    ),
-  );
-}
-
-Widget _buildOptionTile({
-  required IconData icon,
-  required String title,
-  required VoidCallback onTap,
-  bool isDestructive = false,
-}) {
-  return Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
-                color: isDestructive 
-                    ? Colors.red.withOpacity(0.1)
-                    : const Color(0xFF2196F3).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: isDestructive ? Colors.red[600] : const Color(0xFF2196F3),
-                size: 20,
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(height: 20),
             Text(
-              title,
+              'Chat Options',
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF1A1D29),
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildOptionTile(
+              icon: chat['pinned'] ? Icons.push_pin_outlined : Icons.push_pin_rounded,
+              title: chat['pinned'] ? 'Unpin Chat' : 'Pin Chat',
+              onTap: () {
+                Navigator.pop(context);
+                _togglePinChat(chat['id']);
+              },
+            ),
+            _buildOptionTile(
+              icon: chat['muted'] ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+              title: chat['muted'] ? 'Unmute Chat' : 'Mute Chat',
+              onTap: () {
+                Navigator.pop(context);
+                _toggleMuteChat(chat['id']);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDestructive 
+                      ? Colors.red.withOpacity(0.1)
+                      : const Color(0xFF2196F3).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: isDestructive ? Colors.red[600] : const Color(0xFF2196F3),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: isDestructive ? Colors.red[600] : const Color(0xFF1A1D29),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2196F3).withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+              strokeWidth: 3,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Loading chats...',
               style: GoogleFonts.poppins(
                 fontSize: 16,
+                color: Colors.grey[600],
                 fontWeight: FontWeight.w500,
-                color: isDestructive ? Colors.red[600] : const Color(0xFF1A1D29),
               ),
             ),
           ],
         ),
       ),
-    ),
-  );
-}
-
-Widget _buildLoadingState() {
-  return Center(
-    child: Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2196F3).withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
-            strokeWidth: 3,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Loading chats...',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
 }
