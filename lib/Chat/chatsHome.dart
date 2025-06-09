@@ -419,7 +419,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                       Text(
                         'Messages',
                         style: GoogleFonts.poppins(
-                          fontSize: 32,
+                          fontSize: 30,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
                           letterSpacing: -0.5,
