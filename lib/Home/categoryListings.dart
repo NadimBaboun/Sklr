@@ -273,7 +273,7 @@ class _CategoryListingsPageState extends State<CategoryListingsPage> {
                                   ],
                                 ),
                                 child: Text(
-                                  '\$${listing['cost'] ?? '0'}',
+                                  '${listing['cost'] ?? '0'}\ credits',
                                   style: GoogleFonts.poppins(
                                     fontSize: 16,
                                     color: Colors.white,
