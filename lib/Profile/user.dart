@@ -6,7 +6,8 @@ import '../database/database.dart';
 import '../database/userIdStorage.dart';
 import '../database/supabase_service.dart';
 import '../Util/navigationbar-bar.dart';
-import 'dart:math';
+import 'dart:convert';
+import 'dart:typed_data';
 
 class UserPage extends StatefulWidget {
   final int userId;
@@ -28,21 +29,10 @@ class _UserPageState extends State<UserPage>
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  
-  final List<String> avatars = [
-    'assets/avatars/avatar1.png',
-    'assets/avatars/avatar2.png',
-    'assets/avatars/avatar3.png',
-    'assets/avatars/avatar4.png',
-    'assets/avatars/avatar5.png'
-  ];
-  late String randomAvatar;
 
   @override
   void initState() {
     super.initState();
-    final random = Random();
-    randomAvatar = avatars[random.nextInt(avatars.length)];
     _setupAnimations();
     _fetchUserData();
   }
@@ -85,11 +75,9 @@ class _UserPageState extends State<UserPage>
     try {
       final response = await DatabaseHelper.fetchUserFromId(widget.userId);
       if (response.success) {
-        final pictureUrl = await SupabaseService.getProfilePictureUrl(widget.userId.toString());
-        
         setState(() {
           userData = response.data;
-          profilePictureUrl = pictureUrl;
+          profilePictureUrl = userData?['ProfilePicture'];
           _coverUrl = userData?['cover_url'];
           isLoading = false;
         });
@@ -117,79 +105,77 @@ class _UserPageState extends State<UserPage>
   }
 
   Future<void> _openChatWithUser() async {
-  try {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF2196F3).withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
-                strokeWidth: 3,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Opening chat...',
-                style: GoogleFonts.poppins(
-                  color: const Color(0xFF1A1D29),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2196F3).withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+                  strokeWidth: 3,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Opening chat...',
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF1A1D29),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    final currentUserId = await UserIdStorage.getLoggedInUserId();
-    if (currentUserId == null) {
+      final currentUserId = await UserIdStorage.getLoggedInUserId();
+      if (currentUserId == null) {
+        Navigator.pop(context);
+        _showErrorSnackBar('Please log in to send messages');
+        return;
+      }
+
+      final chatId = await DatabaseHelper.getOrCreateChat(
+        currentUserId,
+        widget.userId,
+        -1,
+      );
+
       Navigator.pop(context);
-      _showErrorSnackBar('Please log in to send messages');
-      return;
-    }
 
-    // Use -1 or 0 instead of null to indicate no specific skill
-    final chatId = await DatabaseHelper.getOrCreateChat(
-      currentUserId,
-      widget.userId,
-      -1, // Use -1 to indicate general chat (not skill-specific)
-    );
-
-    Navigator.pop(context);
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatPage(
-          chatId: chatId,
-          loggedInUserId: currentUserId,
-          otherUsername: userData?['username'] ?? 'User',
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatPage(
+            chatId: chatId,
+            loggedInUserId: currentUserId,
+            otherUsername: userData?['username'] ?? 'User',
+          ),
         ),
-      ),
-    );
+      );
 
-  } catch (e) {
-    Navigator.pop(context);
-    _showErrorSnackBar('Failed to open chat: ${e.toString()}');
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorSnackBar('Failed to open chat: ${e.toString()}');
+    }
   }
-}
-
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -550,18 +536,7 @@ class _UserPageState extends State<UserPage>
               ),
               padding: const EdgeInsets.all(4),
               child: ClipOval(
-                child: profilePictureUrl != null
-                  ? FadeInImage.assetNetwork(
-                      placeholder: randomAvatar,
-                      image: profilePictureUrl!,
-                      fit: BoxFit.cover,
-                      width: 148,
-                      height: 148,
-                      imageErrorBuilder: (context, error, stackTrace) {
-                        return _buildCustomAvatar(userData!['username']);
-                      },
-                    )
-                  : _buildCustomAvatar(userData!['username']),
+                child: _buildProfileImage(),
               ),
             ),
           ),
@@ -608,6 +583,76 @@ class _UserPageState extends State<UserPage>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildProfileImage() {
+    // Check if we have a profile picture URL
+    if (profilePictureUrl != null && profilePictureUrl!.isNotEmpty) {
+      if (profilePictureUrl!.startsWith('data:image')) {
+        // Handle base64 images (web-compatible)
+        try {
+          final String base64String = profilePictureUrl!.split(',')[1];
+          final Uint8List bytes = base64Decode(base64String);
+          return Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            width: 148,
+            height: 148,
+            errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
+          );
+        } catch (e) {
+          return _buildDefaultAvatar();
+        }
+      } else if (profilePictureUrl!.startsWith('assets/')) {
+        // Handle asset images
+        return Image.asset(
+          profilePictureUrl!,
+          fit: BoxFit.cover,
+          width: 148,
+          height: 148,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
+        );
+      } else {
+        // Handle network images
+        return Image.network(
+          profilePictureUrl!,
+          fit: BoxFit.cover,
+          width: 148,
+          height: 148,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
+        );
+      }
+    }
+    
+    return _buildDefaultAvatar();
+  }
+
+  Widget _buildDefaultAvatar() {
+    return Container(
+      width: 148,
+      height: 148,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF2196F3),
+            Color(0xFF1976D2),
+          ],
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          (userData?['username'] ?? 'U')[0].toUpperCase(),
+          style: GoogleFonts.poppins(
+            fontSize: 56,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ),
     );
   }
 
@@ -1044,29 +1089,6 @@ class _UserPageState extends State<UserPage>
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCustomAvatar(String username) {
-    final initials = username
-        .split(' ')
-        .where((word) => word.isNotEmpty)
-        .take(2)
-        .map((word) => word[0].toUpperCase())
-        .join('');
-
-    return Container(
-      color: const Color(0xFF2196F3).withOpacity(0.1),
-      child: Center(
-        child: Text(
-          initials.isNotEmpty ? initials : 'U',
-          style: GoogleFonts.poppins(
-            fontSize: 48,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF2196F3),
           ),
         ),
       ),
