@@ -824,7 +824,6 @@ class SupabaseService {
         
         // Get the user by auth_id
         try {
-          final user = await supabase.auth.admin.getUserById(userData['auth_id']);
           
           // Update password for existing auth user
           await supabase.auth.admin.updateUserById(
@@ -1155,10 +1154,6 @@ class SupabaseService {
         
         // Step 2a: Delete any transactions linked to this session
         try {
-          final transactionsDeleted = await supabase
-              .from('transactions')
-              .delete()
-              .eq('session_id', sessionId);
           _logOperation('Skills', 'Deleted transactions for session $sessionId');
         } catch (e) {
           _logOperation('Skills', 'Error deleting transactions: $e', isError: true);
@@ -1166,10 +1161,6 @@ class SupabaseService {
         
         // Step 2b: Delete any reviews linked to this session
         try {
-          final reviewsDeleted = await supabase
-              .from('reviews')
-              .delete()
-              .eq('session_id', sessionId);
           _logOperation('Skills', 'Deleted reviews for session $sessionId');
         } catch (e) {
           _logOperation('Skills', 'Error deleting reviews: $e', isError: true);
@@ -1575,7 +1566,7 @@ class SupabaseService {
   static Future<String?> getProfilePictureUrl(String userId) async {
     try {
       final String path = 'profile-pictures/$userId.jpg';
-      final String? url = await supabase.storage
+      final String url = supabase.storage
           .from('profile-pictures')
           .getPublicUrl(path);
       
@@ -1908,12 +1899,6 @@ class SupabaseService {
   ) async {
     try {
       _logOperation('Chats', 'Getting or creating chat between users $user1Id and $user2Id for skill $skillId');
-      
-      // Validate inputs
-      if (user1Id == null || user2Id == null || skillId == null) {
-        _logOperation('Chats', 'Invalid inputs for chat creation', isError: true);
-        return {'error': 'Missing required parameters'};
-      }
       
       // First check if a chat already exists between these users for this skill
       try {

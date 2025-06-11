@@ -24,26 +24,205 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
   
   // Common country codes with flag emojis
   final Map<String, String> _countryCodes = {
-    '🇺🇸 United States': '+1',
-    '🇬🇧 United Kingdom': '+44',
-    '🇨🇦 Canada': '+1',
+    '🇦🇫 Afghanistan': '+93',
+    '🇦🇱 Albania': '+355',
+    '🇩🇿 Algeria': '+213',
+    '🇦🇩 Andorra': '+376',
+    '🇦🇴 Angola': '+244',
+    '🇦🇬 Antigua and Barbuda': '+1268',
+    '🇦🇷 Argentina': '+54',
+    '🇦🇲 Armenia': '+374',
     '🇦🇺 Australia': '+61',
-    '🇩🇪 Germany': '+49',
-    '🇫🇷 France': '+33',
-    '🇮🇳 India': '+91',
-    '🇨🇳 China': '+86',
-    '🇯🇵 Japan': '+81',
+    '🇦🇹 Austria': '+43',
+    '🇦🇿 Azerbaijan': '+994',
+    '🇧🇸 Bahamas': '+1242',
+    '🇧🇭 Bahrain': '+973',
+    '🇧🇩 Bangladesh': '+880',
+    '🇧🇧 Barbados': '+1246',
+    '🇧🇾 Belarus': '+375',
+    '🇧🇪 Belgium': '+32',
+    '🇧🇿 Belize': '+501',
+    '🇧🇯 Benin': '+229',
+    '🇧🇹 Bhutan': '+975',
+    '🇧🇴 Bolivia': '+591',
+    '🇧🇦 Bosnia and Herzegovina': '+387',
+    '🇧🇼 Botswana': '+267',
     '🇧🇷 Brazil': '+55',
-    '🇲🇽 Mexico': '+52',
-    '🇿🇦 South Africa': '+27',
-    '🇳🇬 Nigeria': '+234',
+    '🇧🇳 Brunei': '+673',
+    '🇧🇬 Bulgaria': '+359',
+    '🇧🇫 Burkina Faso': '+226',
+    '🇧🇮 Burundi': '+257',
+    '🇰🇭 Cambodia': '+855',
+    '🇨🇲 Cameroon': '+237',
+    '🇨🇦 Canada': '+1',
+    '🇨🇻 Cape Verde': '+238',
+    '🇨🇫 Central African Republic': '+236',
+    '🇹🇩 Chad': '+235',
+    '🇨🇱 Chile': '+56',
+    '🇨🇳 China': '+86',
+    '🇨🇴 Colombia': '+57',
+    '🇰🇲 Comoros': '+269',
+    '🇨🇬 Congo': '+242',
+    '🇨🇩 Congo (DRC)': '+243',
+    '🇨🇰 Cook Islands': '+682',
+    '🇨🇷 Costa Rica': '+506',
+    '🇨🇮 Côte d\'Ivoire': '+225',
+    '🇭🇷 Croatia': '+385',
+    '🇨🇺 Cuba': '+53',
+    '🇨🇾 Cyprus': '+357',
+    '🇨🇿 Czech Republic': '+420',
+    '🇩🇰 Denmark': '+45',
+    '🇩🇯 Djibouti': '+253',
+    '🇩🇲 Dominica': '+1767',
+    '🇩🇴 Dominican Republic': '+1809',
+    '🇪🇨 Ecuador': '+593',
     '🇪🇬 Egypt': '+20',
-    '🇸🇦 Saudi Arabia': '+966',
-    '🇦🇪 UAE': '+971',
-    '🇸🇬 Singapore': '+65',
-    '🇲🇾 Malaysia': '+60',
+    '🇸🇻 El Salvador': '+503',
+    '🇬🇶 Equatorial Guinea': '+240',
+    '🇪🇷 Eritrea': '+291',
+    '🇪🇪 Estonia': '+372',
+    '🇸🇿 Eswatini': '+268',
+    '🇪🇹 Ethiopia': '+251',
+    '🇫🇯 Fiji': '+679',
+    '🇫🇮 Finland': '+358',
+    '🇫🇷 France': '+33',
+    '🇬🇦 Gabon': '+241',
+    '🇬🇲 Gambia': '+220',
+    '🇬🇪 Georgia': '+995',
+    '🇩🇪 Germany': '+49',
+    '🇬🇭 Ghana': '+233',
+    '🇬🇷 Greece': '+30',
+    '🇬🇩 Grenada': '+1473',
+    '🇬🇹 Guatemala': '+502',
+    '🇬🇳 Guinea': '+224',
+    '🇬🇼 Guinea-Bissau': '+245',
+    '🇬🇾 Guyana': '+592',
+    '🇭🇹 Haiti': '+509',
+    '🇭🇳 Honduras': '+504',
+    '🇭🇰 Hong Kong': '+852',
+    '🇭🇺 Hungary': '+36',
+    '🇮🇸 Iceland': '+354',
+    '🇮🇳 India': '+91',
+    '🇮🇩 Indonesia': '+62',
+    '🇮🇷 Iran': '+98',
+    '🇮🇶 Iraq': '+964',
+    '🇮🇪 Ireland': '+353',
+    '🇮🇱 Israel': '+972',
     '🇮🇹 Italy': '+39',
+    '🇯🇲 Jamaica': '+1876',
+    '🇯🇵 Japan': '+81',
+    '🇯🇴 Jordan': '+962',
+    '🇰🇿 Kazakhstan': '+7',
+    '🇰🇪 Kenya': '+254',
+    '🇰🇮 Kiribati': '+686',
+    '🇰🇵 North Korea': '+850',
+    '🇰🇷 South Korea': '+82',
+    '🇰🇼 Kuwait': '+965',
+    '🇰🇬 Kyrgyzstan': '+996',
+    '🇱🇦 Laos': '+856',
+    '🇱🇻 Latvia': '+371',
+    '🇱🇧 Lebanon': '+961',
+    '🇱🇸 Lesotho': '+266',
+    '🇱🇷 Liberia': '+231',
+    '🇱🇾 Libya': '+218',
+    '🇱🇮 Liechtenstein': '+423',
+    '🇱🇹 Lithuania': '+370',
+    '🇱🇺 Luxembourg': '+352',
+    '🇲🇴 Macao': '+853',
+    '🇲🇬 Madagascar': '+261',
+    '🇲🇼 Malawi': '+265',
+    '🇲🇾 Malaysia': '+60',
+    '🇲🇻 Maldives': '+960',
+    '🇲🇱 Mali': '+223',
+    '🇲🇹 Malta': '+356',
+    '🇲🇭 Marshall Islands': '+692',
+    '🇲🇷 Mauritania': '+222',
+    '🇲🇺 Mauritius': '+230',
+    '🇲🇽 Mexico': '+52',
+    '🇫🇲 Micronesia': '+691',
+    '🇲🇩 Moldova': '+373',
+    '🇲🇨 Monaco': '+377',
+    '🇲🇳 Mongolia': '+976',
+    '🇲🇪 Montenegro': '+382',
+    '🇲🇦 Morocco': '+212',
+    '🇲🇿 Mozambique': '+258',
+    '🇲🇲 Myanmar': '+95',
+    '🇳🇦 Namibia': '+264',
+    '🇳🇷 Nauru': '+674',
+    '🇳🇵 Nepal': '+977',
+    '🇳🇱 Netherlands': '+31',
+    '🇳🇿 New Zealand': '+64',
+    '🇳🇮 Nicaragua': '+505',
+    '🇳🇪 Niger': '+227',
+    '🇳🇬 Nigeria': '+234',
+    '🇲🇰 North Macedonia': '+389',
+    '🇳🇴 Norway': '+47',
+    '🇴🇲 Oman': '+968',
+    '🇵🇰 Pakistan': '+92',
+    '🇵🇼 Palau': '+680',
+    '🇵🇸 Palestine': '+970',
+    '🇵🇦 Panama': '+507',
+    '🇵🇬 Papua New Guinea': '+675',
+    '🇵🇾 Paraguay': '+595',
+    '🇵🇪 Peru': '+51',
+    '🇵🇭 Philippines': '+63',
+    '🇵🇱 Poland': '+48',
+    '🇵🇹 Portugal': '+351',
+    '🇶🇦 Qatar': '+974',
+    '🇷🇴 Romania': '+40',
+    '🇷🇺 Russia': '+7',
+    '🇷🇼 Rwanda': '+250',
+    '🇰🇳 Saint Kitts and Nevis': '+1869',
+    '🇱🇨 Saint Lucia': '+1758',
+    '🇻🇨 Saint Vincent': '+1784',
+    '🇼🇸 Samoa': '+685',
+    '🇸🇲 San Marino': '+378',
+    '🇸🇹 São Tomé and Príncipe': '+239',
+    '🇸🇦 Saudi Arabia': '+966',
+    '🇸🇳 Senegal': '+221',
+    '🇷🇸 Serbia': '+381',
+    '🇸🇨 Seychelles': '+248',
+    '🇸🇱 Sierra Leone': '+232',
+    '🇸🇬 Singapore': '+65',
+    '🇸🇰 Slovakia': '+421',
+    '🇸🇮 Slovenia': '+386',
+    '🇸🇧 Solomon Islands': '+677',
+    '🇸🇴 Somalia': '+252',
+    '🇿🇦 South Africa': '+27',
+    '🇸🇸 South Sudan': '+211',
     '🇪🇸 Spain': '+34',
+    '🇱🇰 Sri Lanka': '+94',
+    '🇸🇩 Sudan': '+249',
+    '🇸🇷 Suriname': '+597',
+    '🇸🇪 Sweden': '+46',
+    '🇨🇭 Switzerland': '+41',
+    '🇸🇾 Syria': '+963',
+    '🇹🇼 Taiwan': '+886',
+    '🇹🇯 Tajikistan': '+992',
+    '🇹🇿 Tanzania': '+255',
+    '🇹🇭 Thailand': '+66',
+    '🇹🇱 Timor-Leste': '+670',
+    '🇹🇬 Togo': '+228',
+    '🇹🇴 Tonga': '+676',
+    '🇹🇹 Trinidad and Tobago': '+1868',
+    '🇹🇳 Tunisia': '+216',
+    '🇹🇷 Turkey': '+90',
+    '🇹🇲 Turkmenistan': '+993',
+    '🇹🇻 Tuvalu': '+688',
+    '🇺🇬 Uganda': '+256',
+    '🇺🇦 Ukraine': '+380',
+    '🇦🇪 UAE': '+971',
+    '🇬🇧 United Kingdom': '+44',
+    '🇺🇸 United States': '+1',
+    '🇺🇾 Uruguay': '+598',
+    '🇺🇿 Uzbekistan': '+998',
+    '🇻🇺 Vanuatu': '+678',
+    '🇻🇦 Vatican City': '+379',
+    '🇻🇪 Venezuela': '+58',
+    '🇻🇳 Vietnam': '+84',
+    '🇾🇪 Yemen': '+967',
+    '🇿🇲 Zambia': '+260',
+    '🇿🇼 Zimbabwe': '+263',
   };
   
   Map<String, dynamic>? userData;
@@ -262,54 +441,135 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
   }
   
   void _showCountryCodeDialog() {
+    TextEditingController searchController = TextEditingController();
+    List<MapEntry<String, String>> filteredCountries = _countryCodes.entries.toList();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Select Country Code',
-            style: GoogleFonts.lexend(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Container(
-            width: double.maxFinite,
-            height: 300,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _countryCodes.length,
-              itemBuilder: (context, index) {
-                String country = _countryCodes.keys.elementAt(index);
-                String code = _countryCodes.values.elementAt(index);
-                return ListTile(
-                  title: Text(
-                    '$country ($code)',
-                    style: GoogleFonts.lexend(),
-                  ),
-                  onTap: () {
-                    setState(() {
-                      _selectedCountryCode = code;
-                      _selectedCountryFlag = country.substring(0, 2); // Get just the flag emoji
-                    });
-                    Navigator.pop(context);
-                  },
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text(
-                'Cancel',
-                style: GoogleFonts.lexend(
-                  color: Colors.grey,
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                width: double.maxFinite,
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.8,
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Select Country',
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: TextField(
+                        controller: searchController,
+                        onChanged: (value) {
+                          setState(() {
+                            filteredCountries = _countryCodes.entries
+                                .where((entry) => entry.key.toLowerCase().contains(value.toLowerCase()))
+                                .toList();
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Search countries...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFF2196F3), width: 2),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: filteredCountries.length,
+                        itemBuilder: (context, index) {
+                          final country = filteredCountries[index];
+                          // Extract flag emoji and country name
+                          final parts = country.key.split(' ');
+                          final flag = parts[0];
+                          final name = parts.sublist(1).join(' ');
+                          
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _selectedCountryCode = country.value;
+                                  _selectedCountryFlag = flag;
+                                });
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      flag,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        name,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 16,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      country.value,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        color: const Color(0xFF2196F3),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -445,7 +705,11 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
                               // Format phone number with country code
                               String formattedPhone = '';
                               if (_phoneController.text.isNotEmpty) {
-                                formattedPhone = '$_selectedCountryCode ${_phoneController.text}';
+                                // Remove any spaces from the phone number
+                                String cleanPhone = _phoneController.text.replaceAll(' ', '');
+                                // Format with space after country code for consistency
+                                formattedPhone = '$_selectedCountryCode $cleanPhone';
+                                print('DEBUG: Formatted phone number: $formattedPhone'); // Debug log
                               }
                               
                               final update = {
@@ -456,39 +720,37 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
                                 'website': _websiteController.text,
                                 'phone_number': formattedPhone,
                               };
+                              print('DEBUG: Update data being sent: $update'); // Debug log
                               
                               final result = await DatabaseHelper.patchUser(userId!, update);
+                              print('DEBUG: Update result: $result'); // Debug log
                               setState(() => isLoading = false);
                               
                               if (result.success) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Profile updated successfully',
-                                      style: GoogleFonts.lexend(),
+                                print('DEBUG: Update successful, new data: ${result.data}'); // Debug log
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Profile updated successfully!'),
+                                      backgroundColor: const Color(0xFF2196F3),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
-                                    backgroundColor: Colors.green,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                );
-                                Navigator.pop(context, true);
+                                  );
+                                  Navigator.pop(context);
+                                }
                               } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Failed to update profile',
-                                      style: GoogleFonts.lexend(),
+                                print('DEBUG: Update failed: ${result.data}'); // Debug log
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(result.data['error'] ?? 'Failed to update profile'),
+                                      backgroundColor: Colors.red,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
-                                    backgroundColor: Colors.red,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                );
+                                  );
+                                }
                               }
                             } catch (e) {
                               setState(() => isLoading = false);

@@ -6,6 +6,7 @@ import 'package:sklr/Util/PrivacyPolicy.dart';
 import 'package:sklr/Profile/dashboard.dart';
 import 'package:sklr/database/userIdStorage.dart';
 import 'package:sklr/Util/startpage.dart';
+import 'package:flutter/services.dart';
 import 'editProfile.dart';
 import '../Util/navigationbar-bar.dart';
 import '../database/database.dart';
@@ -35,6 +36,12 @@ class _ProfilePageState extends State<ProfilePage>
   void initState() {
     super.initState();
     _setupAnimations();
+    _loadUserData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _loadUserData();
   }
 
@@ -73,12 +80,18 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Future<void> _loadUserData() async {
+    setState(() => isLoading = true);
+    
     final userId = await UserIdStorage.getLoggedInUserId();
     if (userId != null && userId > 0) {
       final response = await DatabaseHelper.fetchUserFromId(userId);
+      print('DEBUG: Fetched user data response: $response');
+      
       if (response.success) {
+        final userData = response.data;
+        print('DEBUG: User data loaded: $userData');
         setState(() {
-          userData = response.data;
+          this.userData = userData;
           _avatarUrl = userData?['avatar_url'];
           _coverUrl = userData?['cover_url'];
           isLoading = false;
@@ -228,85 +241,28 @@ class _ProfilePageState extends State<ProfilePage>
 
   Widget _buildCoverSection(Size size) {
     return Container(
-      height: size.height * 0.32,
+      height: size.height * 0.22,
       decoration: BoxDecoration(
-        gradient: _coverUrl == null 
-          ? const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF2196F3),
-                Color(0xFF1976D2),
-                Color(0xFF0D47A1),
-              ],
-            )
-          : null,
-        image: _coverUrl != null
-          ? DecorationImage(
-              image: NetworkImage(_coverUrl!),
-              fit: BoxFit.cover,
-              onError: (_, __) {
-                setState(() {
-                  _coverUrl = null;
-                });
-              },
-            )
-          : null,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF2196F3),
+            const Color(0xFF1976D2),
+            const Color(0xFF0D47A1),
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(35),
+          bottomRight: Radius.circular(35),
+        ),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF2196F3).withOpacity(0.3),
             blurRadius: 20,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 10),
           ),
         ],
-      ),
-      child: Stack(
-        children: [
-          if (_coverUrl == null)
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.black.withOpacity(0.1),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.2),
-                  ],
-                ),
-              ),
-            ),
-          _buildCoverEditButton(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCoverEditButton() {
-    return Positioned(
-      top: 20,
-      right: 20,
-      child: GestureDetector(
-        onTap: () => _pickAndUploadImage(isCover: true),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 15,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.photo_camera_rounded,
-            color: Color(0xFF2196F3),
-            size: 22,
-          ),
-        ),
       ),
     );
   }
@@ -314,57 +270,60 @@ class _ProfilePageState extends State<ProfilePage>
   Widget _buildMainContent(bool isLargeScreen) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: isLargeScreen ? 40.0 : 20.0,
-          vertical: 20.0,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(height: MediaQuery.of(context).size.height * 0.18),
-            
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: _buildProfileImageSection(),
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(height: MediaQuery.of(context).size.height * 0.09),
+          
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isLargeScreen ? 40.0 : 20.0,
             ),
-            
-            const SizedBox(height: 24),
-            
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: _buildUserInfoCard(),
-              ),
+            child: Column(
+              children: [
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: _buildProfileImageSection(),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: _buildUserInfoCard(),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: _buildCreditsCard(),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: _buildOptionsCard(),
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+              ],
             ),
-            
-            const SizedBox(height: 24),
-            
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: _buildCreditsCard(),
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: _buildOptionsCard(),
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -508,49 +467,74 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Widget _buildContactInfo(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF2196F3).withOpacity(0.05),
-            const Color(0xFF1976D2).withOpacity(0.02),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF2196F3).withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2196F3).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: const Color(0xFF2196F3),
-            ),
+    print('DEBUG: Building contact info for text: $text');
+    // Format phone number if it's a phone number field
+    String displayText = text;
+    if (icon == Icons.phone_rounded && text.startsWith('+')) {
+      // The phone number is already formatted with a space after the country code
+      // Just use it as is since we're now storing it in the correct format
+      displayText = text;
+      print('DEBUG: Displaying phone number as: $displayText');
+    }
+
+    return GestureDetector(
+      onLongPress: () {
+        // When copying to clipboard, use the original text (with the space)
+        Clipboard.setData(ClipboardData(text: text));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Copied to clipboard'),
+            backgroundColor: const Color(0xFF2196F3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 2),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              text,
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w500,
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF2196F3).withOpacity(0.05),
+              const Color(0xFF1976D2).withOpacity(0.02),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF2196F3).withOpacity(0.1),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2196F3).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: const Color(0xFF2196F3),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                displayText,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

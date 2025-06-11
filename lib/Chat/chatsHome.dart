@@ -6,6 +6,7 @@ import '../Util/navigationbar-bar.dart';
 import '../database/userIdStorage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer';
+import '../database/supabase_service.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -18,12 +19,17 @@ class ChatsHomePage extends StatefulWidget {
 
 class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateMixin {
   int? loggedInUserId;
+  Future<List<Map<String, dynamic>>>? chatsFuture;
+  Future<List<Map<String, dynamic>>>? activeServicesFuture;
   Map<int, String> usernameCache = {};
   bool isLoading = false;
+  late TabController _tabController;
   late AnimationController _animationController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  late AnimationController _refreshAnimationController;
+  late Animation<double> _refreshAnimation;
   List<Map<String, dynamic>> chats = [];
   List<Map<String, dynamic>> filteredChats = [];
   TextEditingController searchController = TextEditingController();
@@ -31,15 +37,22 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
   String selectedCategory = 'All';
   Set<int> pinnedChats = {};
   Set<int> mutedChats = {};
+  int lastUnreadCount = 0;
+  Map<int, AnimationController> _chatAnimationControllers = {};
+  Map<int, AnimationController> _serviceAnimationControllers = {};
+  Map<int, int> _chatMessageCounts = {};
+  Map<int, String> _serviceStatuses = {};
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _setupAnimations();
     
     // Initialize user ID first
     _initializeUserId().then((_) {
       _loadChats();
+      _loadActiveServices();
       _startPeriodicRefresh();
     });
     
@@ -59,6 +72,11 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
+
+    _refreshAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
     
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
@@ -71,6 +89,13 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
       parent: _slideController,
       curve: Curves.easeOutCubic,
     ));
+
+    _refreshAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _refreshAnimationController,
+        curve: Curves.easeInOut,
+      ),
+    );
   }
 
   void _filterChats() {
@@ -117,30 +142,26 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
   }
 
   void _startPeriodicRefresh() {
-    Future.delayed(const Duration(seconds: 10), () {
+    Future.delayed(const Duration(seconds: 10), () async {
       if (mounted) {
-        _loadChats(silent: true); // Silent refresh
+        try {
+          final newUnreadCount = await SupabaseService.getUnreadMessageCount();
+          if (newUnreadCount != lastUnreadCount) {
+            _loadChats();
+            setState(() {
+              lastUnreadCount = newUnreadCount;
+            });
+          }
+        } catch (e) {
+          debugPrint('Error checking unread messages: $e');
+        }
         _startPeriodicRefresh();
       }
     });
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _slideController.dispose();
-    searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadChats({bool silent = false}) async {
+  Future<void> _loadActiveServices() async {
     if (!mounted) return;
-    
-    if (!silent) {
-      setState(() {
-        isLoading = true;
-      });
-    }
     
     try {
       final userId = await UserIdStorage.getLoggedInUserId();
@@ -148,7 +169,108 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
         setState(() {
           loggedInUserId = userId is int ? userId : int.tryParse(userId.toString());
         });
-        log('Loading chats for user: $userId');
+        
+        final response = await supabase
+          .from('sessions')
+          .select('*, skills(*)')
+          .or('requester_id.eq.$loggedInUserId,provider_id.eq.$loggedInUserId')
+          .inFilter('status', ['Requested', 'Pending', 'ReadyForCompletion'])
+          .order('updated_at', ascending: false);
+        
+        final processedServices = await Future.wait(response.map((service) async {
+          try {
+            final requesterId = service['requester_id'] is int 
+                ? service['requester_id'] 
+                : int.parse(service['requester_id'].toString());
+                
+            final providerId = service['provider_id'] is int 
+                ? service['provider_id'] 
+                : int.parse(service['provider_id'].toString());
+                
+            final requesterData = await DatabaseHelper.fetchUserFromId(requesterId);
+            final providerData = await DatabaseHelper.fetchUserFromId(providerId);
+            final skillData = service['skills'] ?? {};
+            
+            final serviceId = service['id'];
+            final newStatus = service['status'];
+            
+            // Create animation controller for new services
+            if (!_serviceAnimationControllers.containsKey(serviceId)) {
+              _serviceAnimationControllers[serviceId] = AnimationController(
+                vsync: this,
+                duration: const Duration(milliseconds: 500),
+              )..value = 1.0;
+            }
+            
+            // Check if this service status has changed
+            if (_serviceStatuses.containsKey(serviceId) && 
+                _serviceStatuses[serviceId] != newStatus) {
+              // Trigger refresh animation for this service
+              _serviceAnimationControllers[serviceId]!.reverse();
+              await _serviceAnimationControllers[serviceId]!.forward();
+            }
+            
+            // Update the status
+            _serviceStatuses[serviceId] = newStatus;
+            
+            return {
+              ...service,
+              'requester_name': requesterData.success ? requesterData.data['username'] : 'Unknown',
+              'provider_name': providerData.success ? providerData.data['username'] : 'Unknown',
+              'skill_name': skillData['name'] ?? 'Unknown Skill',
+              'session_id': serviceId,
+            };
+          } catch (e) {
+            log('Error processing service: $e');
+            return {
+              ...service,
+              'requester_name': 'Unknown',
+              'provider_name': 'Unknown',
+              'skill_name': 'Unknown Skill',
+              'session_id': service['id'],
+              'error': true,
+            };
+          }
+        }));
+        
+        if (mounted) {
+          setState(() {
+            activeServicesFuture = Future.value(processedServices);
+          });
+        }
+      }
+    } catch (e) {
+      log('Error loading active services: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _animationController.dispose();
+    _slideController.dispose();
+    _refreshAnimationController.dispose();
+    // Dispose all chat-specific animation controllers
+    for (var controller in _chatAnimationControllers.values) {
+      controller.dispose();
+    }
+    // Dispose all service-specific animation controllers
+    for (var controller in _serviceAnimationControllers.values) {
+      controller.dispose();
+    }
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadChats() async {
+    if (!mounted) return;
+    
+    try {
+      final userId = await UserIdStorage.getLoggedInUserId();
+      if (userId != null) {
+        setState(() {
+          loggedInUserId = userId is int ? userId : int.tryParse(userId.toString());
+        });
         
         final response = await supabase
           .from('chats')
@@ -167,11 +289,10 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
           .or('user1_id.eq.$userId,user2_id.eq.$userId')
           .order('last_updated', ascending: false);
             
-        log('Chats response: $response');
-        
         if (!mounted) return;
         
         List<Map<String, dynamic>> processedChats = [];
+        Map<int, int> newMessageCounts = {};
         
         for (var chat in response) {
           try {
@@ -187,8 +308,10 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
             String lastMessageTime = '';
             bool hasUnreadFromOther = false;
             int unreadCount = 0;
+            int totalMessages = 0;
             
             if (chat['messages'] != null && chat['messages'].isNotEmpty) {
+              totalMessages = chat['messages'].length;
               try {
                 chat['messages'].sort((a, b) {
                   if (a['timestamp'] == null && b['timestamp'] == null) return 0;
@@ -219,29 +342,35 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                 }
               }
               
-              // Count unread messages
               final unreadMessages = chat['messages'].where((msg) => 
                 !msg['read'] && 
                 msg['sender_id'].toString() != userId.toString()).toList();
               
               hasUnreadFromOther = unreadMessages.isNotEmpty;
               unreadCount = unreadMessages.length;
-            } else if (chat['last_message'] != null) {
-              lastMessageText = chat['last_message'];
-              
-              if (chat['last_updated'] != null) {
-                try {
-                  DateTime timestamp = DateTime.parse(chat['last_updated']);
-                  lastMessageTime = _formatMessageTime(timestamp);
-                } catch (e) {
-                  log('Error parsing last_updated timestamp: ${chat['last_updated']} - $e');
-                  lastMessageTime = '';
-                }
-              }
+            }
+            
+            final chatId = chat['id'];
+            newMessageCounts[chatId] = totalMessages;
+            
+            // Create animation controller for new chats
+            if (!_chatAnimationControllers.containsKey(chatId)) {
+              _chatAnimationControllers[chatId] = AnimationController(
+                vsync: this,
+                duration: const Duration(milliseconds: 500),
+              )..value = 1.0;
+            }
+            
+            // Check if this chat has new messages
+            if (_chatMessageCounts.containsKey(chatId) && 
+                _chatMessageCounts[chatId]! < totalMessages) {
+              // Trigger refresh animation for this chat
+              _chatAnimationControllers[chatId]!.reverse();
+              await _chatAnimationControllers[chatId]!.forward();
             }
             
             processedChats.add({
-              'id': chat['id'],
+              'id': chatId,
               'user_id': otherUserData['id'],
               'username': otherUserData['username'] ?? 'Unknown User',
               'last_message': lastMessageText,
@@ -252,8 +381,9 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
               'session_id': chat['session_id'],
               'is_online': _generateRandomOnlineStatus(),
               'is_typing': false,
-              'pinned': pinnedChats.contains(chat['id']),
-              'muted': mutedChats.contains(chat['id']),
+              'pinned': pinnedChats.contains(chatId),
+              'muted': mutedChats.contains(chatId),
+              'total_messages': totalMessages,
             });
           } catch (e) {
             log('Error processing chat: $e');
@@ -263,16 +393,15 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
         setState(() {
           chats = processedChats;
           filteredChats = _getCategorizedChats();
-          if (!silent) isLoading = false;
+          _chatMessageCounts = newMessageCounts;
+          isLoading = false;
         });
       }
     } catch (e) {
       log('Error loading chats: $e');
-      if (!silent) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -329,10 +458,10 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(isSearching ? 160 : 120),
+        preferredSize: Size.fromHeight(180),
         child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
@@ -341,19 +470,31 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                 Color(0xFF0D47A1),
               ],
             ),
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(24),
+              bottomRight: Radius.circular(24),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2196F3).withOpacity(0.2),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: SafeArea(
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'Messages',
                         style: GoogleFonts.poppins(
-                          fontSize: 30,
+                          fontSize: 28,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
                           letterSpacing: -0.5,
@@ -372,6 +513,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                                 color: Colors.white,
                                 size: 24,
                               ),
+                              padding: const EdgeInsets.all(8),
                               onPressed: () {
                                 setState(() {
                                   isSearching = !isSearching;
@@ -390,6 +532,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                             ),
                             child: IconButton(
                               icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 24),
+                              padding: const EdgeInsets.all(8),
                               onPressed: () {
                                 _loadChats();
                                 _animationController.reset();
@@ -402,47 +545,35 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                     ],
                   ),
                 ),
-                if (isSearching) ...[
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1,
-                        ),
+                Padding(
+                  padding: EdgeInsets.zero,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(24),
+                      bottomRight: Radius.circular(24),
+                    ),
+                    child: TabBar(
+                      controller: _tabController,
+                      indicatorColor: Colors.white,
+                      indicatorWeight: 2,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      labelStyle: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
-                      child: TextField(
-                        controller: searchController,
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Search conversations...',
-                          hintStyle: GoogleFonts.poppins(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.search_rounded,
-                            color: Colors.white70,
-                            size: 20,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                        ),
+                      unselectedLabelStyle: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
                       ),
+                      labelColor: Colors.white,
+                      unselectedLabelColor: Colors.white70,
+                      tabs: const [
+                        Tab(text: 'Chats'),
+                        Tab(text: 'Services'),
+                      ],
                     ),
                   ),
-                ],
-                const SizedBox(height: 20),
+                ),
               ],
             ),
           ),
@@ -463,10 +594,16 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
           opacity: _fadeAnimation,
           child: SlideTransition(
             position: _slideAnimation,
-            child: Column(
+            child: TabBarView(
+              controller: _tabController,
               children: [
-                _buildCategorySelector(),
-                Expanded(child: _buildChatsList()),
+                Column(
+                  children: [
+                    _buildCategorySelector(),
+                    Expanded(child: _buildChatsList()),
+                  ],
+                ),
+                _buildActiveServicesList(),
               ],
             ),
           ),
@@ -522,6 +659,237 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
           );
         },
       ),
+    );
+  }
+
+  Widget _buildActiveServicesList() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: activeServicesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && activeServicesFuture == null) {
+          return _buildLoadingState();
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return _buildEmptyServiceState();
+        }
+
+        return RefreshIndicator(
+          onRefresh: _loadActiveServices,
+          color: const Color(0xFF2196F3),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: snapshot.data!.length,
+            itemBuilder: (context, index) {
+              final service = snapshot.data![index];
+              final serviceId = service['session_id'];
+              final animation = _serviceAnimationControllers[serviceId]?.drive(
+                Tween<double>(begin: 0.0, end: 1.0)
+              ) ?? const AlwaysStoppedAnimation(1.0);
+
+              return FadeTransition(
+                opacity: animation,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2196F3).withOpacity(0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    const Color(0xFF2196F3).withOpacity(0.1),
+                                    const Color(0xFF1976D2).withOpacity(0.05),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Icon(
+                                Icons.work_outline_rounded,
+                                color: Color(0xFF2196F3),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    service['skill_name'] ?? 'Unnamed Service',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF1A1D29),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Requested by ${service['requester_name']}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF2196F3),
+                                    Color(0xFF1976D2),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                service['status'] ?? 'Pending',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  final success = await DatabaseHelper.completeService(service['session_id']);
+                                  if (success) {
+                                    _loadActiveServices();
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Service completed successfully',
+                                            style: GoogleFonts.poppins(color: Colors.white),
+                                          ),
+                                          backgroundColor: Colors.green,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green[600],
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.check_circle_outline, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Complete',
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  final success = await DatabaseHelper.cancelService(service['session_id']);
+                                  if (success) {
+                                    _loadActiveServices();
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Service cancelled',
+                                            style: GoogleFonts.poppins(color: Colors.white),
+                                          ),
+                                          backgroundColor: Colors.red,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red[600],
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.cancel_outlined, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Cancel',
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -625,16 +993,24 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
             : RefreshIndicator(
                 onRefresh: _loadChats,
                 color: const Color(0xFF2196F3),
-                child: ListView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  itemCount: filteredChats.length,
-                  itemBuilder: (context, index) => _buildEnhancedChatTile(filteredChats[index]),
+                child: FadeTransition(
+                  opacity: _refreshAnimation,
+                  child: ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    itemCount: filteredChats.length,
+                    itemBuilder: (context, index) => _buildEnhancedChatTile(filteredChats[index]),
+                  ),
                 ),
               );
   }
 
   Widget _buildEnhancedChatTile(Map<String, dynamic> chat) {
+    final chatId = chat['id'];
+    final animation = _chatAnimationControllers[chatId]?.drive(
+      Tween<double>(begin: 0.0, end: 1.0)
+    ) ?? const AlwaysStoppedAnimation(1.0);
+
     final String username = chat['username'] ?? 'Unknown User';
     final String lastMessage = chat['last_message'] ?? 'No messages yet';
     final String timestamp = chat['timestamp'] ?? '';
@@ -646,317 +1022,419 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
     final bool isPinned = chat['pinned'] ?? false;
     final bool isMuted = chat['muted'] ?? false;
     
-    return Dismissible(
-      key: Key('chat_${chat['id']}'),
-      background: Container(
-        padding: const EdgeInsets.only(left: 20),
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [
-              const Color(0xFF2196F3).withOpacity(0.8),
-              const Color(0xFF1976D2).withOpacity(0.6),
+    return FadeTransition(
+      opacity: animation,
+      child: Dismissible(
+        key: Key('chat_${chat['id']}'),
+        background: Container(
+          padding: const EdgeInsets.only(left: 20),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                const Color(0xFF2196F3).withOpacity(0.8),
+                const Color(0xFF1976D2).withOpacity(0.6),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isPinned ? 'Unpin' : 'Pin',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
             ],
           ),
-          borderRadius: BorderRadius.circular(20),
         ),
-        alignment: Alignment.centerLeft,
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded,
-                color: Colors.white,
-                size: 24,
-              ),
+        secondaryBackground: Container(
+          padding: const EdgeInsets.only(right: 20),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerRight,
+              end: Alignment.centerLeft,
+              colors: [
+                Colors.red.withOpacity(0.8),
+                Colors.red[700]!.withOpacity(0.6),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text(
-              isPinned ? 'Unpin' : 'Pin',
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      ),
-      confirmDismiss: (direction) async {
-        if (direction == DismissDirection.startToEnd) {
-          _togglePinChat(chat['id']);
-          return false;
-        }
-        return false;
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: unread 
-                ? [const Color(0xFFEDF6FF), const Color(0xFFE1EFFF)]
-                : [Colors.white, const Color(0xFFF8F9FF)],
+            borderRadius: BorderRadius.circular(20),
           ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: unread 
-                  ? const Color(0xFF2196F3).withOpacity(0.15)
-                  : Colors.black.withOpacity(0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-              spreadRadius: unread ? 0 : -2,
-            ),
-            if (unread) BoxShadow(
-              color: const Color(0xFF2196F3).withOpacity(0.1),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-              spreadRadius: 0,
-            ),
-          ],
-          border: unread
-              ? Border.all(color: const Color(0xFF2196F3).withOpacity(0.2), width: 1.5)
-              : Border.all(color: Colors.grey.withOpacity(0.1), width: 1),
+          alignment: Alignment.centerRight,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                'Delete',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+            ],
+          ),
         ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              if (loggedInUserId == null) {
-                log('Error: No logged in user ID available');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Error: Unable to determine logged in user',
-                      style: GoogleFonts.poppins(),
+        confirmDismiss: (direction) async {
+          if (direction == DismissDirection.startToEnd) {
+            _togglePinChat(chat['id']);
+            return false;
+          } else if (direction == DismissDirection.endToStart) {
+            // Show delete confirmation dialog
+            bool? shouldDelete = await showDialog<bool>(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  title: Text(
+                    'Delete Chat',
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1D29),
                     ),
-                    backgroundColor: Colors.red,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  ),
+                  content: Text(
+                    'Are you sure you want to delete this chat? This action cannot be undone.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text(
+                        'Delete',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red[600],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+
+            if (shouldDelete == true) {
+              await _deleteChat(chat['id']);
+              return true;
+            }
+            return false;
+          }
+          return false;
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: unread 
+                  ? [const Color(0xFFEDF6FF), const Color(0xFFE1EFFF)]
+                  : [Colors.white, const Color(0xFFF8F9FF)],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: unread 
+                    ? const Color(0xFF2196F3).withOpacity(0.15)
+                    : Colors.black.withOpacity(0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+                spreadRadius: unread ? 0 : -2,
+              ),
+              if (unread) BoxShadow(
+                color: const Color(0xFF2196F3).withOpacity(0.1),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+                spreadRadius: 0,
+              ),
+            ],
+            border: unread
+                ? Border.all(color: const Color(0xFF2196F3).withOpacity(0.2), width: 1.5)
+                : Border.all(color: Colors.grey.withOpacity(0.1), width: 1),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                if (loggedInUserId == null) {
+                  log('Error: No logged in user ID available');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Error: Unable to determine logged in user',
+                        style: GoogleFonts.poppins(),
+                      ),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  );
+                  return;
+                }
+                
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatPage(
+                      chatId: chat['id'],
+                      loggedInUserId: loggedInUserId!,
+                      otherUsername: username,
                     ),
                   ),
                 );
-                return;
-              }
-              
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatPage(
-                    chatId: chat['id'],
-                    loggedInUserId: loggedInUserId!,
-                    otherUsername: username,
-                  ),
-                ),
-              );
-            },
-            onLongPress: () {
-              _showChatOptions(chat);
-            },
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Stack(
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              const Color(0xFF2196F3).withOpacity(0.1),
-                              const Color(0xFF1976D2).withOpacity(0.05),
-                            ],
+              },
+              onLongPress: () {
+                _showChatOptions(chat);
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Stack(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                const Color(0xFF2196F3).withOpacity(0.1),
+                                const Color(0xFF1976D2).withOpacity(0.05),
+                              ],
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: unread ? [
+                              BoxShadow(
+                                color: const Color(0xFF2196F3).withOpacity(0.2),
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              )
+                            ] : [],
+                            image: avatarUrl != null
+                                ? DecorationImage(
+                                    image: NetworkImage(avatarUrl),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
                           ),
-                          shape: BoxShape.circle,
-                          boxShadow: unread ? [
-                            BoxShadow(
-                              color: const Color(0xFF2196F3).withOpacity(0.2),
-                              blurRadius: 10,
-                              spreadRadius: 1,
-                            )
-                          ] : [],
-                          image: avatarUrl != null
-                              ? DecorationImage(
-                                  image: NetworkImage(avatarUrl),
-                                  fit: BoxFit.cover,
+                          child: avatarUrl == null
+                              ? Center(
+                                  child: Text(
+                                    username.isNotEmpty ? username[0].toUpperCase() : '?',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w700,
+                                      color: unread 
+                                          ? const Color(0xFF2196F3)
+                                          : const Color(0xFF2196F3).withOpacity(0.7),
+                                    ),
+                                  ),
                                 )
                               : null,
                         ),
-                        child: avatarUrl == null
-                            ? Center(
-                                child: Text(
-                                  username.isNotEmpty ? username[0].toUpperCase() : '?',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                    color: unread 
-                                        ? const Color(0xFF2196F3)
-                                        : const Color(0xFF2196F3).withOpacity(0.7),
-                                  ),
-                                ),
-                              )
-                            : null,
-                      ),
-                      if (isOnline)
-                        Positioned(
-                          bottom: 2,
-                          right: 2,
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.green.withOpacity(0.4),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Flexible(
-                              child: Row(
-                                children: [
-                                  if (isPinned) ...[
-                                    const Icon(
-                                      Icons.push_pin_rounded,
-                                      size: 16,
-                                      color: Color(0xFF2196F3),
-                                    ),
-                                    const SizedBox(width: 4),
-                                  ],
-                                  if (isMuted) ...[
-                                    Icon(
-                                      Icons.volume_off_rounded,
-                                      size: 16,
-                                      color: Colors.grey[600],
-                                    ),
-                                    const SizedBox(width: 4),
-                                  ],
-                                  Flexible(
-                                    child: Text(
-                                      username,
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: unread ? FontWeight.w800 : FontWeight.w600,
-                                        fontSize: 16,
-                                        color: const Color(0xFF1A1D29),
-                                        letterSpacing: unread ? 0.2 : 0,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                        if (isOnline)
+                          Positioned(
+                            bottom: 2,
+                            right: 2,
+                            child: Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.green.withOpacity(0.4),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
                             ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (unreadCount > 0) ...[
+                          ),
+                      ],
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Flexible(
+                                child: Row(
+                                  children: [
+                                    if (isPinned) ...[
+                                      const Icon(
+                                        Icons.push_pin_rounded,
+                                        size: 16,
+                                        color: Color(0xFF2196F3),
+                                      ),
+                                      const SizedBox(width: 4),
+                                    ],
+                                    if (isMuted) ...[
+                                      Icon(
+                                        Icons.volume_off_rounded,
+                                        size: 16,
+                                        color: Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 4),
+                                    ],
+                                    Flexible(
+                                      child: Text(
+                                        username,
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: unread ? FontWeight.w800 : FontWeight.w600,
+                                          fontSize: 16,
+                                          color: const Color(0xFF1A1D29),
+                                          letterSpacing: unread ? 0.2 : 0,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (unreadCount > 0) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF2196F3).withOpacity(0.4),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Text(
+                                        unreadCount > 99 ? '99+' : unreadCount.toString(),
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFF2196F3).withOpacity(0.4),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
+                                      color: unread 
+                                          ? const Color(0xFF2196F3).withOpacity(0.1)
+                                          : Colors.grey.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      unreadCount > 99 ? '99+' : unreadCount.toString(),
+                                      timestamp,
                                       style: GoogleFonts.poppins(
-                                        color: Colors.white,
+                                        color: unread ? const Color(0xFF2196F3) : Colors.grey[600],
                                         fontSize: 12,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: unread ? FontWeight.w600 : FontWeight.w500,
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
                                 ],
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: unread 
-                                        ? const Color(0xFF2196F3).withOpacity(0.1)
-                                        : Colors.grey.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    timestamp,
-                                    style: GoogleFonts.poppins(
-                                      color: unread ? const Color(0xFF2196F3) : Colors.grey[600],
-                                      fontSize: 12,
-                                      fontWeight: unread ? FontWeight.w600 : FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          isTyping ? 'Typing...' : lastMessage,
-                          style: GoogleFonts.poppins(
-                            color: isTyping 
-                                ? const Color(0xFF2196F3)
-                                : unread 
-                                    ? const Color(0xFF1A1D29) 
-                                    : Colors.grey[600],
-                            fontWeight: isTyping 
-                                ? FontWeight.w600
-                                : unread 
-                                    ? FontWeight.w500 
-                                    : FontWeight.normal,
-                            fontSize: 14,
-                            height: 1.4,
-                            fontStyle: isTyping ? FontStyle.italic : FontStyle.normal,
+                              ),
+                            ],
                           ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            isTyping ? 'Typing...' : lastMessage,
+                            style: GoogleFonts.poppins(
+                              color: isTyping 
+                                  ? const Color(0xFF2196F3)
+                                  : unread 
+                                      ? const Color(0xFF1A1D29) 
+                                      : Colors.grey[600],
+                              fontWeight: isTyping 
+                                  ? FontWeight.w600
+                                  : unread 
+                                      ? FontWeight.w500 
+                                      : FontWeight.normal,
+                              fontSize: 14,
+                              height: 1.4,
+                              fontStyle: isTyping ? FontStyle.italic : FontStyle.normal,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -1015,11 +1493,140 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                 _toggleMuteChat(chat['id']);
               },
             ),
+            _buildOptionTile(
+              icon: Icons.delete_outline_rounded,
+              title: 'Delete Chat',
+              isDestructive: true,
+              onTap: () {
+                Navigator.pop(context);
+                _showDeleteConfirmation(chat);
+              },
+            ),
             const SizedBox(height: 16),
           ],
         ),
       ),
     );
+  }
+
+  void _showDeleteConfirmation(Map<String, dynamic> chat) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Delete Chat',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1A1D29),
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to delete this chat? This action cannot be undone.',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: Colors.grey[700],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _deleteChat(chat['id']);
+              },
+              child: Text(
+                'Delete',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red[600],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteChat(int chatId) async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      // Delete all messages in the chat
+      await supabase
+          .from('messages')
+          .delete()
+          .eq('chat_id', chatId);
+
+      // Delete the chat itself
+      await supabase
+          .from('chats')
+          .delete()
+          .eq('id', chatId);
+
+      // Remove from pinned and muted sets if present
+      setState(() {
+        pinnedChats.remove(chatId);
+        mutedChats.remove(chatId);
+        chats.removeWhere((chat) => chat['id'] == chatId);
+        filteredChats = _getCategorizedChats();
+        isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Chat deleted successfully',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFF2196F3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error deleting chat: $e',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildOptionTile({
@@ -1096,6 +1703,94 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                 fontSize: 16,
                 color: Colors.grey[600],
                 fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyServiceState() {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        margin: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2196F3).withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFF2196F3).withOpacity(0.1),
+                    const Color(0xFF1976D2).withOpacity(0.05),
+                  ],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.work_outline_rounded,
+                size: 64,
+                color: Color(0xFF2196F3),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'No Active Services',
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF1A1D29),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You have no ongoing services at the moment',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Navigate to explore services
+              },
+              icon: const Icon(Icons.explore_rounded, size: 20),
+              label: Text(
+                'Explore Services',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2196F3),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
               ),
             ),
           ],

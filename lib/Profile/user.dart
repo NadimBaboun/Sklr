@@ -4,7 +4,6 @@ import 'package:sklr/Skills/skillInfo.dart';
 import 'package:sklr/Chat/chat.dart';
 import '../database/database.dart';
 import '../database/userIdStorage.dart';
-import '../database/supabase_service.dart';
 import '../Util/navigationbar-bar.dart';
 import 'dart:convert';
 import 'dart:typed_data';

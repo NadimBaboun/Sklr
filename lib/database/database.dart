@@ -215,12 +215,39 @@ class DatabaseHelper {
   // supported fields: email, password, phone_number, bio
   static Future<DatabaseResponse> patchUser(
       int userId, Map<String, dynamic> fields) async {
-    if (fields.isEmpty) {
-      return DatabaseResponse(
-          success: false, data: {'error': 'No fields provided'});
-    }
+    try {
+      if (fields.isEmpty) {
+        return DatabaseResponse(
+            success: false, data: {'error': 'No fields provided'});
+      }
 
-    return await SupabaseService.updateUserData(userId.toString(), fields);
+      // Ensure phone_number is properly formatted
+      if (fields.containsKey('phone_number') && fields['phone_number'] != null && fields['phone_number'].isNotEmpty) {
+        // Make sure there's exactly one space after the country code
+        String phone = fields['phone_number'].trim();
+        if (phone.contains(' ')) {
+          // Split by first space and rejoin with single space
+          List<String> parts = phone.split(' ');
+          String countryCode = parts[0];
+          String number = parts.sublist(1).join('');
+          fields['phone_number'] = '$countryCode $number';
+        }
+      }
+
+      final result = await SupabaseService.updateUserData(userId.toString(), fields);
+      
+      // Log the update attempt
+      print('DEBUG: Updating user $userId with fields: $fields');
+      print('DEBUG: Update result: $result');
+      
+      return result;
+    } catch (e) {
+      print('DEBUG: Error updating user: $e');
+      return DatabaseResponse(
+        success: false,
+        data: {'error': e.toString()},
+      );
+    }
   }
 
   static Future<bool> userExist(String username) async {

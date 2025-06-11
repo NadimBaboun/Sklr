@@ -1551,6 +1551,15 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             message: '$requesterName has requested your service: $skillName',
             senderId: int.parse(session['requester_id'].toString()),
           );
+
+          // Update the chat's last_updated timestamp
+          await supabase
+              .from('chats')
+              .update({
+                'last_message': 'Service requested',
+                'last_updated': DateTime.now().toIso8601String()
+              })
+              .eq('id', widget.chatId);
           
           setState(() {
             _loadSession();
@@ -1602,6 +1611,16 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           -1,
           'The Service Completion has been confirmed by ${session['provider_id'].toString() == widget.loggedInUserId.toString() ? 'the provider' : 'the requester'}.',
         );
+
+        // Update the chat's last_updated timestamp
+        await supabase
+            .from('chats')
+            .update({
+              'last_message': 'Service completed',
+              'last_updated': DateTime.now().toIso8601String()
+            })
+            .eq('id', widget.chatId);
+
         setState(() {
           _loadSession();
           _loadMessages();
@@ -1622,6 +1641,16 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           -1,
           'The Service was Cancelled by ${session['provider_id'].toString() == widget.loggedInUserId.toString() ? 'the provider' : 'the requester'}.',
         );
+
+        // Update the chat's last_updated timestamp
+        await supabase
+            .from('chats')
+            .update({
+              'last_message': 'Service cancelled',
+              'last_updated': DateTime.now().toIso8601String()
+            })
+            .eq('id', widget.chatId);
+
         setState(() {
           _loadSession();
           _loadMessages();
@@ -1648,6 +1677,15 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
       final bool? result = await requestService.showAcceptDialog(context);
       
       if (result == true) {
+        // Update the chat's last_updated timestamp
+        await supabase
+            .from('chats')
+            .update({
+              'last_message': 'Service request accepted',
+              'last_updated': DateTime.now().toIso8601String()
+            })
+            .eq('id', widget.chatId);
+
         setState(() {
           messages = _initializeMessages();
         });
@@ -1660,6 +1698,15 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   
   Future<void> _handleServiceDecline(Map<String, dynamic> session) async {
     try {
+      // Update the chat's last_updated timestamp
+      await supabase
+          .from('chats')
+          .update({
+            'last_message': 'Service request declined',
+            'last_updated': DateTime.now().toIso8601String()
+          })
+          .eq('id', widget.chatId);
+
       setState(() {
         messages = _initializeMessages();
       });
