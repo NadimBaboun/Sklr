@@ -582,7 +582,7 @@ Always aim to exceed user expectations with thorough, creative, and actionable r
           _buildEnhancedAnimatedDots(),
           const SizedBox(width: 16),
           Text(
-            'AI is analyzing and crafting a response...',
+            'AI is analyzing...',
             style: GoogleFonts.poppins(
               color: const Color(0xFF2196F3),
               fontSize: 14,
