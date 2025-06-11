@@ -687,213 +687,48 @@ class _SkillinfoState extends State<Skillinfo> with TickerProviderStateMixin {
           );
         }
 
-        return Column(
-          children: [
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  final self = await UserIdStorage.getLoggedInUserId();
-                  final selfInt = self is String ? int.tryParse(self) ?? -1 : self;
+        return SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              final self = await UserIdStorage.getLoggedInUserId();
+              final selfInt = self is String ? int.tryParse(self) ?? -1 : self;
+              
+              final skillUserId = skill['user_id'] is String ? 
+                  int.tryParse(skill['user_id']) ?? -1 : skill['user_id'];
                   
-                  final skillUserId = skill['user_id'] is String ? 
-                      int.tryParse(skill['user_id']) ?? -1 : skill['user_id'];
-                      
-                  final result = await DatabaseHelper.getOrCreateChat(
-                    selfInt,
-                    skillUserId,
-                    skill['id'],
-                  );
-                  
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ChatPage(
-                        chatId: result,
-                        loggedInUserId: selfInt,
-                        otherUsername: user['username'],
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 20),
-                label: Text(
-                  'Start Conversation',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+              final result = await DatabaseHelper.getOrCreateChat(
+                selfInt,
+                skillUserId,
+                skill['id'],
+              );
+              
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ChatPage(
+                    chatId: result,
+                    loggedInUserId: selfInt,
+                    otherUsername: user['username'],
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: const Color(0xFF2196F3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
+              );
+            },
+            icon: const Icon(Icons.chat_bubble_outline_rounded, size: 20),
+            label: Text(
+              'Start Conversation',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: TextButton.icon(
-                onPressed: () => _confirmReport(context, skill['id']),
-                icon: const Icon(Icons.flag_outlined, size: 20),
-                label: Text(
-                  'Report Skill',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: Colors.red.withOpacity(0.3),
-                    ),
-                  ),
-                ),
+            style: ElevatedButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFF2196F3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _confirmReport(BuildContext context, int skillId) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF2196F3).withOpacity(0.15),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.red.withOpacity(0.1),
-                        Colors.red.withOpacity(0.05),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.flag_rounded,
-                    color: Colors.red[400],
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Report Skill',
-                  style: GoogleFonts.poppins(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1A1D29),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Are you sure you want to report this skill? This action cannot be undone.',
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    color: Colors.grey[600],
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 28),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: GoogleFonts.poppins(
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          Navigator.of(dialogContext).pop();
-                          final success = await DatabaseHelper.createReport(skillId);
-                          
-                          if (mounted) {
-                            scaffoldMessenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  success ? 'Skill reported successfully' : 'Failed to report skill',
-                                  style: GoogleFonts.poppins(),
-                                ),
-                                backgroundColor: success ? Colors.red : Colors.grey[700],
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'Report',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              elevation: 0,
             ),
           ),
         );
