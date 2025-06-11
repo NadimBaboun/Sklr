@@ -18,11 +18,8 @@ class ChatsHomePage extends StatefulWidget {
 
 class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateMixin {
   int? loggedInUserId;
-  Future<List<Map<String, dynamic>>>? chatsFuture;
-  Future<List<Map<String, dynamic>>>? activeServicesFuture;
   Map<int, String> usernameCache = {};
   bool isLoading = false;
-  late TabController _tabController;
   late AnimationController _animationController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
@@ -38,13 +35,11 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _setupAnimations();
     
     // Initialize user ID first
     _initializeUserId().then((_) {
       _loadChats();
-      _loadActiveServices();
       _startPeriodicRefresh();
     });
     
@@ -124,91 +119,28 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
   void _startPeriodicRefresh() {
     Future.delayed(const Duration(seconds: 10), () {
       if (mounted) {
-        _loadChats();
+        _loadChats(silent: true); // Silent refresh
         _startPeriodicRefresh();
       }
     });
   }
 
-  Future<void> _loadActiveServices() async {
-    if (mounted) {
-      final userId = await UserIdStorage.getLoggedInUserId();
-      if (userId != null) {
-        setState(() {
-          loggedInUserId = userId is int ? userId : int.tryParse(userId.toString());
-        });
-        
-        setState(() {
-          activeServicesFuture = Future(() async {
-            try {
-              final response = await supabase
-                .from('sessions')
-                .select('*, skills(*)')
-                .or('requester_id.eq.$loggedInUserId,provider_id.eq.$loggedInUserId')
-                .inFilter('status', ['Requested', 'Pending', 'ReadyForCompletion'])
-                .order('updated_at', ascending: false);
-              
-              final processedServices = await Future.wait(response.map((service) async {
-                try {
-                  final requesterId = service['requester_id'] is int 
-                      ? service['requester_id'] 
-                      : int.parse(service['requester_id'].toString());
-                      
-                  final providerId = service['provider_id'] is int 
-                      ? service['provider_id'] 
-                      : int.parse(service['provider_id'].toString());
-                      
-                  final requesterData = await DatabaseHelper.fetchUserFromId(requesterId);
-                  final providerData = await DatabaseHelper.fetchUserFromId(providerId);
-                  final skillData = service['skills'] ?? {};
-                  
-                  return {
-                    ...service,
-                    'requester_name': requesterData.success ? requesterData.data['username'] : 'Unknown',
-                    'provider_name': providerData.success ? providerData.data['username'] : 'Unknown',
-                    'skill_name': skillData['name'] ?? 'Unknown Skill',
-                    'session_id': service['id'],
-                  };
-                } catch (e) {
-                  log('Error processing service: $e');
-                  return {
-                    ...service,
-                    'requester_name': 'Unknown',
-                    'provider_name': 'Unknown',
-                    'skill_name': 'Unknown Skill',
-                    'session_id': service['id'],
-                    'error': true,
-                  };
-                }
-              }));
-              return processedServices;
-            } catch (e) {
-              log('Error loading active services: $e');
-              return [];
-            }
-          });
-        });
-      } else {
-        log('Warning: No logged in user ID for active services');
-      }
-    }
-  }
-
   @override
   void dispose() {
-    _tabController.dispose();
     _animationController.dispose();
     _slideController.dispose();
     searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadChats() async {
+  Future<void> _loadChats({bool silent = false}) async {
     if (!mounted) return;
     
-    setState(() {
-      isLoading = true;
-    });
+    if (!silent) {
+      setState(() {
+        isLoading = true;
+      });
+    }
     
     try {
       final userId = await UserIdStorage.getLoggedInUserId();
@@ -331,14 +263,16 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
         setState(() {
           chats = processedChats;
           filteredChats = _getCategorizedChats();
-          isLoading = false;
+          if (!silent) isLoading = false;
         });
       }
     } catch (e) {
       log('Error loading chats: $e');
-      setState(() {
-        isLoading = false;
-      });
+      if (!silent) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -395,7 +329,7 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(isSearching ? 200 : 180),
+        preferredSize: Size.fromHeight(isSearching ? 160 : 120),
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -509,25 +443,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
                   ),
                 ],
                 const SizedBox(height: 20),
-                TabBar(
-                  controller: _tabController,
-                  indicatorColor: Colors.white,
-                  indicatorWeight: 3,
-                  labelStyle: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  unselectedLabelStyle: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white70,
-                  tabs: const [
-                    Tab(text: 'Chats'),
-                    Tab(text: 'Services'),
-                  ],
-                ),
               ],
             ),
           ),
@@ -548,16 +463,10 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
           opacity: _fadeAnimation,
           child: SlideTransition(
             position: _slideAnimation,
-            child: TabBarView(
-              controller: _tabController,
+            child: Column(
               children: [
-                Column(
-                  children: [
-                    _buildCategorySelector(),
-                    Expanded(child: _buildChatsList()),
-                  ],
-                ),
-                _buildActiveServicesList(),
+                _buildCategorySelector(),
+                Expanded(child: _buildChatsList()),
               ],
             ),
           ),
@@ -613,313 +522,6 @@ class _ChatsHomePageState extends State<ChatsHomePage> with TickerProviderStateM
           );
         },
       ),
-    );
-  }
-
-  Widget _buildActiveServicesList() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: activeServicesFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting && activeServicesFuture == null) {
-          return _buildLoadingState();
-        }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(
-            child: Container(
-              padding: const EdgeInsets.all(32),
-              margin: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2196F3).withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF2196F3).withOpacity(0.1),
-                          const Color(0xFF1976D2).withOpacity(0.05),
-                        ],
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.work_outline_rounded,
-                      size: 64,
-                      color: Color(0xFF2196F3),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'No Active Services',
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1A1D29),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'You have no ongoing services at the moment',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // Navigate to explore services
-                    },
-                    icon: const Icon(Icons.explore_rounded, size: 20),
-                    label: Text(
-                      'Explore Services',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: _loadActiveServices,
-          color: const Color(0xFF2196F3),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: snapshot.data!.length,
-            itemBuilder: (context, index) {
-              final service = snapshot.data![index];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF2196F3).withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  const Color(0xFF2196F3).withOpacity(0.1),
-                                  const Color(0xFF1976D2).withOpacity(0.05),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(
-                              Icons.work_outline_rounded,
-                              color: Color(0xFF2196F3),
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  service['skill_name'] ?? 'Unnamed Service',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF1A1D29),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Requested by ${service['requester_name']}',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFF2196F3),
-                                  Color(0xFF1976D2),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              service['status'] ?? 'Pending',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                final success = await DatabaseHelper.completeService(service['session_id']);
-                                if (success) {
-                                  _loadActiveServices();
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Service completed successfully',
-                                          style: GoogleFonts.poppins(color: Colors.white),
-                                        ),
-                                        backgroundColor: Colors.green,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green[600],
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.check_circle_outline, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Complete',
-                                    style: GoogleFonts.poppins(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                final success = await DatabaseHelper.cancelService(service['session_id']);
-                                if (success) {
-                                  _loadActiveServices();
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Service cancelled',
-                                          style: GoogleFonts.poppins(color: Colors.white),
-                                        ),
-                                        backgroundColor: Colors.red,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red[600],
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.cancel_outlined, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Cancel',
-                                    style: GoogleFonts.poppins(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
     );
   }
 
