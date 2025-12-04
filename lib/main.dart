@@ -2,15 +2,15 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sklr/database/database.dart';
-import 'package:sklr/database/userIdStorage.dart';
-import 'package:sklr/Home/home.dart';
+import 'package:sklr/database/user_id_storage.dart';
 import 'package:sklr/Util/startpage.dart';
 import 'package:sklr/Util/splash_screen.dart';
-import 'Support/supportFinder.dart';
-import 'Support/supportMain.dart';
+import 'package:sklr/Home/home.dart';
+import 'Support/support_finder.dart';
+import 'Support/support_main.dart';
 import 'Auth/test_auth.dart';
 import 'Auth/fix_user.dart';
-import 'Auth/emailVerification.dart';
+import 'Auth/email_verification.dart';
 
 // Create a global Supabase client that can be accessed from anywhere in the app
 final supabase = Supabase.instance.client;
@@ -185,12 +185,19 @@ void main() async {
   Widget homeWidget = const StartPage();
   
   try {
-    // If we have a session or remembered user, try to log in
-    if ((rememberMe == true && userId != null) || session != null) {
-      // If we have a valid user ID, go to HomePage
-      if (userId != null) {
-        homeWidget = const HomePage();
-      }
+    // Allow Home if there is an active Supabase session
+    // OR if rememberMe is true and we have a saved userId (user wants to stay logged in)
+    if (session != null) {
+      homeWidget = const HomePage();
+      log('Showing HomePage: Active Supabase session found');
+    } else if (rememberMe == true && userId != null) {
+      // User has "remember me" enabled and a saved userId, allow them to stay logged in
+      homeWidget = const HomePage();
+      log('Showing HomePage: Remember me is enabled and userId is saved ($userId)');
+    } else {
+      // Force users through StartPage/Login to establish Supabase Auth session
+      log('No Supabase session found and remember me is ${rememberMe}. Redirecting to StartPage for login.');
+      homeWidget = const StartPage();
     }
   } catch (e) {
     log('Error determining home widget: $e');

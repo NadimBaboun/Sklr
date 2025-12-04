@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // For kIsWeb
 import 'package:google_fonts/google_fonts.dart';
 import '../database/database.dart';
-import '../database/userIdStorage.dart';
-import '../Util/navigationbar-bar.dart';
+import '../database/user_id_storage.dart';
+import '../Util/navigation-bar.dart';
 import 'dart:developer';
 
 class MySkillsPage extends StatefulWidget {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/Skills/skillInfo.dart';
+import 'package:sklr/Skills/skill_info.dart';
 import 'package:sklr/Chat/chat.dart';
 import '../database/database.dart';
-import '../database/userIdStorage.dart';
-import '../Util/navigationbar-bar.dart';
+import '../database/user_id_storage.dart';
+import '../Util/navigation-bar.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 

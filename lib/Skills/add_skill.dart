@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/database/database.dart';
-import 'package:sklr/database/userIdStorage.dart';
+import 'package:sklr/database/user_id_storage.dart';
 
 class AddSkillPage extends StatefulWidget {
   const AddSkillPage({super.key});

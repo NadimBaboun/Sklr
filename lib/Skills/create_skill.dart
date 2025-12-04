@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/database/userIdStorage.dart';
+import 'package:sklr/database/user_id_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../database/supabase_service.dart';

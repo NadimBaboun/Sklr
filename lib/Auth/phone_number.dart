@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:sklr/Home/home.dart';
-import 'package:sklr/Auth/phoneVerify.dart';
+import 'package:sklr/Auth/phone_verify.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 
 class Country {

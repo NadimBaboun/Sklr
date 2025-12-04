@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/Home/categoryListings.dart';
-import 'package:sklr/Home/searchResult.dart';
-import 'package:sklr/Util/navigationbar-bar.dart';
-import 'package:sklr/database/userIdStorage.dart';
+import 'package:sklr/Home/category_listings.dart';
+import 'package:sklr/Home/search_result.dart';
+import 'package:sklr/Util/navigation-bar.dart';
+import 'package:sklr/database/user_id_storage.dart';
 import 'package:sklr/database/database.dart';
-import 'package:sklr/Skills/skillInfo.dart';
+import 'package:sklr/database/presence_service.dart';
+import 'package:sklr/Skills/skill_info.dart';
 import '../database/models.dart';
 import '../Profile/user.dart';
 
@@ -37,6 +38,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
+    // Start global presence tracking so user shows as online regardless of which page they're on
+    PresenceService.ensureTrackingStarted();
   }
 
   @override
@@ -637,31 +640,36 @@ class _ModernServiceCategoryState extends State<ModernServiceCategoryCards> {
             width: 2,
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF2196F3).withOpacity(0.1),
-                    const Color(0xFF2196F3).withOpacity(0.05),
-                  ],
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Center(
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF2196F3).withOpacity(0.1),
+                        const Color(0xFF2196F3).withOpacity(0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/${category['asset']}.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(18),
               ),
-              padding: const EdgeInsets.all(14),
-              child: Image.asset(
-                'assets/images/${category['asset']}.png',
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
+              const SizedBox(height: 12),
+              Text(
                 category['name'],
                 textAlign: TextAlign.center,
                 maxLines: 2,
@@ -673,8 +681,8 @@ class _ModernServiceCategoryState extends State<ModernServiceCategoryCards> {
                   height: 1.2,
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/Profile/profile.dart';
 import 'package:sklr/Chat/chat.dart';
-import 'package:sklr/database/userIdStorage.dart';
+import 'package:sklr/database/user_id_storage.dart';
 import '../database/database.dart';
 import '../Profile/user.dart';
 

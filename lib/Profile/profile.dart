@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:sklr/Util/PrivacyPolicy.dart';
+import 'package:sklr/Util/privacy_policy.dart';
 import 'package:sklr/Profile/dashboard.dart';
-import 'package:sklr/database/userIdStorage.dart';
+import 'package:sklr/database/user_id_storage.dart';
 import 'package:sklr/Util/startpage.dart';
 import 'package:flutter/services.dart';
-import 'editProfile.dart';
-import '../Util/navigationbar-bar.dart';
+import 'edit_profile.dart';
+import '../Util/navigation-bar.dart';
 import '../database/database.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -26,7 +26,6 @@ class _ProfilePageState extends State<ProfilePage>
   bool isLoading = true;
   bool isModerator = false;
   String? _avatarUrl;
-  String? _coverUrl;
   late AnimationController _animationController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
@@ -90,10 +89,15 @@ class _ProfilePageState extends State<ProfilePage>
       if (response.success) {
         final userData = response.data;
         print('DEBUG: User data loaded: $userData');
+        print('DEBUG: avatar_url from database: ${userData?['avatar_url']}');
         setState(() {
           this.userData = userData;
-          _avatarUrl = userData?['avatar_url'];
-          _coverUrl = userData?['cover_url'];
+          // Get avatar_url and handle null/empty strings
+          final avatarUrl = userData?['avatar_url'];
+          _avatarUrl = (avatarUrl != null && avatarUrl.toString().trim().isNotEmpty) 
+              ? avatarUrl.toString().trim() 
+              : null;
+          print('DEBUG: _avatarUrl set to: $_avatarUrl');
           isLoading = false;
           isModerator = userData?['moderator'] ?? false;
         });
@@ -134,6 +138,9 @@ class _ProfilePageState extends State<ProfilePage>
       final folderPath = isCover ? 'covers' : 'profiles';
       final filePath = '$folderPath/$userId/$fileName';
 
+      print('DEBUG: Uploading image to path: $filePath');
+      
+      // Upload the image to Supabase storage
       await supabase.storage.from('profile-pictures').uploadBinary(
         filePath,
         bytes,
@@ -143,23 +150,110 @@ class _ProfilePageState extends State<ProfilePage>
         ),
       );
 
+      // Get the public URL - this returns a String directly
       final imageUrl = supabase.storage.from('profile-pictures').getPublicUrl(filePath);
-      final fieldToUpdate = isCover ? 'cover_url' : 'avatar_url';
       
-      await supabase.from('users').update({
-        fieldToUpdate: imageUrl
-      }).eq('id', userId);
-
-      setState(() {
-        if (isCover) {
-          _coverUrl = imageUrl;
-          userData?['cover_url'] = imageUrl;
+      print('DEBUG: Generated public URL: $imageUrl');
+      print('DEBUG: Full file path in storage: profile-pictures/$filePath');
+      print('DEBUG: User ID: $userId');
+      
+      // Update the appropriate field in the users table
+      print('DEBUG: User ID type: ${userId.runtimeType}, value: $userId');
+      
+      // First, verify the user exists and get their actual ID from the database
+      final userCheck = await supabase
+          .from('users')
+          .select('id, username, avatar_url, cover_url')
+          .eq('id', userId)
+          .maybeSingle();
+      
+      print('DEBUG: User check result: $userCheck');
+      
+      if (userCheck == null) {
+        // Try with string if userId is int
+        if (userId is int) {
+          final userCheck2 = await supabase
+              .from('users')
+              .select('id, username')
+              .eq('id', userId.toString())
+              .maybeSingle();
+          print('DEBUG: User check with string ID: $userCheck2');
+          if (userCheck2 == null) {
+            throw Exception('User with ID $userId not found in database (tried both int and string)');
+          }
         } else {
-          _avatarUrl = imageUrl;
-          userData?['avatar_url'] = imageUrl;
+          throw Exception('User with ID $userId not found in database');
         }
-        isLoading = false;
-      });
+      }
+      
+      Map<String, dynamic> updateData;
+      String updateField;
+      
+      if (isCover) {
+        updateField = 'cover_url';
+        updateData = {'cover_url': imageUrl};
+      } else {
+        updateField = 'avatar_url';
+        updateData = {'avatar_url': imageUrl};
+      }
+      
+      print('DEBUG: Update data: $updateData');
+      print('DEBUG: Updating field: $updateField');
+      
+      // Try updating - Supabase should handle int/string conversion, but let's be explicit
+      List<Map<String, dynamic>> updateResult;
+      
+      try {
+        // First try with userId as-is
+        updateResult = await supabase
+            .from('users')
+            .update(updateData)
+            .eq('id', userId)
+            .select();
+        
+        print('DEBUG: Update result (first attempt): $updateResult');
+        
+        // If that didn't work and userId is int, try as string
+        if (updateResult.isEmpty && userId is int) {
+          print('DEBUG: First attempt failed, trying with string userId');
+          updateResult = await supabase
+              .from('users')
+              .update(updateData)
+              .eq('id', userId.toString())
+              .select();
+          print('DEBUG: Update result (second attempt): $updateResult');
+        }
+        
+        // If still empty and userId is string, try as int
+        if (updateResult.isEmpty && userId is String) {
+          final userIdInt = int.tryParse(userId);
+          if (userIdInt != null) {
+            print('DEBUG: Second attempt failed, trying with int userId: $userIdInt');
+            updateResult = await supabase
+                .from('users')
+                .update(updateData)
+                .eq('id', userIdInt)
+                .select();
+            print('DEBUG: Update result (third attempt): $updateResult');
+          }
+        }
+        
+        // Verify the update was successful
+        if (updateResult.isEmpty) {
+          throw Exception('Failed to update $updateField in database - no rows updated. User ID: $userId (type: ${userId.runtimeType})');
+        }
+        
+        print('DEBUG: Successfully updated $updateField');
+        print('DEBUG: Verified $updateField in updated record: ${updateResult[0][updateField]}');
+        
+      } catch (e) {
+        print('DEBUG: Error during update: $e');
+        print('DEBUG: Error type: ${e.runtimeType}');
+        rethrow;
+      }
+
+      // Reload user data to ensure we have the latest from database
+      await _loadUserData();
 
       if (mounted) {
         _showSuccessSnackBar(
@@ -207,12 +301,7 @@ class _ProfilePageState extends State<ProfilePage>
       body: isLoading 
         ? _buildLoadingState()
         : SafeArea(
-            child: Stack(
-              children: [
-                _buildCoverSection(size),
-                _buildMainContent(isLargeScreen),
-              ],
-            ),
+            child: _buildMainContent(isLargeScreen, size),
           ),
       bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 3),
     );
@@ -258,7 +347,7 @@ class _ProfilePageState extends State<ProfilePage>
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2196F3).withOpacity(0.3),
+            color: const Color(0xFF2196F3).withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -267,60 +356,63 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildMainContent(bool isLargeScreen) {
+  Widget _buildMainContent(bool isLargeScreen, Size size) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(height: MediaQuery.of(context).size.height * 0.09),
+          _buildCoverSection(size),
           
-          Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: isLargeScreen ? 40.0 : 20.0,
-            ),
-            child: Column(
-              children: [
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: _buildProfileImageSection(),
+          Transform.translate(
+            offset: const Offset(0, -80),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isLargeScreen ? 40.0 : 20.0,
+              ),
+              child: Column(
+                children: [
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: _buildProfileImageSection(),
+                    ),
                   ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: _buildUserInfoCard(),
+                  
+                  const SizedBox(height: 24),
+                  
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: _buildUserInfoCard(),
+                    ),
                   ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: _buildCreditsCard(),
+                  
+                  const SizedBox(height: 24),
+                  
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: _buildCreditsCard(),
+                    ),
                   ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: _buildOptionsCard(),
+                  
+                  const SizedBox(height: 24),
+                  
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: _buildOptionsCard(),
+                    ),
                   ),
-                ),
-                
-                const SizedBox(height: 20),
-              ],
+                  
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ],
@@ -347,7 +439,7 @@ class _ProfilePageState extends State<ProfilePage>
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2196F3).withOpacity(0.4),
+                color: const Color(0xFF2196F3).withValues(alpha: 0.4),
                 blurRadius: 25,
                 offset: const Offset(0, 12),
                 spreadRadius: 0,
@@ -362,28 +454,22 @@ class _ProfilePageState extends State<ProfilePage>
             ),
             padding: const EdgeInsets.all(4),
             child: ClipOval(
-              child: _avatarUrl != null && _avatarUrl!.isNotEmpty
-                ? FadeInImage.assetNetwork(
-                    placeholder: 'assets/images/avatar.png',
-                    image: _avatarUrl!,
+              child: _shouldShowAvatarImage()
+                ? Image.network(
+                    _getAvatarUrl()!,
                     fit: BoxFit.cover,
                     width: 148,
                     height: 148,
-                    imageErrorBuilder: (context, error, stackTrace) {
-                      return Image.asset(
-                        'assets/images/avatar.png',
-                        fit: BoxFit.cover,
-                        width: 148,
-                        height: 148,
-                      );
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return _buildInitialAvatar();
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      print('DEBUG: Error loading avatar image: $error');
+                      return _buildInitialAvatar();
                     },
                   )
-                : Image.asset(
-                    'assets/images/avatar.png',
-                    fit: BoxFit.cover,
-                    width: 148,
-                    height: 148,
-                  ),
+                : _buildInitialAvatar(),
             ),
           ),
         ),
@@ -406,7 +492,7 @@ class _ProfilePageState extends State<ProfilePage>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF2196F3).withOpacity(0.4),
+                    color: const Color(0xFF2196F3).withValues(alpha: 0.4),
                     blurRadius: 15,
                     offset: const Offset(0, 6),
                   ),
@@ -424,6 +510,61 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
+  bool _shouldShowAvatarImage() {
+    final avatarUrl = _getAvatarUrl();
+    return avatarUrl != null && avatarUrl.isNotEmpty;
+  }
+
+  String? _getAvatarUrl() {
+    // First check _avatarUrl
+    if (_avatarUrl != null && _avatarUrl!.trim().isNotEmpty) {
+      return _avatarUrl!.trim();
+    }
+    // Fallback to userData
+    if (userData != null) {
+      final avatarUrl = userData!['avatar_url'];
+      if (avatarUrl != null && avatarUrl.toString().trim().isNotEmpty) {
+        return avatarUrl.toString().trim();
+      }
+    }
+    return null;
+  }
+
+  Widget _buildInitialAvatar() {
+    // Get the first letter of the username, or '?' if no username
+    final username = userData?['username'] ?? '';
+    final initial = username.isNotEmpty 
+        ? username[0].toUpperCase() 
+        : '?';
+    
+    return Container(
+      width: 148,
+      height: 148,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF2196F3),
+            Color(0xFF1976D2),
+            Color(0xFF0D47A1),
+          ],
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: GoogleFonts.poppins(
+            fontSize: 64,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildUserInfoCard() {
     return Container(
       width: double.infinity,
@@ -433,7 +574,7 @@ class _ProfilePageState extends State<ProfilePage>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2196F3).withOpacity(0.08),
+            color: const Color(0xFF2196F3).withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
             spreadRadius: 0,
@@ -498,13 +639,13 @@ class _ProfilePageState extends State<ProfilePage>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF2196F3).withOpacity(0.05),
-              const Color(0xFF1976D2).withOpacity(0.02),
+              const Color(0xFF2196F3).withValues(alpha: 0.05),
+              const Color(0xFF1976D2).withValues(alpha: 0.02),
             ],
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: const Color(0xFF2196F3).withOpacity(0.1),
+            color: const Color(0xFF2196F3).withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -513,7 +654,7 @@ class _ProfilePageState extends State<ProfilePage>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF2196F3).withOpacity(0.1),
+                color: const Color(0xFF2196F3).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -556,7 +697,7 @@ class _ProfilePageState extends State<ProfilePage>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2196F3).withOpacity(0.4),
+            color: const Color(0xFF2196F3).withValues(alpha: 0.4),
             blurRadius: 20,
             offset: const Offset(0, 8),
             spreadRadius: 0,
@@ -568,7 +709,7 @@ class _ProfilePageState extends State<ProfilePage>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
@@ -586,7 +727,7 @@ class _ProfilePageState extends State<ProfilePage>
                   'Available Credits',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -614,7 +755,7 @@ class _ProfilePageState extends State<ProfilePage>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2196F3).withOpacity(0.08),
+            color: const Color(0xFF2196F3).withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
             spreadRadius: 0,
@@ -639,10 +780,15 @@ class _ProfilePageState extends State<ProfilePage>
             icon: Icons.person_rounded,
             title: 'Edit Profile',
             subtitle: 'Update your information',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const EditProfilePage()),
-            ),
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const EditProfilePage()),
+              );
+              if (result == true && mounted) {
+                _loadUserData();
+              }
+            },
           ),
           _buildDivider(),
           ModernOptionTile(
@@ -675,7 +821,7 @@ class _ProfilePageState extends State<ProfilePage>
         gradient: LinearGradient(
           colors: [
             Colors.transparent,
-            const Color(0xFF2196F3).withOpacity(0.1),
+            const Color(0xFF2196F3).withValues(alpha: 0.1),
             Colors.transparent,
           ],
         ),
@@ -697,7 +843,7 @@ class _ProfilePageState extends State<ProfilePage>
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2196F3).withOpacity(0.15),
+                  color: const Color(0xFF2196F3).withValues(alpha: 0.15),
                   blurRadius: 30,
                   offset: const Offset(0, 15),
                   spreadRadius: 0,
@@ -844,7 +990,7 @@ class ModernOptionTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(

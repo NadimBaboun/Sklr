@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/Skills/skillInfo.dart';
+import 'package:sklr/Skills/skill_info.dart';
 import 'package:sklr/database/database.dart';
 import '../database/models.dart';
 import 'package:sklr/Profile/user.dart';

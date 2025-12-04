@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/Skills/skillInfo.dart';
+import 'package:sklr/Skills/skill_info.dart';
 import '../database/database.dart';
-import '../Util/navigationbar-bar.dart';
+import 'dart:math';
 
-class OtherProfile extends StatefulWidget {
-  final String userId;
+class UserProfilePage extends StatefulWidget {
+  final int userId;
 
-  const OtherProfile({super.key, required this.userId});
+  const UserProfilePage({super.key, required this.userId});
 
   @override
-  State<OtherProfile> createState() => _OtherProfileState();
+  State<UserProfilePage> createState() => _UserProfilePageState();
 }
 
-class _OtherProfileState extends State<OtherProfile> 
+class _UserProfilePageState extends State<UserProfilePage> 
     with TickerProviderStateMixin {
   Map<String, dynamic>? userData;
   bool isLoading = true;
@@ -24,10 +24,21 @@ class _OtherProfileState extends State<OtherProfile>
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  
+  final List<String> avatars = [
+    'assets/avatars/avatar1.png',
+    'assets/avatars/avatar2.png',
+    'assets/avatars/avatar3.png',
+    'assets/avatars/avatar4.png',
+    'assets/avatars/avatar5.png'
+  ];
+  late String randomAvatar;
 
   @override
   void initState() {
     super.initState();
+    final random = Random();
+    randomAvatar = avatars[random.nextInt(avatars.length)];
     _setupAnimations();
     _fetchUserData();
   }
@@ -69,19 +80,20 @@ class _OtherProfileState extends State<OtherProfile>
   Future<void> _fetchUserData() async {
     try {
       final response = await DatabaseHelper.fetchUserFromId(widget.userId);
-      setState(() {
-        userData = response.data;
-        _avatarUrl = userData?['avatar_url'];
-        _coverUrl = userData?['cover_url'];
-        hasError = !response.success;
-        isLoading = false;
-      });
-      
-      if (!response.success) {
-        print('Error fetching user data: ${userData?['error']}');
+      if (response.success) {
+        setState(() {
+          userData = response.data;
+          _avatarUrl = userData?['avatar_url'];
+          _coverUrl = userData?['cover_url'];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          hasError = true;
+          isLoading = false;
+        });
       }
-    } catch (error) {
-      print('Exception fetching user data: $error');
+    } catch (e) {
       setState(() {
         hasError = true;
         isLoading = false;
@@ -89,14 +101,11 @@ class _OtherProfileState extends State<OtherProfile>
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchUserListings() async {
-    print('Fetching listings for user ID: ${widget.userId}');
+  Future<List<Map<String, dynamic>>> _fetchUserSkills() async {
     try {
-      final skills = await DatabaseHelper.fetchSkills(widget.userId);
-      print('Retrieved ${skills.length} skills for user ${widget.userId}');
-      return skills;
+      return await DatabaseHelper.fetchSkills(widget.userId);
     } catch (e) {
-      print('Error fetching user listings: $e');
+      print('Error fetching user skills: $e');
       return [];
     }
   }
@@ -264,7 +273,7 @@ class _OtherProfileState extends State<OtherProfile>
             ),
           ),
           title: Text(
-            'Profile',
+            'User Profile',
             style: GoogleFonts.poppins(
               color: Colors.white,
               fontWeight: FontWeight.w600,
@@ -312,7 +321,7 @@ class _OtherProfileState extends State<OtherProfile>
             ),
           ),
           title: Text(
-            'Profile',
+            'User Profile',
             style: GoogleFonts.poppins(
               color: Colors.white,
               fontWeight: FontWeight.w600,
@@ -350,46 +359,50 @@ class _OtherProfileState extends State<OtherProfile>
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.error_outline_rounded,
+                    Icons.person_off_rounded,
                     size: 64,
                     color: Color(0xFF2196F3),
                   ),
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Error loading user information',
+                  'User not found',
                   style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    color: const Color(0xFF1A1D29),
+                    fontSize: 24,
                     fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1A1D29),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'The user you are looking for does not exist or is no longer available.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    color: Colors.grey[700],
+                    height: 1.5,
                   ),
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      isLoading = true;
-                      hasError = false;
-                    });
-                    _fetchUserData();
-                  },
+                  onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2196F3),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,
                       vertical: 16,
                     ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     elevation: 0,
                   ),
                   child: Text(
-                    'Try Again',
+                    'Go Back',
                     style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
                       fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -406,7 +419,7 @@ class _OtherProfileState extends State<OtherProfile>
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar(
-            expandedHeight: 380,
+            expandedHeight: 320,
             floating: false,
             pinned: true,
             backgroundColor: const Color(0xFF2196F3),
@@ -447,7 +460,6 @@ class _OtherProfileState extends State<OtherProfile>
           ),
         ],
       ),
-      bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 0),
     );
   }
 
@@ -512,8 +524,8 @@ class _OtherProfileState extends State<OtherProfile>
         Hero(
           tag: 'profile-${userData!['username']}',
           child: Container(
-            width: 160,
-            height: 160,
+            width: 140,
+            height: 140,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -544,11 +556,11 @@ class _OtherProfileState extends State<OtherProfile>
               child: ClipOval(
                 child: _avatarUrl != null && _avatarUrl!.isNotEmpty
                   ? FadeInImage.assetNetwork(
-                      placeholder: 'assets/images/avatar.png',
+                      placeholder: randomAvatar,
                       image: _avatarUrl!,
                       fit: BoxFit.cover,
-                      width: 148,
-                      height: 148,
+                      width: 128,
+                      height: 128,
                       imageErrorBuilder: (context, error, stackTrace) {
                         return _buildFallbackAvatar();
                       },
@@ -558,64 +570,56 @@ class _OtherProfileState extends State<OtherProfile>
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         Text(
           userData!['username'] ?? 'Unknown User',
           style: GoogleFonts.poppins(
-            fontSize: 32,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1,
+        if (userData!['bio'] != null && userData!['bio'].toString().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              userData!['bio'],
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.9),
+                height: 1.4,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.account_balance_wallet_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${userData!['credits'] ?? 0} Credits',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
 
   Widget _buildFallbackAvatar() {
-    return Container(
-      color: const Color(0xFF2196F3).withOpacity(0.1),
-      child: Center(
-        child: Text(
-          (userData!['username'] ?? 'U')[0].toUpperCase(),
-          style: GoogleFonts.poppins(
-            fontSize: 48,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF2196F3),
+    return Image.asset(
+      randomAvatar,
+      fit: BoxFit.cover,
+      width: 128,
+      height: 128,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: const Color(0xFF2196F3).withOpacity(0.1),
+          child: Center(
+            child: Text(
+              (userData!['username'] ?? 'U')[0].toUpperCase(),
+              style: GoogleFonts.poppins(
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF2196F3),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -625,7 +629,7 @@ class _OtherProfileState extends State<OtherProfile>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAboutSection(),
+          _buildStatsSection(),
           const SizedBox(height: 28),
           _buildSkillsSection(),
         ],
@@ -633,7 +637,7 @@ class _OtherProfileState extends State<OtherProfile>
     );
   }
 
-  Widget _buildAboutSection() {
+  Widget _buildStatsSection() {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
@@ -648,80 +652,29 @@ class _OtherProfileState extends State<OtherProfile>
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF2196F3).withOpacity(0.1),
-                      const Color(0xFF1976D2).withOpacity(0.05),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.person_outline_rounded,
-                  color: Color(0xFF2196F3),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                'About',
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1A1D29),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            userData!['bio'] ?? 'No bio available',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              color: Colors.grey[700],
-              height: 1.6,
+          Expanded(
+            child: _buildStatCard(
+              userData!['rating']?.toString() ?? 'N/A',
+              'Rating',
+              Icons.star_rounded,
             ),
           ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _buildInfoTile(
-                  icon: Icons.email_rounded,
-                  title: 'Email',
-                  value: userData!['email'] ?? 'No email',
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildInfoTile(
-                  icon: Icons.phone_rounded,
-                  title: 'Phone',
-                  value: userData!['phone_number'] ?? 'No phone',
-                ),
-              ),
-            ],
+          const SizedBox(width: 20),
+          Expanded(
+            child: _buildStatCard(
+              (userData!['credits'] ?? 0).toString(),
+              'Credits',
+              Icons.account_balance_wallet_rounded,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoTile({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
+  Widget _buildStatCard(String value, String label, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -740,36 +693,36 @@ class _OtherProfileState extends State<OtherProfile>
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                size: 16,
-                color: const Color(0xFF2196F3),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: const Color(0xFF2196F3),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2196F3).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: const Color(0xFF2196F3),
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             value,
             style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF2196F3),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
               fontSize: 14,
-              color: const Color(0xFF1A1D29),
+              color: Colors.grey[700],
               fontWeight: FontWeight.w500,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -814,7 +767,7 @@ class _OtherProfileState extends State<OtherProfile>
         ),
         const SizedBox(height: 20),
         FutureBuilder<List<Map<String, dynamic>>>(
-          future: _fetchUserListings(),
+          future: _fetchUserSkills(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Container(
@@ -839,7 +792,69 @@ class _OtherProfileState extends State<OtherProfile>
               );
             }
 
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            if (snapshot.hasError) {
+              return Container(
+                padding: const EdgeInsets.all(40),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2196F3).withOpacity(0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.red.withOpacity(0.1),
+                              Colors.red.withOpacity(0.05),
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.error_outline_rounded,
+                          size: 48,
+                          color: Colors.red[400],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error loading skills',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        snapshot.error.toString(),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.grey[500],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final skills = snapshot.data ?? [];
+
+            if (skills.isEmpty) {
               return Container(
                 padding: const EdgeInsets.all(40),
                 decoration: BoxDecoration(
@@ -901,10 +916,10 @@ class _OtherProfileState extends State<OtherProfile>
             return ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: snapshot.data!.length,
+              itemCount: skills.length,
               itemBuilder: (context, index) {
-                final listing = snapshot.data![index];
-                return _buildSkillCard(listing);
+                final skill = skills[index];
+                return _buildSkillCard(skill);
               },
             );
           },
@@ -913,7 +928,7 @@ class _OtherProfileState extends State<OtherProfile>
     );
   }
 
-  Widget _buildSkillCard(Map<String, dynamic> listing) {
+  Widget _buildSkillCard(Map<String, dynamic> skill) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -931,14 +946,12 @@ class _OtherProfileState extends State<OtherProfile>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => Skillinfo(id: listing['id']),
-              ),
-            );
-          },
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Skillinfo(id: skill['id']),
+            ),
+          ),
           borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -969,7 +982,7 @@ class _OtherProfileState extends State<OtherProfile>
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        listing['name'] ?? 'No name',
+                        skill['name'] ?? 'Unnamed Skill',
                         style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -994,7 +1007,7 @@ class _OtherProfileState extends State<OtherProfile>
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        '${(listing['cost'] ?? 0).toStringAsFixed(2)} credits',
+                        '${skill['cost'] ?? 0} Credits',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -1004,30 +1017,49 @@ class _OtherProfileState extends State<OtherProfile>
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  listing['description'] ?? 'No description',
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    color: Colors.grey[700],
-                    height: 1.5,
+                if (skill['description'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Text(
+                      skill['description'],
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        color: Colors.grey[700],
+                        height: 1.5,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2196F3).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        skill['category'] ?? 'Uncategorized',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: const Color(0xFF2196F3),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => Skillinfo(id: listing['id']),
-                          ),
-                        );
-                      },
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Skillinfo(id: skill['id']),
+                        ),
+                      ),
                       icon: const Icon(Icons.arrow_forward_rounded, size: 18),
                       label: Text(
                         'View Details',
@@ -1039,8 +1071,8 @@ class _OtherProfileState extends State<OtherProfile>
                         backgroundColor: const Color(0xFF2196F3),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
+                          horizontal: 20,
+                          vertical: 10,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),

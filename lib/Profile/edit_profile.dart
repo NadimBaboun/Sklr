@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/database/database.dart';
-import 'package:sklr/database/userIdStorage.dart';
+import 'package:sklr/database/user_id_storage.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -268,31 +268,23 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
           _locationController.text = userData?['location'] ?? '';
           _websiteController.text = userData?['website'] ?? '';
           
-          // Parse phone number if it exists
-          String phoneNumber = userData?['phone_number'] ?? '';
+          final phoneNumber = (userData?['phone_number'] ?? '').toString().trim();
           if (phoneNumber.isNotEmpty) {
-            // Check if phone has country code
-            if (phoneNumber.startsWith('+')) {
-              // Extract country code (assuming format like +1234567890)
-              int spaceIndex = phoneNumber.indexOf(' ');
-              if (spaceIndex != -1) {
-                _selectedCountryCode = phoneNumber.substring(0, spaceIndex);
-                _phoneController.text = phoneNumber.substring(spaceIndex + 1);
-              } else {
-                // Default handling if no space found
-                _selectedCountryCode = '+1'; // Default to US
-                _phoneController.text = phoneNumber.replaceFirst(RegExp(r'^\+\d+'), '');
-              }
+            final match = RegExp(r'^(\+\d+)\s*(.*)$').firstMatch(phoneNumber);
+            if (match != null) {
+              _selectedCountryCode = match.group(1);
+              final digitsOnly = match.group(2)?.replaceAll(RegExp(r'\D'), '') ?? '';
+              _phoneController.text = digitsOnly;
             } else {
-              _selectedCountryCode = '+1'; // Default to US
-              _phoneController.text = phoneNumber;
+              _selectedCountryCode = '+1';
+              _phoneController.text = phoneNumber.replaceAll(RegExp(r'\D'), '');
             }
-            
-            // Set flag emoji based on country code
-            _setFlagFromCountryCode(_selectedCountryCode!);
+            if (_selectedCountryCode != null) {
+              _setFlagFromCountryCode(_selectedCountryCode!);
+            }
           } else {
-            _selectedCountryCode = '+1'; // Default to US
-            _selectedCountryFlag = '🇺🇸'; // Default US flag
+            _selectedCountryCode = '+1';
+            _selectedCountryFlag = '🇺🇸';
           }
           
           isLoading = false;
@@ -448,7 +440,7 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setStateDialog) {
             return Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -486,7 +478,7 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
                       child: TextField(
                         controller: searchController,
                         onChanged: (value) {
-                          setState(() {
+                          setStateDialog(() {
                             filteredCountries = _countryCodes.entries
                                 .where((entry) => entry.key.toLowerCase().contains(value.toLowerCase()))
                                 .toList();
@@ -525,10 +517,11 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: () {
-                                setState(() {
+                                setStateDialog(() {
                                   _selectedCountryCode = country.value;
                                   _selectedCountryFlag = flag;
                                 });
+                                setState(() {});
                                 Navigator.pop(context);
                               },
                               child: Container(
@@ -705,11 +698,11 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
                               // Format phone number with country code
                               String formattedPhone = '';
                               if (_phoneController.text.isNotEmpty) {
-                                // Remove any spaces from the phone number
-                                String cleanPhone = _phoneController.text.replaceAll(' ', '');
-                                // Format with space after country code for consistency
-                                formattedPhone = '$_selectedCountryCode $cleanPhone';
-                                print('DEBUG: Formatted phone number: $formattedPhone'); // Debug log
+                                final cleanPhone = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+                                if (cleanPhone.isNotEmpty) {
+                                  final countryCode = _selectedCountryCode ?? '+1';
+                                  formattedPhone = '$countryCode $cleanPhone';
+                                }
                               }
                               
                               final update = {
@@ -720,14 +713,11 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
                                 'website': _websiteController.text,
                                 'phone_number': formattedPhone,
                               };
-                              print('DEBUG: Update data being sent: $update'); // Debug log
                               
                               final result = await DatabaseHelper.patchUser(userId!, update);
-                              print('DEBUG: Update result: $result'); // Debug log
                               setState(() => isLoading = false);
                               
                               if (result.success) {
-                                print('DEBUG: Update successful, new data: ${result.data}'); // Debug log
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
@@ -737,10 +727,9 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
                                   );
-                                  Navigator.pop(context);
+                                  Navigator.pop(context, true);
                                 }
                               } else {
-                                print('DEBUG: Update failed: ${result.data}'); // Debug log
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/Chat/chatSessionUtil.dart';
+import 'package:sklr/Chat/chat_session_util.dart';
 import 'package:sklr/Profile/user.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../database/database.dart';
-import '../database/userIdStorage.dart';
-import 'chatsHome.dart';
+import '../database/user_id_storage.dart';
+import 'chats_home.dart';
 import 'dart:developer';
 
 final supabase = Supabase.instance.client;
@@ -14,19 +14,21 @@ class ChatPage extends StatefulWidget {
   final int chatId;
   final int loggedInUserId; 
   final String otherUsername;
+  final int? initialTabIndex; // Tab index to restore when returning
 
   const ChatPage({
     super.key,
     required this.chatId,
     required this.loggedInUserId,
     required this.otherUsername,
+    this.initialTabIndex,
   });
 
   @override
-  _ChatPageState createState() => _ChatPageState();
+  ChatPageState createState() => ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
+class ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   late Future<List<Map<String, dynamic>>> messages;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -73,9 +75,11 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     _slideController.forward();
   }
 
+  RealtimeChannel? _messagesChannel;
+
   void _setupRealTimeListener() {
-    supabase
-        .channel('messages')
+    _messagesChannel = supabase.channel('messages_${widget.chatId}');
+    _messagesChannel!
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
@@ -94,7 +98,12 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    supabase.removeAllChannels();
+    // Only remove the specific messages channel, not all channels
+    // This preserves the global presence channel used by PresenceService
+    if (_messagesChannel != null) {
+      _messagesChannel!.unsubscribe();
+      _messagesChannel = null;
+    }
     _animationController.dispose();
     _slideController.dispose();
     _messageController.dispose();
@@ -439,14 +448,24 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const ChatsHomePage()),
-          (route) => false,
-        );
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (!didPop) {
+          // Ensure messages are marked as read before navigating back
+          await _markMessagesAsRead();
+          // Small delay to ensure database update completes
+          await Future.delayed(const Duration(milliseconds: 200));
+          // Navigate back and restore the correct tab
+          if (!mounted) return;
+          Navigator.pushAndRemoveUntil(
+            this.context,
+            MaterialPageRoute(
+              builder: (context) => ChatsHomePage(initialTabIndex: widget.initialTabIndex),
+            ),
+            (route) => false,
+          );
+        }
       },
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
@@ -509,17 +528,26 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             children: [
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ChatsHomePage()),
-                      (route) => false,
-                    );
+                  onPressed: () async {
+                    // Ensure messages are marked as read before navigating back
+                    await _markMessagesAsRead();
+                    // Small delay to ensure database update completes
+                    await Future.delayed(const Duration(milliseconds: 200));
+                    // Navigate back and restore the correct tab
+                    if (mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatsHomePage(initialTabIndex: widget.initialTabIndex),
+                        ),
+                        (route) => false,
+                      );
+                    }
                   },
                 ),
               ),
@@ -583,7 +611,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                               ),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.3),
+                                color: Colors.white.withValues(alpha: 0.3),
                                 width: 2,
                               ),
                             ),
@@ -647,7 +675,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
               ),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
@@ -693,7 +721,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2196F3).withOpacity(0.1),
+                          color: const Color(0xFF2196F3).withValues(alpha: 0.1),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -741,7 +769,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2196F3).withOpacity(0.08),
+                          color: const Color(0xFF2196F3).withValues(alpha: 0.08),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -757,8 +785,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                const Color(0xFF2196F3).withOpacity(0.1),
-                                const Color(0xFF1976D2).withOpacity(0.05),
+                                const Color(0xFF2196F3).withValues(alpha: 0.1),
+                                const Color(0xFF1976D2).withValues(alpha: 0.05),
                               ],
                             ),
                             shape: BoxShape.circle,
@@ -855,8 +883,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           boxShadow: [
             BoxShadow(
               color: isSentByUser 
-                ? const Color(0xFF2196F3).withOpacity(0.3)
-                : Colors.black.withOpacity(0.08),
+                ? const Color(0xFF2196F3).withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             )
@@ -885,13 +913,13 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color(0xFF2196F3).withOpacity(0.1),
-                const Color(0xFF1976D2).withOpacity(0.05),
+                const Color(0xFF2196F3).withValues(alpha: 0.1),
+                const Color(0xFF1976D2).withValues(alpha: 0.05),
               ],
             ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: const Color(0xFF2196F3).withOpacity(0.2),
+              color: const Color(0xFF2196F3).withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -956,7 +984,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2196F3).withOpacity(0.05),
+                color: const Color(0xFF2196F3).withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -984,7 +1012,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF2196F3).withOpacity(0.05),
+              color: const Color(0xFF2196F3).withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -1019,7 +1047,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2196F3).withOpacity(0.05),
+                  color: const Color(0xFF2196F3).withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -1108,7 +1136,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2196F3).withOpacity(0.05),
+                  color: const Color(0xFF2196F3).withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -1183,7 +1211,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2196F3).withOpacity(0.05),
+                  color: const Color(0xFF2196F3).withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -1211,7 +1239,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2196F3).withOpacity(0.05),
+                color: const Color(0xFF2196F3).withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -1253,7 +1281,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2196F3).withOpacity(0.05),
+                color: const Color(0xFF2196F3).withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -1277,7 +1305,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2196F3).withOpacity(0.05),
+                color: const Color(0xFF2196F3).withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -1353,7 +1381,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2196F3).withOpacity(0.05),
+                color: const Color(0xFF2196F3).withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -1377,7 +1405,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2196F3).withOpacity(0.05),
+                color: const Color(0xFF2196F3).withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -1401,7 +1429,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2196F3).withOpacity(0.05),
+                color: const Color(0xFF2196F3).withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -1430,7 +1458,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2196F3).withOpacity(0.08),
+            color: const Color(0xFF2196F3).withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, -4),
           )
@@ -1452,7 +1480,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                   ),
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(
-                    color: const Color(0xFF2196F3).withOpacity(0.1),
+                    color: const Color(0xFF2196F3).withValues(alpha: 0.1),
                     width: 1,
                   ),
                 ),
@@ -1494,7 +1522,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF2196F3).withOpacity(0.4),
+                    color: const Color(0xFF2196F3).withValues(alpha: 0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -1674,6 +1702,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
       
       RequestService requestService = RequestService(session: session);
       
+      if (!mounted) return;
       final bool? result = await requestService.showAcceptDialog(context);
       
       if (result == true) {

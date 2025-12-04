@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'userIdStorage.dart';
+import 'user_id_storage.dart';
 import 'models.dart'; // Import shared models
 
 // Access the Supabase client from main.dart
@@ -1749,40 +1749,97 @@ class SupabaseService {
   // Get unread message count for current user
   static Future<int> getUnreadMessageCount() async {
     try {
-      // Get current user ID
       final userId = await UserIdStorage.getLoggedInUserId();
       if (userId == null) {
         _logOperation('Messages', 'No user ID available for getUnreadMessageCount', isError: true);
         return 0;
       }
-      
-      // Get all chats where the user is a participant
+
+      final userIdStr = userId.toString();
+
       final chats = await supabase
           .from('chats')
-          .select('id')
-          .or('user1_id.eq.$userId,user2_id.eq.$userId');
-      
+          .select('''
+            id,
+            user1_id,
+            user2_id,
+            deleted_by_user1,
+            deleted_by_user2,
+            sessions(
+              provider_id,
+              requester_id
+            ),
+            messages(
+              sender_id,
+              read
+            )
+          ''')
+          .or('user1_id.eq.$userIdStr,user2_id.eq.$userIdStr');
+
       if (chats.isEmpty) {
         return 0;
       }
-      
-      int totalUnread = 0;
-      
-      // For each chat, count unread messages where the user is not the sender
+
+      final Set<String> unreadGroupKeys = {};
+
       for (final chat in chats) {
-        final chatId = chat['id'];
-        
-        final unreadCount = await supabase
-            .from('messages')
-            .select('id')
-            .eq('chat_id', chatId)
-            .neq('sender_id', userId.toString())
-            .eq('read', false);
-            
-        totalUnread += unreadCount.length;
+        // Skip chats that have been deleted by the current user
+        final dynamic user1Id = chat['user1_id'];
+        final dynamic user2Id = chat['user2_id'];
+        final bool isUser1 = user1Id != null && user1Id.toString() == userIdStr;
+        if (isUser1 && chat['deleted_by_user1'] == true) {
+          continue;
+        }
+        if (!isUser1 && chat['deleted_by_user2'] == true) {
+          continue;
+        }
+        final List<dynamic> messages = (chat['messages'] as List<dynamic>? ?? []);
+        final bool hasUnreadMessage = messages.any((message) {
+          final senderId = message['sender_id'];
+          final isRead = message['read'] == true;
+          if (isRead) return false;
+          return senderId?.toString() != userIdStr;
+        });
+
+        if (!hasUnreadMessage) {
+          continue;
+        }
+
+        final dynamic otherUserRaw = isUser1 ? user2Id : user1Id;
+        if (otherUserRaw == null) {
+          continue;
+        }
+
+        bool isRequester = false;
+        bool isProvider = false;
+
+        final sessionData = chat['sessions'];
+        Map<String, dynamic>? session;
+        if (sessionData is List && sessionData.isNotEmpty) {
+          session = Map<String, dynamic>.from(sessionData.first);
+        } else if (sessionData is Map<String, dynamic>) {
+          session = Map<String, dynamic>.from(sessionData);
+        }
+
+        if (session != null) {
+          final providerId = session['provider_id'];
+          final requesterId = session['requester_id'];
+          isProvider = providerId?.toString() == userIdStr;
+          isRequester = requesterId?.toString() == userIdStr;
+        }
+
+        String roleKey = 'unknown';
+        if (isProvider) {
+          roleKey = 'provider';
+        } else if (isRequester) {
+          roleKey = 'requester';
+        }
+
+        final otherUserKey = otherUserRaw.toString();
+        unreadGroupKeys.add('${otherUserKey}_$roleKey');
       }
-      
-      return totalUnread;
+
+      return unreadGroupKeys.length;
     } catch (e) {
       _logOperation('Messages', 'Error getting unread message count: $e', isError: true);
       return 0;
@@ -1809,11 +1866,23 @@ class SupabaseService {
           .or('user1_id.eq.$userIdStr,user2_id.eq.$userIdStr')
           .order('last_updated', ascending: false);
       
-      _logOperation('Chats', 'Found ${chats.length} chats for user $userId');
+      // Filter out chats that have been deleted by the current user
+      final filteredChats = chats.where((chat) {
+        final bool isUser1 = chat['user1_id']?.toString() == userIdStr;
+        if (isUser1 && chat['deleted_by_user1'] == true) {
+          return false;
+        }
+        if (!isUser1 && chat['deleted_by_user2'] == true) {
+          return false;
+        }
+        return true;
+      }).toList();
+      
+      _logOperation('Chats', 'Found ${filteredChats.length} chats for user $userId (filtered from ${chats.length} total)');
       
       return DatabaseResponse(
         success: true,
-        data: chats,
+        data: filteredChats,
       );
     } catch (e) {
       _logOperation('Chats', 'Error getting user chats: $e', isError: true);

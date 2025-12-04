@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'supportFinder.dart';
-import '../Util/navigationbar-bar.dart';
+import 'support_finder.dart';
+import '../Util/navigation-bar.dart';
 
 class SupportMainPage extends StatefulWidget {
   const SupportMainPage({super.key});

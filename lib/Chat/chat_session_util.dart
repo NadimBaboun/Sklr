@@ -1,9 +1,8 @@
-// ignore_for_file: file_names, use_build_context_synchronously, deprecated_member_use
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sklr/database/database.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/database/userIdStorage.dart';
+import 'package:sklr/database/user_id_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Get the Supabase instance with a different name to avoid conflicts

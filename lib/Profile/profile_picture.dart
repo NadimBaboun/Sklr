@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import '../database/userIdStorage.dart';
+import '../database/user_id_storage.dart';
 
 final supabase = Supabase.instance.client;
 

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sklr/database/userIdStorage.dart';
-import 'package:sklr/Skills/skillInfo.dart';
+import 'package:sklr/database/user_id_storage.dart';
+import 'package:sklr/Skills/skill_info.dart';
 import '../database/database.dart';
-import '../Util/navigationbar-bar.dart';
-import 'addSkill.dart';
+import '../Util/navigation-bar.dart';
+import 'add_skill.dart';
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -74,16 +74,6 @@ class MyOrdersPageState extends State<MyOrdersPage> with SingleTickerProviderSta
             fontWeight: FontWeight.w600,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF6296FF)),
-            onPressed: () {
-              if (loggedInUserId != null) {
-                _loadSkills(loggedInUserId!);
-              }
-            },
-          ),
-        ],
       ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),

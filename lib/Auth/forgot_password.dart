@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sklr/database/supabase_service.dart';
-import 'package:sklr/Auth/checkMail.dart';
+import 'package:sklr/Auth/check_mail.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -186,5 +186,3 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     );
   }
 }
-// responsive check done 
-//forgot password page done 

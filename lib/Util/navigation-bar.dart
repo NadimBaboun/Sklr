@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import '../Chat/chatsHome.dart';
-import '../Skills/myOrders.dart';
+import '../Chat/chats_home.dart';
+import '../Skills/my_orders.dart';
 import '../Home/home.dart';
 import '../Profile/profile.dart';
-import '../Support/supportMain.dart';
+import '../Support/support_main.dart';
 import '../database/supabase_service.dart';
+import '../database/presence_service.dart';
 
 class CustomBottomNavigationBar extends StatefulWidget {
   final int currentIndex;
   final Function(int)? onTap;
+  final int? unreadCountOverride;
 
   const CustomBottomNavigationBar({
     super.key,
     required this.currentIndex,
     this.onTap,
+    this.unreadCountOverride,
   });
 
   @override
@@ -27,15 +30,38 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
   @override
   void initState() {
     super.initState();
+    // Initialize with override value if provided
+    if (widget.unreadCountOverride != null) {
+      unreadCount = widget.unreadCountOverride!;
+    }
     _loadUnreadMessages();
     _loadNotifications();
     _startPeriodicRefresh();
+    PresenceService.ensureTrackingStarted();
+  }
+  
+  @override
+  void didUpdateWidget(CustomBottomNavigationBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update unread count when override value changes
+    if (widget.unreadCountOverride != oldWidget.unreadCountOverride) {
+      if (widget.unreadCountOverride != null) {
+        setState(() {
+          unreadCount = widget.unreadCountOverride!;
+        });
+      } else {
+        _loadUnreadMessages();
+      }
+    }
   }
 
   void _startPeriodicRefresh() {
     Future.delayed(const Duration(seconds: 10), () {
       if (mounted) {
-        _loadUnreadMessages();
+        // Only refresh from database if no override is provided
+        if (widget.unreadCountOverride == null) {
+          _loadUnreadMessages();
+        }
         _loadNotifications();
         _startPeriodicRefresh();
       }
@@ -44,11 +70,20 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
 
   Future<void> _loadUnreadMessages() async {
     try {
-      final count = await SupabaseService.getUnreadMessageCount();
-      if (mounted) {
-        setState(() {
-          unreadCount = count;
-        });
+      // If unreadCountOverride is provided, use it; otherwise calculate from database
+      if (widget.unreadCountOverride != null) {
+        if (mounted) {
+          setState(() {
+            unreadCount = widget.unreadCountOverride!;
+          });
+        }
+      } else {
+        final count = await SupabaseService.getUnreadMessageCount();
+        if (mounted) {
+          setState(() {
+            unreadCount = count;
+          });
+        }
       }
     } catch (e) {
       // Handle error silently
@@ -187,3 +222,4 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
     );
   }
 }
+ 

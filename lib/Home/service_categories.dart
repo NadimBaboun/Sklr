@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'categoryListings.dart';
+import 'category_listings.dart';
 
 class ServiceCategoryPage extends StatelessWidget {
   const ServiceCategoryPage({super.key});

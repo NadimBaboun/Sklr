@@ -3,12 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:sklr/database/database.dart';
-import 'package:sklr/database/userIdStorage.dart';
-import 'package:sklr/Auth/phoneNumber.dart';
+import 'package:sklr/database/user_id_storage.dart';
+import 'package:sklr/Auth/phone_number.dart';
 import 'login.dart';
-import '../Util/PrivacyPolicy.dart';
+import '../Util/privacy_policy.dart';
 import '../database/models.dart';
-import 'pendingVerification.dart';
+import 'pending_verification.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});

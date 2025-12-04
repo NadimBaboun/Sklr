@@ -1,7 +1,7 @@
 import 'dart:developer';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:sklr/database/supabase.dart' as supabase_client;
-import 'userIdStorage.dart';
+import 'user_id_storage.dart';
 import 'supabase_service.dart';
 // Import with a prefix to avoid conflicts
 import 'models.dart'; // Import shared models
