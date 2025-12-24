@@ -35,19 +35,12 @@
 
 ## Meet the Team
 
-- **Mohammad Hamarsheh** : ```Responsible for the new UI, Added & Trained Gemni 2 Model, Created the new database, Built the Overall Current App ``` 
+- **Nadeem Baboun**: ```Responsible for enhancing the UI of the app, Overhauled the chat system, ```
+- **Mohammad Hamarsheh** : ```Responsible for the new UI, Added & Trained Gemni 2 Model, Created the new database``` 
 - **Mohammad Al-Masri** 
-- **Nadeem Baboun**
 
 
 
 <div align="center">
-  <a href="https://hamarshehmhmd.netlify.app/">Portfolio</a> • 
-  <a href="mailto:mhh24001@student.mdu.se">Contact Me</a> •  
-  <a href="https://linkedin.com/in/hamarshehmhmd">LinkedIn</a> • 
+  <a href="mailto:nbn24004@student.mdu.se">Contact Me</a> •  
 </div>
-
-
-
-
-*This ReadMe Has Been Done by Mohammad Hamarsheh*
