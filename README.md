@@ -35,7 +35,7 @@
 
 ## Meet the Team
 
-- **Nadeem Baboun**: ```Responsible for enhancing the UI of the app, Overhauled the chat system, ```
+- **Nadeem Baboun**: ```Responsible for enhancing the UI of the app, Overhauled the chat system ```
 - **Mohammad Hamarsheh** : ```Responsible for the new UI, Added & Trained Gemni 2 Model, Created the new database``` 
 - **Mohammad Al-Masri** 
 
